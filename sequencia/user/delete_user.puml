@@ -1,0 +1,49 @@
+@startuml delete_user
+
+title DELETE /users/{id} — Remover Usuário (Soft Delete)
+
+actor Client
+participant "UserController" as Ctrl
+participant "DeleteUserUseCase" as UC
+participant "User" as Entity
+participant "UserRepositoryPort" as Repo
+database "users" as DB
+
+Client -> Ctrl: DELETE /users/{id}
+activate Ctrl
+
+Ctrl -> UC: execute(id)
+activate UC
+
+UC -> Repo: findById(UserId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM users WHERE id=?
+DB --> Repo: Optional<User>
+Repo --> UC: Optional<User>
+deactivate Repo
+
+alt not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> Client: 404 Not Found
+else found
+  UC -> Entity: delete()
+  activate Entity
+  note right of Entity: status = DELETED
+  Entity --> UC:
+  deactivate Entity
+
+  UC -> Repo: delete(user)
+  activate Repo
+  Repo -> DB: UPDATE users SET status = DELETED
+  DB --> Repo:
+  Repo --> UC:
+  deactivate Repo
+
+  UC --> Ctrl: void
+  Ctrl --> Client: 204 No Content
+end
+
+deactivate UC
+deactivate Ctrl
+
+@enduml

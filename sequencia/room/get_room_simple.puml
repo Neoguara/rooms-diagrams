@@ -1,0 +1,68 @@
+@startuml get_room_simple
+
+title GET /rooms e GET /rooms/{id} — Buscar Sala
+
+actor Client
+participant "RoomController" as Ctrl
+participant "GetRoomUseCase" as UC
+participant "RoomMapper" as Mapper
+participant "RoomRepositoryPort" as Repo
+database "rooms" as DB
+
+== Listar todas ==
+
+Client -> Ctrl: GET /rooms
+activate Ctrl
+
+Ctrl -> UC: findAll()
+activate UC
+
+UC -> Repo: findAll()
+activate Repo
+Repo -> DB: SELECT * FROM rooms\nWHERE status != DELETED
+DB --> Repo: List<Room>
+Repo --> UC: List<Room>
+deactivate Repo
+
+UC -> Mapper: toDetailResponse(each room, null, null, null)
+activate Mapper
+Mapper --> UC: List<RoomDetailResponse>
+deactivate Mapper
+
+UC --> Ctrl: List<RoomDetailResponse>
+deactivate UC
+Ctrl --> Client: 200 OK {List<RoomDetailResponse>}
+deactivate Ctrl
+
+== Buscar por ID ==
+
+Client -> Ctrl: GET /rooms/{id}
+activate Ctrl
+
+Ctrl -> UC: findById(id)
+activate UC
+
+UC -> Repo: findById(RoomId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM rooms WHERE id=?
+DB --> Repo: Optional<Room>
+Repo --> UC: Optional<Room>
+deactivate Repo
+
+alt not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> Client: 404 Not Found
+else found
+  UC -> Mapper: toDetailResponse(room, null, null, null)
+  activate Mapper
+  Mapper --> UC: RoomDetailResponse
+  deactivate Mapper
+
+  UC --> Ctrl: RoomDetailResponse
+  Ctrl --> Client: 200 OK {RoomDetailResponse}
+end
+
+deactivate UC
+deactivate Ctrl
+
+@enduml

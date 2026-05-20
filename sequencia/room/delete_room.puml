@@ -1,0 +1,50 @@
+@startuml delete_room
+
+title DELETE /rooms/{id} — Remover Sala (Soft Delete)
+
+actor Client
+participant "RoomController" as Ctrl
+participant "DeleteRoomUseCase" as UC
+participant "Room" as Entity
+participant "RoomRepositoryPort" as Repo
+database "rooms" as DB
+
+Client -> Ctrl: DELETE /rooms/{id}
+activate Ctrl
+
+Ctrl -> UC: execute(id)
+activate UC
+
+UC -> Repo: findById(RoomId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM rooms WHERE id=?
+DB --> Repo: Optional<Room>
+Repo --> UC: Optional<Room>
+deactivate Repo
+
+alt not found
+  UC --> Ctrl: ResourceNotFoundException
+  deactivate UC
+  Ctrl --> Client: 404 Not Found
+  deactivate Ctrl
+else found
+  UC -> Entity: delete()
+  activate Entity
+  note right of Entity: Lança InvalidStateException (422)\nse status != ARCHIVED\nstatus = DELETED
+  Entity --> UC:
+  deactivate Entity
+
+  UC -> Repo: save(room)
+  activate Repo
+  Repo -> DB: UPDATE rooms SET status = DELETED
+  DB --> Repo: room
+  Repo --> UC: saved
+  deactivate Repo
+
+  UC --> Ctrl: void
+  deactivate UC
+  Ctrl --> Client: 204 No Content
+  deactivate Ctrl
+end
+
+@enduml

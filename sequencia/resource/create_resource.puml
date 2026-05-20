@@ -1,0 +1,45 @@
+@startuml create_resource
+
+title POST /resources — Criar Recurso
+
+actor Client
+participant "ResourceController" as Ctrl
+participant "CreateResourceUseCase" as UC
+participant "ResourceMapper" as Mapper
+participant "Resource" as Entity
+participant "ResourceRepositoryPort" as Repo
+database "resources" as DB
+
+Client -> Ctrl: POST /resources\n{name, description, icon}
+activate Ctrl
+
+Ctrl -> UC: execute(CreateResourceRequest)
+activate UC
+
+UC -> Mapper: toDomain(request)
+activate Mapper
+Mapper -> Entity **: create(name, description, icon)
+note right of Entity: ResourceValidation.validate()\nid = new UUID\nstatus = ACTIVE\ncreatedAt = now()
+Entity --> Mapper: resource
+Mapper --> UC: resource
+deactivate Mapper
+
+UC -> Repo: save(resource)
+activate Repo
+Repo -> DB: INSERT INTO resources
+DB --> Repo: resource
+Repo --> UC: saved
+deactivate Repo
+
+UC -> Mapper: toResponse(saved)
+activate Mapper
+Mapper --> UC: ResourceResponse
+deactivate Mapper
+
+UC --> Ctrl: ResourceResponse
+deactivate UC
+
+Ctrl --> Client: 201 Created {ResourceResponse}
+deactivate Ctrl
+
+@enduml

@@ -1,0 +1,66 @@
+@startuml jwt_filter
+
+title Requisição Autenticada — Validação do JWT (SecurityFilter)
+
+actor Client
+participant "SecurityFilter\n(OncePerRequestFilter)" as Filter
+participant "JwtService" as Jwt
+participant "UserAuthPort\n(UserAuthAdapter)" as AuthPort
+participant "UserRepositoryPort" as UserRepo
+participant "SecurityContextHolder" as SecCtx
+participant "Controller" as Ctrl
+database "users" as DB
+
+Client -> Filter: HTTP Request\nAuthorization: Bearer <token>
+activate Filter
+
+alt header Authorization ausente ou sem "Bearer "
+  Filter -> Ctrl: doFilterChain (sem autenticação)
+  activate Ctrl
+  Ctrl --> Client: 401 Unauthorized
+  deactivate Ctrl
+  deactivate Filter
+else token presente
+  Filter -> Jwt: extractUsername(token)
+  activate Jwt
+  Jwt --> Filter: email
+  deactivate Jwt
+
+  Filter -> Jwt: isTokenValid(token)
+  activate Jwt
+  note right of Jwt: Verifica assinatura (secret)\ne expiração do token
+  Jwt --> Filter: boolean
+  deactivate Jwt
+
+  alt token inválido ou expirado
+    Filter -> Ctrl: doFilterChain (sem autenticação)
+    activate Ctrl
+    Ctrl --> Client: 401 Unauthorized
+    deactivate Ctrl
+    deactivate Filter
+  else token válido
+    Filter -> AuthPort: findByEmail(email)
+    activate AuthPort
+    AuthPort -> UserRepo: findByEmail(email)
+    activate UserRepo
+    UserRepo -> DB: SELECT * FROM users\nWHERE email=? AND status!=DELETED
+    DB --> UserRepo: Optional<User>
+    UserRepo --> AuthPort: Optional<AuthUserData>
+    deactivate UserRepo
+    AuthPort --> Filter: Optional<AuthUserData>
+    deactivate AuthPort
+
+    Filter -> SecCtx: setAuthentication(\nUsernamePasswordAuthenticationToken\n(userDetails, authorities))
+    activate SecCtx
+    SecCtx --> Filter:
+    deactivate SecCtx
+
+    Filter -> Ctrl: doFilterChain (autenticado)
+    activate Ctrl
+    Ctrl --> Client: 200 OK (resposta do endpoint)
+    deactivate Ctrl
+    deactivate Filter
+  end
+end
+
+@enduml

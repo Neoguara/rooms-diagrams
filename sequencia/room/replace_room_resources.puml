@@ -1,0 +1,69 @@
+@startuml replace_room_resources
+
+title PUT /rooms/{id}/resources — Substituir Recursos da Sala
+
+actor Client
+participant "RoomController" as Ctrl
+participant "ReplaceRoomResourcesUseCase" as UC
+participant "RoomRepositoryPort" as RoomRepo
+participant "ResourceRepositoryPort" as ResRepo
+participant "RoomResourceRepositoryPort" as RRRepo
+database "rooms\nroom_resources\nresources" as DB
+
+Client -> Ctrl: PUT /rooms/{id}/resources\n{resourceIds: [uuid, ...]}
+activate Ctrl
+
+Ctrl -> UC: execute(roomId, ReplaceRoomResourcesRequest)
+activate UC
+
+UC -> RoomRepo: findById(RoomId.of(roomId))
+activate RoomRepo
+RoomRepo -> DB: SELECT * FROM rooms WHERE id=?
+DB --> RoomRepo: Optional<Room>
+RoomRepo --> UC: Optional<Room>
+deactivate RoomRepo
+
+alt sala não encontrada
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> Client: 404 Not Found
+else sala encontrada
+
+  loop para cada resourceId na nova lista
+    UC -> ResRepo: findById(ResourceId.of(resourceId))
+    activate ResRepo
+    ResRepo -> DB: SELECT * FROM resources WHERE id=?
+    DB --> ResRepo: Optional<Resource>
+    ResRepo --> UC: Optional
+    deactivate ResRepo
+
+    alt resource não encontrado
+      UC --> Ctrl: ResourceNotFoundException
+      Ctrl --> Client: 404 Not Found
+    end
+  end
+
+  note over UC: Todos os resources foram validados
+
+  UC -> RRRepo: deleteByRoomId(roomId)
+  activate RRRepo
+  RRRepo -> DB: DELETE FROM room_resources WHERE room_id=?
+  DB --> RRRepo:
+  RRRepo --> UC:
+  deactivate RRRepo
+
+  loop para cada resourceId validado
+    UC -> RRRepo: save(RoomResource.create(roomId, resourceId))
+    activate RRRepo
+    RRRepo -> DB: INSERT INTO room_resources
+    DB --> RRRepo:
+    RRRepo --> UC:
+    deactivate RRRepo
+  end
+
+  UC --> Ctrl: RoomResourcesResponse\n{roomId, resourceIds[]}
+  deactivate UC
+  Ctrl --> Client: 200 OK {RoomResourcesResponse}
+  deactivate Ctrl
+end
+
+@enduml

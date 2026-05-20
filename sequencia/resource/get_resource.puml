@@ -1,0 +1,65 @@
+@startuml get_resource
+
+title GET /resources e GET /resources/{id} — Buscar Recurso
+
+actor Client
+participant "ResourceController" as Ctrl
+participant "GetResourceUseCase" as UC
+participant "ResourceMapper" as Mapper
+participant "ResourceRepositoryPort" as Repo
+database "resources" as DB
+
+== Listar todos ==
+
+Client -> Ctrl: GET /resources
+activate Ctrl
+Ctrl -> UC: findAll()
+activate UC
+
+UC -> Repo: findAll()
+activate Repo
+Repo -> DB: SELECT * FROM resources\nWHERE status != DELETED
+DB --> Repo: List<Resource>
+Repo --> UC: List<Resource>
+deactivate Repo
+
+UC -> Mapper: toResponse(each resource)
+activate Mapper
+Mapper --> UC: List<ResourceResponse>
+deactivate Mapper
+
+UC --> Ctrl: List<ResourceResponse>
+deactivate UC
+Ctrl --> Client: 200 OK {List<ResourceResponse>}
+deactivate Ctrl
+
+== Buscar por ID ==
+
+Client -> Ctrl: GET /resources/{id}
+activate Ctrl
+Ctrl -> UC: findById(id)
+activate UC
+
+UC -> Repo: findById(ResourceId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM resources\nWHERE id=? AND status!=DELETED
+DB --> Repo: Optional<Resource>
+Repo --> UC: Optional<Resource>
+deactivate Repo
+
+alt not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> Client: 404 Not Found
+else found
+  UC -> Mapper: toResponse(resource)
+  activate Mapper
+  Mapper --> UC: ResourceResponse
+  deactivate Mapper
+  UC --> Ctrl: ResourceResponse
+  Ctrl --> Client: 200 OK {ResourceResponse}
+end
+
+deactivate UC
+deactivate Ctrl
+
+@enduml

@@ -1,0 +1,55 @@
+@startuml update_resource
+
+title PUT /resources/{id} — Atualizar Recurso
+
+actor Client
+participant "ResourceController" as Ctrl
+participant "UpdateResourceUseCase" as UC
+participant "ResourceMapper" as Mapper
+participant "Resource" as Entity
+participant "ResourceRepositoryPort" as Repo
+database "resources" as DB
+
+Client -> Ctrl: PUT /resources/{id}\n{name, description, icon}
+activate Ctrl
+
+Ctrl -> UC: execute(id, UpdateResourceRequest)
+activate UC
+
+UC -> Repo: findById(ResourceId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM resources WHERE id=?
+DB --> Repo: Optional<Resource>
+Repo --> UC: Optional<Resource>
+deactivate Repo
+
+alt not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> Client: 404 Not Found
+else found
+  UC -> Entity: update(name, description, icon)
+  activate Entity
+  note right of Entity: ResourceValidation.validate()\nupdatedAt = now()
+  Entity --> UC:
+  deactivate Entity
+
+  UC -> Repo: save(resource)
+  activate Repo
+  Repo -> DB: UPDATE resources SET\nname=?, description=?, icon=?, updated_at=?
+  DB --> Repo: resource
+  Repo --> UC: saved
+  deactivate Repo
+
+  UC -> Mapper: toResponse(saved)
+  activate Mapper
+  Mapper --> UC: ResourceResponse
+  deactivate Mapper
+
+  UC --> Ctrl: ResourceResponse
+  Ctrl --> Client: 200 OK {ResourceResponse}
+end
+
+deactivate UC
+deactivate Ctrl
+
+@enduml

@@ -1,0 +1,69 @@
+@startuml update_room_status
+
+title PATCH /rooms/{id}/status — Atualizar Status da Sala
+
+actor Client
+participant "RoomController" as Ctrl
+participant "UpdateRoomStatusUseCase" as UC
+participant "RoomMapper" as Mapper
+participant "Room" as Entity
+participant "RoomRepositoryPort" as Repo
+database "rooms" as DB
+
+Client -> Ctrl: PATCH /rooms/{id}/status\n{status: AVAILABLE|INACTIVE|ARCHIVED|MAINTENANCE}
+activate Ctrl
+
+Ctrl -> UC: execute(id, status)
+activate UC
+
+UC -> Repo: findById(RoomId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM rooms WHERE id=?
+DB --> Repo: Optional<Room>
+Repo --> UC: Optional<Room>
+deactivate Repo
+
+alt not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> Client: 404 Not Found
+else found
+
+  alt status == AVAILABLE
+    alt currentStatus == ARCHIVED
+      UC -> Entity: restore()
+    else
+      UC -> Entity: activate()
+    end
+  else status == INACTIVE
+    UC -> Entity: deactivate()
+  else status == ARCHIVED
+    UC -> Entity: archive()
+  else status == MAINTENANCE
+    UC -> Entity: putUnderMaintenance()
+  end
+
+  activate Entity
+  note right of Entity: Lança InvalidStateException (422)\nse a transição for inválida\n(ex: ARCHIVED não pode ir para INACTIVE\nou MAINTENANCE)
+  Entity --> UC:
+  deactivate Entity
+
+  UC -> Repo: save(room)
+  activate Repo
+  Repo -> DB: UPDATE rooms SET status=?
+  DB --> Repo: room
+  Repo --> UC: saved
+  deactivate Repo
+
+  UC -> Mapper: toResponse(saved)
+  activate Mapper
+  Mapper --> UC: RoomResponse
+  deactivate Mapper
+
+  UC --> Ctrl: RoomResponse
+  Ctrl --> Client: 200 OK {RoomResponse}
+end
+
+deactivate UC
+deactivate Ctrl
+
+@enduml

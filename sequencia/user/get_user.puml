@@ -1,0 +1,68 @@
+@startuml get_user
+
+title GET /users e GET /users/{id} — Buscar Usuário
+
+actor Client
+participant "UserController" as Ctrl
+participant "GetUserUseCase" as UC
+participant "UserMapper" as Mapper
+participant "UserRepositoryPort" as Repo
+database "users" as DB
+
+== Listar todos ==
+
+Client -> Ctrl: GET /users
+activate Ctrl
+
+Ctrl -> UC: findAll()
+activate UC
+
+UC -> Repo: findAll()
+activate Repo
+Repo -> DB: SELECT * FROM users\nWHERE status != DELETED
+DB --> Repo: List<User>
+Repo --> UC: List<User>
+deactivate Repo
+
+UC -> Mapper: toResponse(each user)
+activate Mapper
+Mapper --> UC: List<UserResponse>
+deactivate Mapper
+
+UC --> Ctrl: List<UserResponse>
+deactivate UC
+Ctrl --> Client: 200 OK {List<UserResponse>}
+deactivate Ctrl
+
+== Buscar por ID ==
+
+Client -> Ctrl: GET /users/{id}
+activate Ctrl
+
+Ctrl -> UC: findById(id)
+activate UC
+
+UC -> Repo: findById(UserId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM users\nWHERE id=? AND status!=DELETED
+DB --> Repo: Optional<User>
+Repo --> UC: Optional<User>
+deactivate Repo
+
+alt not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> Client: 404 Not Found
+else found
+  UC -> Mapper: toResponse(user)
+  activate Mapper
+  Mapper --> UC: UserResponse
+  deactivate Mapper
+
+  UC --> Ctrl: UserResponse
+  Ctrl --> Client: 200 OK {UserResponse}
+end
+
+deactivate UC
+deactivate Ctrl
+
+@enduml

@@ -1,0 +1,61 @@
+@startuml update_user
+
+title PUT /users/{id} — Atualizar Usuário
+
+actor Client
+participant "UserController" as Ctrl
+participant "UpdateUserUseCase" as UC
+participant "PasswordEncoder" as Encoder
+participant "UserMapper" as Mapper
+participant "User" as Entity
+participant "UserRepositoryPort" as Repo
+database "users" as DB
+
+Client -> Ctrl: PUT /users/{id}\n{name, email, password, role}
+activate Ctrl
+
+Ctrl -> UC: execute(id, UpdateUserRequest)
+activate UC
+
+UC -> Repo: findById(UserId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM users WHERE id=?
+DB --> Repo: Optional<User>
+Repo --> UC: Optional<User>
+deactivate Repo
+
+alt not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> Client: 404 Not Found
+else found
+  UC -> Encoder: encode(request.password)
+  activate Encoder
+  Encoder --> UC: encodedPassword
+  deactivate Encoder
+
+  UC -> Entity: update(name, email, encodedPassword, role)
+  activate Entity
+  note right of Entity: UserValidator.validate()\nupdatedAt = now()
+  Entity --> UC:
+  deactivate Entity
+
+  UC -> Repo: save(user)
+  activate Repo
+  Repo -> DB: UPDATE users SET\nname=?, email=?, password=?,\nrole=?, updated_at=?
+  DB --> Repo: user
+  Repo --> UC: saved
+  deactivate Repo
+
+  UC -> Mapper: toResponse(saved)
+  activate Mapper
+  Mapper --> UC: UserResponse
+  deactivate Mapper
+
+  UC --> Ctrl: UserResponse
+  Ctrl --> Client: 200 OK {UserResponse}
+end
+
+deactivate UC
+deactivate Ctrl
+
+@enduml

@@ -1,0 +1,49 @@
+@startuml delete_building
+
+title DELETE /buildings/{id} — Remover Prédio (Soft Delete)
+
+actor Client
+participant "BuildingController" as Ctrl
+participant "DeleteBuildingUseCase" as UC
+participant "Building" as Entity
+participant "BuildingRepositoryPort" as Repo
+database "buildings" as DB
+
+Client -> Ctrl: DELETE /buildings/{id}
+activate Ctrl
+
+Ctrl -> UC: execute(id)
+activate UC
+
+UC -> Repo: findById(BuildingId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM buildings WHERE id=?
+DB --> Repo: Optional<Building>
+Repo --> UC: Optional<Building>
+deactivate Repo
+
+alt not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> Client: 404 Not Found
+else found
+  UC -> Entity: delete()
+  activate Entity
+  note right of Entity: Lança InvalidStateException (422)\nse status != ARCHIVED\nstatus = DELETED
+  Entity --> UC:
+  deactivate Entity
+
+  UC -> Repo: save(building)
+  activate Repo
+  Repo -> DB: UPDATE buildings SET status = DELETED
+  DB --> Repo: building
+  Repo --> UC: saved
+  deactivate Repo
+
+  UC --> Ctrl: void
+  Ctrl --> Client: 204 No Content
+end
+
+deactivate UC
+deactivate Ctrl
+
+@enduml

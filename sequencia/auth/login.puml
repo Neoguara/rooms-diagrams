@@ -1,0 +1,82 @@
+@startuml login
+
+title POST /auth/login — Autenticação e Geração de JWT
+
+actor Client
+participant "AuthController" as Ctrl
+participant "AuthService" as Service
+participant "AuthenticationManager" as AuthMgr
+participant "AuthUserDetailsService" as DetailsService
+participant "UserAuthPort\n(UserAuthAdapter)" as AuthPort
+participant "UserRepositoryPort" as UserRepo
+participant "PasswordEncoder" as Encoder
+participant "JwtService" as Jwt
+database "users" as DB
+
+Client -> Ctrl: POST /auth/login\n{email, password}
+activate Ctrl
+
+Ctrl -> Service: login(LoginRequest)
+activate Service
+
+Service -> AuthMgr: authenticate(\nUsernamePasswordAuthenticationToken\n(email, password))
+activate AuthMgr
+
+AuthMgr -> DetailsService: loadUserByUsername(email)
+activate DetailsService
+
+DetailsService -> AuthPort: findByEmail(email)
+activate AuthPort
+AuthPort -> UserRepo: findByEmail(email)
+activate UserRepo
+UserRepo -> DB: SELECT * FROM users\nWHERE email=? AND status!=DELETED
+DB --> UserRepo: Optional<User>
+UserRepo --> AuthPort: Optional<User>
+deactivate UserRepo
+AuthPort --> DetailsService: Optional<AuthUserData>
+deactivate AuthPort
+
+alt usuário não encontrado
+  DetailsService --> AuthMgr: UsernameNotFoundException
+  AuthMgr --> Service: BadCredentialsException
+  Service --> Ctrl: BadCredentialsException
+  deactivate DetailsService
+  deactivate AuthMgr
+  deactivate Service
+  Ctrl --> Client: 401 Unauthorized
+  deactivate Ctrl
+else usuário encontrado
+  DetailsService --> AuthMgr: AuthUserDetails
+  deactivate DetailsService
+
+  AuthMgr -> Encoder: matches(rawPassword, encodedPassword)
+  activate Encoder
+  Encoder --> AuthMgr: boolean
+  deactivate Encoder
+
+  alt senha inválida
+    AuthMgr --> Service: BadCredentialsException
+    Service --> Ctrl: BadCredentialsException
+    deactivate AuthMgr
+    deactivate Service
+    Ctrl --> Client: 401 Unauthorized
+    deactivate Ctrl
+  else autenticado com sucesso
+    AuthMgr --> Service: Authentication
+    deactivate AuthMgr
+
+    Service -> Jwt: generateToken(email)
+    activate Jwt
+    note right of Jwt: Assina JWT com secret\nexpiration = now + expirationHours
+    Jwt --> Service: jwtToken
+    deactivate Jwt
+
+    Service --> Ctrl: TokenResponse\n{token, id, name, email, role, ...}
+    deactivate Service
+
+    Ctrl --> Client: 200 OK {TokenResponse}
+    deactivate Ctrl
+  end
+end
+
+@enduml

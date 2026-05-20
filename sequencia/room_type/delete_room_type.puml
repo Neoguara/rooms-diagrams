@@ -1,0 +1,49 @@
+@startuml delete_room_type
+
+title DELETE /room-types/{id} — Remover Tipo de Sala (Soft Delete)
+
+actor Client
+participant "RoomTypeController" as Ctrl
+participant "DeleteRoomTypeUseCase" as UC
+participant "RoomType" as Entity
+participant "RoomTypeRepositoryPort" as Repo
+database "room_types" as DB
+
+Client -> Ctrl: DELETE /room-types/{id}
+activate Ctrl
+
+Ctrl -> UC: execute(id)
+activate UC
+
+UC -> Repo: findById(RoomTypeId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM room_types WHERE id=?
+DB --> Repo: Optional<RoomType>
+Repo --> UC: Optional<RoomType>
+deactivate Repo
+
+alt not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> Client: 404 Not Found
+else found
+  UC -> Entity: delete()
+  activate Entity
+  note right of Entity: Lança InvalidStateException (422)\nse status != ARCHIVED\nstatus = DELETED
+  Entity --> UC:
+  deactivate Entity
+
+  UC -> Repo: save(roomType)
+  activate Repo
+  Repo -> DB: UPDATE room_types SET status = DELETED
+  DB --> Repo: roomType
+  Repo --> UC: saved
+  deactivate Repo
+
+  UC --> Ctrl: void
+  Ctrl --> Client: 204 No Content
+end
+
+deactivate UC
+deactivate Ctrl
+
+@enduml

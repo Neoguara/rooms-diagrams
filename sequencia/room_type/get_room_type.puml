@@ -1,0 +1,65 @@
+@startuml get_room_type
+
+title GET /room-types e GET /room-types/{id} — Buscar Tipo de Sala
+
+actor Client
+participant "RoomTypeController" as Ctrl
+participant "GetRoomTypeUseCase" as UC
+participant "RoomTypeMapper" as Mapper
+participant "RoomTypeRepositoryPort" as Repo
+database "room_types" as DB
+
+== Listar todos ==
+
+Client -> Ctrl: GET /room-types
+activate Ctrl
+Ctrl -> UC: findAll()
+activate UC
+
+UC -> Repo: findAll()
+activate Repo
+Repo -> DB: SELECT * FROM room_types\nWHERE status != DELETED
+DB --> Repo: List<RoomType>
+Repo --> UC: List<RoomType>
+deactivate Repo
+
+UC -> Mapper: toResponse(each roomType)
+activate Mapper
+Mapper --> UC: List<RoomTypeResponse>
+deactivate Mapper
+
+UC --> Ctrl: List<RoomTypeResponse>
+deactivate UC
+Ctrl --> Client: 200 OK {List<RoomTypeResponse>}
+deactivate Ctrl
+
+== Buscar por ID ==
+
+Client -> Ctrl: GET /room-types/{id}
+activate Ctrl
+Ctrl -> UC: findById(id)
+activate UC
+
+UC -> Repo: findById(RoomTypeId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM room_types\nWHERE id=? AND status!=DELETED
+DB --> Repo: Optional<RoomType>
+Repo --> UC: Optional<RoomType>
+deactivate Repo
+
+alt not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> Client: 404 Not Found
+else found
+  UC -> Mapper: toResponse(roomType)
+  activate Mapper
+  Mapper --> UC: RoomTypeResponse
+  deactivate Mapper
+  UC --> Ctrl: RoomTypeResponse
+  Ctrl --> Client: 200 OK {RoomTypeResponse}
+end
+
+deactivate UC
+deactivate Ctrl
+
+@enduml

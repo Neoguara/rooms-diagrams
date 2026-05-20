@@ -1,0 +1,61 @@
+@startuml update_user_status
+
+title PATCH /users/{id}/status — Atualizar Status do Usuário
+
+actor Client
+participant "UserController" as Ctrl
+participant "UpdateUserStatusUseCase" as UC
+participant "UserMapper" as Mapper
+participant "User" as Entity
+participant "UserRepositoryPort" as Repo
+database "users" as DB
+
+Client -> Ctrl: PATCH /users/{id}/status\n{status: ACTIVE|INACTIVE}
+activate Ctrl
+
+Ctrl -> UC: execute(id, status)
+activate UC
+
+UC -> Repo: findById(UserId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM users WHERE id=?
+DB --> Repo: Optional<User>
+Repo --> UC: Optional<User>
+deactivate Repo
+
+alt not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> Client: 404 Not Found
+else found
+
+  alt status == ACTIVE
+    UC -> Entity: activate()
+  else status == INACTIVE
+    UC -> Entity: deactivate()
+  end
+
+  activate Entity
+  note right of Entity: Lança InvalidStateException (422)\nse a transição for inválida\n(ex: DELETED não pode ser modificado)
+  Entity --> UC:
+  deactivate Entity
+
+  UC -> Repo: save(user)
+  activate Repo
+  Repo -> DB: UPDATE users SET status=?
+  DB --> Repo: user
+  Repo --> UC: saved
+  deactivate Repo
+
+  UC -> Mapper: toResponse(saved)
+  activate Mapper
+  Mapper --> UC: UserResponse
+  deactivate Mapper
+
+  UC --> Ctrl: UserResponse
+  Ctrl --> Client: 200 OK {UserResponse}
+end
+
+deactivate UC
+deactivate Ctrl
+
+@enduml

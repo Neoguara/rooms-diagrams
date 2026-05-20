@@ -1,0 +1,49 @@
+@startuml delete_resource
+
+title DELETE /resources/{id} — Remover Recurso (Soft Delete)
+
+actor Client
+participant "ResourceController" as Ctrl
+participant "DeleteResourceUseCase" as UC
+participant "Resource" as Entity
+participant "ResourceRepositoryPort" as Repo
+database "resources" as DB
+
+Client -> Ctrl: DELETE /resources/{id}
+activate Ctrl
+
+Ctrl -> UC: execute(id)
+activate UC
+
+UC -> Repo: findById(ResourceId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM resources WHERE id=?
+DB --> Repo: Optional<Resource>
+Repo --> UC: Optional<Resource>
+deactivate Repo
+
+alt not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> Client: 404 Not Found
+else found
+  UC -> Entity: delete()
+  activate Entity
+  note right of Entity: Lança InvalidStateException (422)\nse status != ARCHIVED\nstatus = DELETED
+  Entity --> UC:
+  deactivate Entity
+
+  UC -> Repo: save(resource)
+  activate Repo
+  Repo -> DB: UPDATE resources SET status = DELETED
+  DB --> Repo: resource
+  Repo --> UC: saved
+  deactivate Repo
+
+  UC --> Ctrl: void
+  Ctrl --> Client: 204 No Content
+end
+
+deactivate UC
+deactivate Ctrl
+
+@enduml
