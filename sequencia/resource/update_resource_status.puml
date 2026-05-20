@@ -2,7 +2,8 @@
 
 title PATCH /resources/{id}/status — Atualizar Status do Recurso
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "ResourceController" as Ctrl
 participant "UpdateResourceStatusUseCase" as UC
 participant "ResourceMapper" as Mapper
@@ -10,7 +11,9 @@ participant "Resource" as Entity
 participant "ResourceRepositoryPort" as Repo
 database "resources" as DB
 
-Client -> Ctrl: PATCH /resources/{id}/status\n{status: ACTIVE|INACTIVE|ARCHIVED}
+User -> FE: solicita alteração de status
+activate FE
+FE -> Ctrl: PATCH /resources/{id}/status\n{status: ACTIVE|INACTIVE|ARCHIVED}
 activate Ctrl
 
 Ctrl -> UC: execute(id, status)
@@ -25,7 +28,8 @@ deactivate Repo
 
 alt not found
   UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> Client: 404 Not Found
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 else found
 
   alt status == ACTIVE
@@ -58,10 +62,12 @@ else found
   deactivate Mapper
 
   UC --> Ctrl: ResourceResponse
-  Ctrl --> Client: 200 OK {ResourceResponse}
+  Ctrl --> FE: 200 OK {ResourceResponse}
+  FE --> User: exibe novo status
 end
 
 deactivate UC
 deactivate Ctrl
+deactivate FE
 
 @enduml

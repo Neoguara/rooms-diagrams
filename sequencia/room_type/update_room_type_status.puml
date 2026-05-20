@@ -2,7 +2,8 @@
 
 title PATCH /room-types/{id}/status — Atualizar Status do Tipo de Sala
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "RoomTypeController" as Ctrl
 participant "UpdateRoomTypeStatusUseCase" as UC
 participant "RoomTypeMapper" as Mapper
@@ -10,7 +11,9 @@ participant "RoomType" as Entity
 participant "RoomTypeRepositoryPort" as Repo
 database "room_types" as DB
 
-Client -> Ctrl: PATCH /room-types/{id}/status\n{status: ACTIVE|INACTIVE|ARCHIVED}
+User -> FE: solicita alteração de status
+activate FE
+FE -> Ctrl: PATCH /room-types/{id}/status\n{status: ACTIVE|INACTIVE|ARCHIVED}
 activate Ctrl
 
 Ctrl -> UC: execute(id, status)
@@ -25,7 +28,8 @@ deactivate Repo
 
 alt not found
   UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> Client: 404 Not Found
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 else found
 
   alt status == ACTIVE
@@ -58,10 +62,12 @@ else found
   deactivate Mapper
 
   UC --> Ctrl: RoomTypeResponse
-  Ctrl --> Client: 200 OK {RoomTypeResponse}
+  Ctrl --> FE: 200 OK {RoomTypeResponse}
+  FE --> User: exibe novo status
 end
 
 deactivate UC
 deactivate Ctrl
+deactivate FE
 
 @enduml

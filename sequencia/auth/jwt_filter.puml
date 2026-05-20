@@ -2,7 +2,8 @@
 
 title Requisição Autenticada — Validação do JWT (SecurityFilter)
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "SecurityFilter\n(OncePerRequestFilter)" as Filter
 participant "JwtService" as Jwt
 participant "UserAuthPort\n(UserAuthAdapter)" as AuthPort
@@ -11,15 +12,19 @@ participant "SecurityContextHolder" as SecCtx
 participant "Controller" as Ctrl
 database "users" as DB
 
-Client -> Filter: HTTP Request\nAuthorization: Bearer <token>
+User -> FE: realiza requisição autenticada
+activate FE
+FE -> Filter: HTTP Request\nAuthorization: Bearer <token>
 activate Filter
 
 alt header Authorization ausente ou sem "Bearer "
   Filter -> Ctrl: doFilterChain (sem autenticação)
   activate Ctrl
-  Ctrl --> Client: 401 Unauthorized
+  Ctrl --> FE: 401 Unauthorized
   deactivate Ctrl
   deactivate Filter
+  FE --> User: exibe erro de autenticação
+  deactivate FE
 else token presente
   Filter -> Jwt: extractUsername(token)
   activate Jwt
@@ -35,9 +40,11 @@ else token presente
   alt token inválido ou expirado
     Filter -> Ctrl: doFilterChain (sem autenticação)
     activate Ctrl
-    Ctrl --> Client: 401 Unauthorized
+    Ctrl --> FE: 401 Unauthorized
     deactivate Ctrl
     deactivate Filter
+    FE --> User: exibe erro de autenticação
+    deactivate FE
   else token válido
     Filter -> AuthPort: findByEmail(email)
     activate AuthPort
@@ -57,9 +64,11 @@ else token presente
 
     Filter -> Ctrl: doFilterChain (autenticado)
     activate Ctrl
-    Ctrl --> Client: 200 OK (resposta do endpoint)
+    Ctrl --> FE: 200 OK (resposta do endpoint)
     deactivate Ctrl
     deactivate Filter
+    FE --> User: exibe resposta do endpoint
+    deactivate FE
   end
 end
 

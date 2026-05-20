@@ -2,14 +2,17 @@
 
 title DELETE /buildings/{id} — Remover Prédio (Soft Delete)
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "BuildingController" as Ctrl
 participant "DeleteBuildingUseCase" as UC
 participant "Building" as Entity
 participant "BuildingRepositoryPort" as Repo
 database "buildings" as DB
 
-Client -> Ctrl: DELETE /buildings/{id}
+User -> FE: solicita exclusão do prédio
+activate FE
+FE -> Ctrl: DELETE /buildings/{id}
 activate Ctrl
 
 Ctrl -> UC: execute(id)
@@ -24,7 +27,8 @@ deactivate Repo
 
 alt not found
   UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> Client: 404 Not Found
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 else found
   UC -> Entity: delete()
   activate Entity
@@ -40,10 +44,12 @@ else found
   deactivate Repo
 
   UC --> Ctrl: void
-  Ctrl --> Client: 204 No Content
+  Ctrl --> FE: 204 No Content
+  FE --> User: exibe confirmação de exclusão
 end
 
 deactivate UC
 deactivate Ctrl
+deactivate FE
 
 @enduml

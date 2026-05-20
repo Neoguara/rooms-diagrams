@@ -2,14 +2,17 @@
 
 title DELETE /users/{id} — Remover Usuário (Soft Delete)
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "UserController" as Ctrl
 participant "DeleteUserUseCase" as UC
 participant "User" as Entity
 participant "UserRepositoryPort" as Repo
 database "users" as DB
 
-Client -> Ctrl: DELETE /users/{id}
+User -> FE: solicita exclusão do usuário
+activate FE
+FE -> Ctrl: DELETE /users/{id}
 activate Ctrl
 
 Ctrl -> UC: execute(id)
@@ -24,7 +27,8 @@ deactivate Repo
 
 alt not found
   UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> Client: 404 Not Found
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 else found
   UC -> Entity: delete()
   activate Entity
@@ -40,10 +44,12 @@ else found
   deactivate Repo
 
   UC --> Ctrl: void
-  Ctrl --> Client: 204 No Content
+  Ctrl --> FE: 204 No Content
+  FE --> User: exibe confirmação de exclusão
 end
 
 deactivate UC
 deactivate Ctrl
+deactivate FE
 
 @enduml

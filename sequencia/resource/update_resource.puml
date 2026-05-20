@@ -2,7 +2,8 @@
 
 title PUT /resources/{id} — Atualizar Recurso
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "ResourceController" as Ctrl
 participant "UpdateResourceUseCase" as UC
 participant "ResourceMapper" as Mapper
@@ -10,7 +11,9 @@ participant "Resource" as Entity
 participant "ResourceRepositoryPort" as Repo
 database "resources" as DB
 
-Client -> Ctrl: PUT /resources/{id}\n{name, description, icon}
+User -> FE: edita dados e confirma
+activate FE
+FE -> Ctrl: PUT /resources/{id}\n{name, description, icon}
 activate Ctrl
 
 Ctrl -> UC: execute(id, UpdateResourceRequest)
@@ -25,7 +28,8 @@ deactivate Repo
 
 alt not found
   UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> Client: 404 Not Found
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 else found
   UC -> Entity: update(name, description, icon)
   activate Entity
@@ -46,10 +50,12 @@ else found
   deactivate Mapper
 
   UC --> Ctrl: ResourceResponse
-  Ctrl --> Client: 200 OK {ResourceResponse}
+  Ctrl --> FE: 200 OK {ResourceResponse}
+  FE --> User: exibe dados atualizados
 end
 
 deactivate UC
 deactivate Ctrl
+deactivate FE
 
 @enduml

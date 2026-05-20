@@ -2,7 +2,8 @@
 
 title POST /rooms — Criar Sala
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "RoomController" as Ctrl
 participant "CreateRoomUseCase" as UC
 participant "RoomMapper" as Mapper
@@ -12,7 +13,9 @@ participant "ResourceRepositoryPort" as ResRepo
 participant "RoomResourceRepositoryPort" as RRRepo
 database "rooms\nroom_resources\nresources" as DB
 
-Client -> Ctrl: POST /rooms\n{name, code, roomTypeId, buildingId,\nfloor, capacity, resourceIds[]}
+User -> FE: preenche formulário e confirma
+activate FE
+FE -> Ctrl: POST /rooms\n{name, code, roomTypeId, buildingId,\nfloor, capacity, resourceIds[]}
 activate Ctrl
 
 Ctrl -> UC: execute(CreateRoomRequest)
@@ -43,7 +46,8 @@ loop para cada resourceId em request.resourceIds (se não for nulo)
 
   alt resource não encontrado
     UC --> Ctrl: ResourceNotFoundException
-    Ctrl --> Client: 404 Not Found
+    Ctrl --> FE: 404 Not Found
+    FE --> User: exibe erro
   else resource encontrado
     UC -> RRRepo: save(RoomResource.create(roomId, resourceId))
     activate RRRepo
@@ -61,7 +65,9 @@ deactivate Mapper
 
 UC --> Ctrl: RoomResponse
 deactivate UC
-Ctrl --> Client: 201 Created {RoomResponse}
+Ctrl --> FE: 201 Created {RoomResponse}
 deactivate Ctrl
+FE --> User: exibe confirmação de criação
+deactivate FE
 
 @enduml

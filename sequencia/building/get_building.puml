@@ -2,7 +2,8 @@
 
 title GET /buildings e GET /buildings/{id} — Buscar Prédio
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "BuildingController" as Ctrl
 participant "GetBuildingUseCase" as UC
 participant "BuildingMapper" as Mapper
@@ -11,7 +12,9 @@ database "buildings" as DB
 
 == Listar todos ==
 
-Client -> Ctrl: GET /buildings
+User -> FE: solicita listagem de prédios
+activate FE
+FE -> Ctrl: GET /buildings
 activate Ctrl
 Ctrl -> UC: findAll()
 activate UC
@@ -30,12 +33,16 @@ deactivate Mapper
 
 UC --> Ctrl: List<BuildingResponse>
 deactivate UC
-Ctrl --> Client: 200 OK {List<BuildingResponse>}
+Ctrl --> FE: 200 OK {List<BuildingResponse>}
 deactivate Ctrl
+FE --> User: exibe listagem
+deactivate FE
 
 == Buscar por ID ==
 
-Client -> Ctrl: GET /buildings/{id}
+User -> FE: solicita busca por ID
+activate FE
+FE -> Ctrl: GET /buildings/{id}
 activate Ctrl
 Ctrl -> UC: findById(id)
 activate UC
@@ -49,17 +56,20 @@ deactivate Repo
 
 alt not found
   UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> Client: 404 Not Found
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 else found
   UC -> Mapper: toResponse(building)
   activate Mapper
   Mapper --> UC: BuildingResponse
   deactivate Mapper
   UC --> Ctrl: BuildingResponse
-  Ctrl --> Client: 200 OK {BuildingResponse}
+  Ctrl --> FE: 200 OK {BuildingResponse}
+  FE --> User: exibe dados
 end
 
 deactivate UC
 deactivate Ctrl
+deactivate FE
 
 @enduml

@@ -2,7 +2,8 @@
 
 title PUT /rooms/{id}/resources — Substituir Recursos da Sala
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "RoomController" as Ctrl
 participant "ReplaceRoomResourcesUseCase" as UC
 participant "RoomRepositoryPort" as RoomRepo
@@ -10,7 +11,9 @@ participant "ResourceRepositoryPort" as ResRepo
 participant "RoomResourceRepositoryPort" as RRRepo
 database "rooms\nroom_resources\nresources" as DB
 
-Client -> Ctrl: PUT /rooms/{id}/resources\n{resourceIds: [uuid, ...]}
+User -> FE: atualiza recursos da sala e confirma
+activate FE
+FE -> Ctrl: PUT /rooms/{id}/resources\n{resourceIds: [uuid, ...]}
 activate Ctrl
 
 Ctrl -> UC: execute(roomId, ReplaceRoomResourcesRequest)
@@ -25,7 +28,8 @@ deactivate RoomRepo
 
 alt sala não encontrada
   UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> Client: 404 Not Found
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 else sala encontrada
 
   loop para cada resourceId na nova lista
@@ -38,7 +42,8 @@ else sala encontrada
 
     alt resource não encontrado
       UC --> Ctrl: ResourceNotFoundException
-      Ctrl --> Client: 404 Not Found
+      Ctrl --> FE: 404 Not Found
+      FE --> User: exibe erro
     end
   end
 
@@ -62,8 +67,10 @@ else sala encontrada
 
   UC --> Ctrl: RoomResourcesResponse\n{roomId, resourceIds[]}
   deactivate UC
-  Ctrl --> Client: 200 OK {RoomResourcesResponse}
+  Ctrl --> FE: 200 OK {RoomResourcesResponse}
   deactivate Ctrl
+  FE --> User: exibe recursos atualizados
+  deactivate FE
 end
 
 @enduml

@@ -2,7 +2,8 @@
 
 title PUT /rooms/{id} — Atualizar Sala
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "RoomController" as Ctrl
 participant "UpdateRoomUseCase" as UC
 participant "RoomMapper" as Mapper
@@ -10,7 +11,9 @@ participant "Room" as Entity
 participant "RoomRepositoryPort" as Repo
 database "rooms" as DB
 
-Client -> Ctrl: PUT /rooms/{id}\n{name, code, roomTypeId, buildingId, floor, capacity}
+User -> FE: edita dados e confirma
+activate FE
+FE -> Ctrl: PUT /rooms/{id}\n{name, code, roomTypeId, buildingId, floor, capacity}
 activate Ctrl
 
 Ctrl -> UC: execute(id, UpdateRoomRequest)
@@ -25,7 +28,8 @@ deactivate Repo
 
 alt not found
   UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> Client: 404 Not Found
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 else found
   UC -> Entity: update(name, code, roomTypeId, buildingId, floor, capacity)
   activate Entity
@@ -46,10 +50,12 @@ else found
   deactivate Mapper
 
   UC --> Ctrl: RoomResponse
-  Ctrl --> Client: 200 OK {RoomResponse}
+  Ctrl --> FE: 200 OK {RoomResponse}
+  FE --> User: exibe dados atualizados
 end
 
 deactivate UC
 deactivate Ctrl
+deactivate FE
 
 @enduml

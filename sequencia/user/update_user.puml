@@ -2,7 +2,8 @@
 
 title PUT /users/{id} — Atualizar Usuário
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "UserController" as Ctrl
 participant "UpdateUserUseCase" as UC
 participant "PasswordEncoder" as Encoder
@@ -11,7 +12,9 @@ participant "User" as Entity
 participant "UserRepositoryPort" as Repo
 database "users" as DB
 
-Client -> Ctrl: PUT /users/{id}\n{name, email, password, role}
+User -> FE: edita dados e confirma
+activate FE
+FE -> Ctrl: PUT /users/{id}\n{name, email, password, role}
 activate Ctrl
 
 Ctrl -> UC: execute(id, UpdateUserRequest)
@@ -26,7 +29,8 @@ deactivate Repo
 
 alt not found
   UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> Client: 404 Not Found
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 else found
   UC -> Encoder: encode(request.password)
   activate Encoder
@@ -52,10 +56,12 @@ else found
   deactivate Mapper
 
   UC --> Ctrl: UserResponse
-  Ctrl --> Client: 200 OK {UserResponse}
+  Ctrl --> FE: 200 OK {UserResponse}
+  FE --> User: exibe dados atualizados
 end
 
 deactivate UC
 deactivate Ctrl
+deactivate FE
 
 @enduml

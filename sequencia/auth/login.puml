@@ -2,7 +2,8 @@
 
 title POST /auth/login — Autenticação e Geração de JWT
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "AuthController" as Ctrl
 participant "AuthService" as Service
 participant "AuthenticationManager" as AuthMgr
@@ -13,7 +14,9 @@ participant "PasswordEncoder" as Encoder
 participant "JwtService" as Jwt
 database "users" as DB
 
-Client -> Ctrl: POST /auth/login\n{email, password}
+User -> FE: informa credenciais e confirma
+activate FE
+FE -> Ctrl: POST /auth/login\n{email, password}
 activate Ctrl
 
 Ctrl -> Service: login(LoginRequest)
@@ -43,8 +46,10 @@ alt usuário não encontrado
   deactivate DetailsService
   deactivate AuthMgr
   deactivate Service
-  Ctrl --> Client: 401 Unauthorized
+  Ctrl --> FE: 401 Unauthorized
   deactivate Ctrl
+  FE --> User: exibe erro de credenciais
+  deactivate FE
 else usuário encontrado
   DetailsService --> AuthMgr: AuthUserDetails
   deactivate DetailsService
@@ -59,8 +64,10 @@ else usuário encontrado
     Service --> Ctrl: BadCredentialsException
     deactivate AuthMgr
     deactivate Service
-    Ctrl --> Client: 401 Unauthorized
+    Ctrl --> FE: 401 Unauthorized
     deactivate Ctrl
+    FE --> User: exibe erro de credenciais
+    deactivate FE
   else autenticado com sucesso
     AuthMgr --> Service: Authentication
     deactivate AuthMgr
@@ -74,8 +81,10 @@ else usuário encontrado
     Service --> Ctrl: TokenResponse\n{token, id, name, email, role, ...}
     deactivate Service
 
-    Ctrl --> Client: 200 OK {TokenResponse}
+    Ctrl --> FE: 200 OK {TokenResponse}
     deactivate Ctrl
+    FE --> User: armazena token e redireciona
+    deactivate FE
   end
 end
 

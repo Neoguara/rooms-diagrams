@@ -2,7 +2,8 @@
 
 title GET /room-types e GET /room-types/{id} — Buscar Tipo de Sala
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "RoomTypeController" as Ctrl
 participant "GetRoomTypeUseCase" as UC
 participant "RoomTypeMapper" as Mapper
@@ -11,7 +12,9 @@ database "room_types" as DB
 
 == Listar todos ==
 
-Client -> Ctrl: GET /room-types
+User -> FE: solicita listagem de tipos de sala
+activate FE
+FE -> Ctrl: GET /room-types
 activate Ctrl
 Ctrl -> UC: findAll()
 activate UC
@@ -30,12 +33,16 @@ deactivate Mapper
 
 UC --> Ctrl: List<RoomTypeResponse>
 deactivate UC
-Ctrl --> Client: 200 OK {List<RoomTypeResponse>}
+Ctrl --> FE: 200 OK {List<RoomTypeResponse>}
 deactivate Ctrl
+FE --> User: exibe listagem
+deactivate FE
 
 == Buscar por ID ==
 
-Client -> Ctrl: GET /room-types/{id}
+User -> FE: solicita busca por ID
+activate FE
+FE -> Ctrl: GET /room-types/{id}
 activate Ctrl
 Ctrl -> UC: findById(id)
 activate UC
@@ -49,17 +56,20 @@ deactivate Repo
 
 alt not found
   UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> Client: 404 Not Found
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 else found
   UC -> Mapper: toResponse(roomType)
   activate Mapper
   Mapper --> UC: RoomTypeResponse
   deactivate Mapper
   UC --> Ctrl: RoomTypeResponse
-  Ctrl --> Client: 200 OK {RoomTypeResponse}
+  Ctrl --> FE: 200 OK {RoomTypeResponse}
+  FE --> User: exibe dados
 end
 
 deactivate UC
 deactivate Ctrl
+deactivate FE
 
 @enduml

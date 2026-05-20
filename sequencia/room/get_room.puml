@@ -2,7 +2,8 @@
 
 title GET /rooms/{id}?expand= — Buscar Sala com Expansão
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "RoomController" as Ctrl
 participant "GetRoomUseCase" as UC
 participant "RoomRepositoryPort" as RoomRepo
@@ -13,7 +14,9 @@ participant "ResourceRepositoryPort" as ResRepo
 participant "RoomMapper" as Mapper
 database "Database" as DB
 
-Client -> Ctrl: GET /rooms/{id}?expand=building,roomType,resources
+User -> FE: solicita detalhes da sala com expansão
+activate FE
+FE -> Ctrl: GET /rooms/{id}?expand=building,roomType,resources
 activate Ctrl
 
 Ctrl -> UC: findById(id, Set<RoomExpandField>)
@@ -28,7 +31,8 @@ deactivate RoomRepo
 
 alt not found
   UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> Client: 404 Not Found
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 else found
 
   opt expand contém BUILDING
@@ -71,10 +75,12 @@ else found
   deactivate Mapper
 
   UC --> Ctrl: RoomDetailResponse
-  Ctrl --> Client: 200 OK {RoomDetailResponse}
+  Ctrl --> FE: 200 OK {RoomDetailResponse}
+  FE --> User: exibe dados da sala
 end
 
 deactivate UC
 deactivate Ctrl
+deactivate FE
 
 @enduml

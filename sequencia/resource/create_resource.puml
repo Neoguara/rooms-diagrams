@@ -2,7 +2,8 @@
 
 title POST /resources — Criar Recurso
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "ResourceController" as Ctrl
 participant "CreateResourceUseCase" as UC
 participant "ResourceMapper" as Mapper
@@ -10,7 +11,9 @@ participant "Resource" as Entity
 participant "ResourceRepositoryPort" as Repo
 database "resources" as DB
 
-Client -> Ctrl: POST /resources\n{name, description, icon}
+User -> FE: preenche formulário e confirma
+activate FE
+FE -> Ctrl: POST /resources\n{name, description, icon}
 activate Ctrl
 
 Ctrl -> UC: execute(CreateResourceRequest)
@@ -39,7 +42,9 @@ deactivate Mapper
 UC --> Ctrl: ResourceResponse
 deactivate UC
 
-Ctrl --> Client: 201 Created {ResourceResponse}
+Ctrl --> FE: 201 Created {ResourceResponse}
 deactivate Ctrl
+FE --> User: exibe confirmação de criação
+deactivate FE
 
 @enduml

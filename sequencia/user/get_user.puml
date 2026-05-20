@@ -2,7 +2,8 @@
 
 title GET /users e GET /users/{id} — Buscar Usuário
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "UserController" as Ctrl
 participant "GetUserUseCase" as UC
 participant "UserMapper" as Mapper
@@ -11,7 +12,9 @@ database "users" as DB
 
 == Listar todos ==
 
-Client -> Ctrl: GET /users
+User -> FE: solicita listagem de usuários
+activate FE
+FE -> Ctrl: GET /users
 activate Ctrl
 
 Ctrl -> UC: findAll()
@@ -31,12 +34,16 @@ deactivate Mapper
 
 UC --> Ctrl: List<UserResponse>
 deactivate UC
-Ctrl --> Client: 200 OK {List<UserResponse>}
+Ctrl --> FE: 200 OK {List<UserResponse>}
 deactivate Ctrl
+FE --> User: exibe listagem
+deactivate FE
 
 == Buscar por ID ==
 
-Client -> Ctrl: GET /users/{id}
+User -> FE: solicita busca por ID
+activate FE
+FE -> Ctrl: GET /users/{id}
 activate Ctrl
 
 Ctrl -> UC: findById(id)
@@ -51,7 +58,8 @@ deactivate Repo
 
 alt not found
   UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> Client: 404 Not Found
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 else found
   UC -> Mapper: toResponse(user)
   activate Mapper
@@ -59,10 +67,12 @@ else found
   deactivate Mapper
 
   UC --> Ctrl: UserResponse
-  Ctrl --> Client: 200 OK {UserResponse}
+  Ctrl --> FE: 200 OK {UserResponse}
+  FE --> User: exibe dados
 end
 
 deactivate UC
 deactivate Ctrl
+deactivate FE
 
 @enduml

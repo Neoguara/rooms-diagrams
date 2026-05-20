@@ -2,7 +2,8 @@
 
 title PATCH /buildings/{id}/status — Atualizar Status do Prédio
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "BuildingController" as Ctrl
 participant "UpdateBuildingStatusUseCase" as UC
 participant "BuildingMapper" as Mapper
@@ -10,7 +11,9 @@ participant "Building" as Entity
 participant "BuildingRepositoryPort" as Repo
 database "buildings" as DB
 
-Client -> Ctrl: PATCH /buildings/{id}/status\n{status: ACTIVE|INACTIVE|ARCHIVED}
+User -> FE: solicita alteração de status
+activate FE
+FE -> Ctrl: PATCH /buildings/{id}/status\n{status: ACTIVE|INACTIVE|ARCHIVED}
 activate Ctrl
 
 Ctrl -> UC: execute(id, status)
@@ -25,7 +28,8 @@ deactivate Repo
 
 alt not found
   UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> Client: 404 Not Found
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 else found
 
   alt status == ACTIVE
@@ -58,10 +62,12 @@ else found
   deactivate Mapper
 
   UC --> Ctrl: BuildingResponse
-  Ctrl --> Client: 200 OK {BuildingResponse}
+  Ctrl --> FE: 200 OK {BuildingResponse}
+  FE --> User: exibe novo status
 end
 
 deactivate UC
 deactivate Ctrl
+deactivate FE
 
 @enduml

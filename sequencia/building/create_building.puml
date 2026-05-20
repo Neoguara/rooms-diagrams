@@ -2,7 +2,8 @@
 
 title POST /buildings — Criar Prédio
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "BuildingController" as Ctrl
 participant "CreateBuildingUseCase" as UC
 participant "BuildingMapper" as Mapper
@@ -10,7 +11,9 @@ participant "Building" as Entity
 participant "BuildingRepositoryPort" as Repo
 database "buildings" as DB
 
-Client -> Ctrl: POST /buildings\n{name, address, totalFloors}
+User -> FE: preenche formulário e confirma
+activate FE
+FE -> Ctrl: POST /buildings\n{name, address, totalFloors}
 activate Ctrl
 
 Ctrl -> UC: execute(CreateBuildingRequest)
@@ -39,7 +42,9 @@ deactivate Mapper
 UC --> Ctrl: BuildingResponse
 deactivate UC
 
-Ctrl --> Client: 201 Created {BuildingResponse}
+Ctrl --> FE: 201 Created {BuildingResponse}
 deactivate Ctrl
+FE --> User: exibe confirmação de criação
+deactivate FE
 
 @enduml

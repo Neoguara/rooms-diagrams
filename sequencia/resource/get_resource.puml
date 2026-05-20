@@ -2,7 +2,8 @@
 
 title GET /resources e GET /resources/{id} — Buscar Recurso
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "ResourceController" as Ctrl
 participant "GetResourceUseCase" as UC
 participant "ResourceMapper" as Mapper
@@ -11,7 +12,9 @@ database "resources" as DB
 
 == Listar todos ==
 
-Client -> Ctrl: GET /resources
+User -> FE: solicita listagem de recursos
+activate FE
+FE -> Ctrl: GET /resources
 activate Ctrl
 Ctrl -> UC: findAll()
 activate UC
@@ -30,12 +33,16 @@ deactivate Mapper
 
 UC --> Ctrl: List<ResourceResponse>
 deactivate UC
-Ctrl --> Client: 200 OK {List<ResourceResponse>}
+Ctrl --> FE: 200 OK {List<ResourceResponse>}
 deactivate Ctrl
+FE --> User: exibe listagem
+deactivate FE
 
 == Buscar por ID ==
 
-Client -> Ctrl: GET /resources/{id}
+User -> FE: solicita busca por ID
+activate FE
+FE -> Ctrl: GET /resources/{id}
 activate Ctrl
 Ctrl -> UC: findById(id)
 activate UC
@@ -49,17 +56,20 @@ deactivate Repo
 
 alt not found
   UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> Client: 404 Not Found
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 else found
   UC -> Mapper: toResponse(resource)
   activate Mapper
   Mapper --> UC: ResourceResponse
   deactivate Mapper
   UC --> Ctrl: ResourceResponse
-  Ctrl --> Client: 200 OK {ResourceResponse}
+  Ctrl --> FE: 200 OK {ResourceResponse}
+  FE --> User: exibe dados
 end
 
 deactivate UC
 deactivate Ctrl
+deactivate FE
 
 @enduml

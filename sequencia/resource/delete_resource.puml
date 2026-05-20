@@ -2,14 +2,17 @@
 
 title DELETE /resources/{id} — Remover Recurso (Soft Delete)
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "ResourceController" as Ctrl
 participant "DeleteResourceUseCase" as UC
 participant "Resource" as Entity
 participant "ResourceRepositoryPort" as Repo
 database "resources" as DB
 
-Client -> Ctrl: DELETE /resources/{id}
+User -> FE: solicita exclusão do recurso
+activate FE
+FE -> Ctrl: DELETE /resources/{id}
 activate Ctrl
 
 Ctrl -> UC: execute(id)
@@ -24,7 +27,8 @@ deactivate Repo
 
 alt not found
   UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> Client: 404 Not Found
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 else found
   UC -> Entity: delete()
   activate Entity
@@ -40,10 +44,12 @@ else found
   deactivate Repo
 
   UC --> Ctrl: void
-  Ctrl --> Client: 204 No Content
+  Ctrl --> FE: 204 No Content
+  FE --> User: exibe confirmação de exclusão
 end
 
 deactivate UC
 deactivate Ctrl
+deactivate FE
 
 @enduml

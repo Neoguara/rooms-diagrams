@@ -2,7 +2,8 @@
 
 title PUT /room-types/{id} — Atualizar Tipo de Sala
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "RoomTypeController" as Ctrl
 participant "UpdateRoomTypeUseCase" as UC
 participant "RoomTypeMapper" as Mapper
@@ -10,7 +11,9 @@ participant "RoomType" as Entity
 participant "RoomTypeRepositoryPort" as Repo
 database "room_types" as DB
 
-Client -> Ctrl: PUT /room-types/{id}\n{name, description, defaultCapacity, color, icon}
+User -> FE: edita dados e confirma
+activate FE
+FE -> Ctrl: PUT /room-types/{id}\n{name, description, defaultCapacity, color, icon}
 activate Ctrl
 
 Ctrl -> UC: execute(id, UpdateRoomTypeRequest)
@@ -25,7 +28,8 @@ deactivate Repo
 
 alt not found
   UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> Client: 404 Not Found
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 else found
   UC -> Entity: update(name, description, defaultCapacity, color, icon)
   activate Entity
@@ -46,10 +50,12 @@ else found
   deactivate Mapper
 
   UC --> Ctrl: RoomTypeResponse
-  Ctrl --> Client: 200 OK {RoomTypeResponse}
+  Ctrl --> FE: 200 OK {RoomTypeResponse}
+  FE --> User: exibe dados atualizados
 end
 
 deactivate UC
 deactivate Ctrl
+deactivate FE
 
 @enduml

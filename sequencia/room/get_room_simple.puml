@@ -2,7 +2,8 @@
 
 title GET /rooms e GET /rooms/{id} — Buscar Sala
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "RoomController" as Ctrl
 participant "GetRoomUseCase" as UC
 participant "RoomMapper" as Mapper
@@ -11,7 +12,9 @@ database "rooms" as DB
 
 == Listar todas ==
 
-Client -> Ctrl: GET /rooms
+User -> FE: solicita listagem de salas
+activate FE
+FE -> Ctrl: GET /rooms
 activate Ctrl
 
 Ctrl -> UC: findAll()
@@ -31,12 +34,16 @@ deactivate Mapper
 
 UC --> Ctrl: List<RoomDetailResponse>
 deactivate UC
-Ctrl --> Client: 200 OK {List<RoomDetailResponse>}
+Ctrl --> FE: 200 OK {List<RoomDetailResponse>}
 deactivate Ctrl
+FE --> User: exibe listagem
+deactivate FE
 
 == Buscar por ID ==
 
-Client -> Ctrl: GET /rooms/{id}
+User -> FE: solicita busca por ID
+activate FE
+FE -> Ctrl: GET /rooms/{id}
 activate Ctrl
 
 Ctrl -> UC: findById(id)
@@ -51,7 +58,8 @@ deactivate Repo
 
 alt not found
   UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> Client: 404 Not Found
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 else found
   UC -> Mapper: toDetailResponse(room, null, null, null)
   activate Mapper
@@ -59,10 +67,12 @@ else found
   deactivate Mapper
 
   UC --> Ctrl: RoomDetailResponse
-  Ctrl --> Client: 200 OK {RoomDetailResponse}
+  Ctrl --> FE: 200 OK {RoomDetailResponse}
+  FE --> User: exibe dados da sala
 end
 
 deactivate UC
 deactivate Ctrl
+deactivate FE
 
 @enduml

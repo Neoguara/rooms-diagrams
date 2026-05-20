@@ -2,14 +2,17 @@
 
 title DELETE /room-types/{id} — Remover Tipo de Sala (Soft Delete)
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "RoomTypeController" as Ctrl
 participant "DeleteRoomTypeUseCase" as UC
 participant "RoomType" as Entity
 participant "RoomTypeRepositoryPort" as Repo
 database "room_types" as DB
 
-Client -> Ctrl: DELETE /room-types/{id}
+User -> FE: solicita exclusão do tipo de sala
+activate FE
+FE -> Ctrl: DELETE /room-types/{id}
 activate Ctrl
 
 Ctrl -> UC: execute(id)
@@ -24,7 +27,8 @@ deactivate Repo
 
 alt not found
   UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> Client: 404 Not Found
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 else found
   UC -> Entity: delete()
   activate Entity
@@ -40,10 +44,12 @@ else found
   deactivate Repo
 
   UC --> Ctrl: void
-  Ctrl --> Client: 204 No Content
+  Ctrl --> FE: 204 No Content
+  FE --> User: exibe confirmação de exclusão
 end
 
 deactivate UC
 deactivate Ctrl
+deactivate FE
 
 @enduml

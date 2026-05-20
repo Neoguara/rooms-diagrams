@@ -2,7 +2,8 @@
 
 title PUT /buildings/{id} — Atualizar Prédio
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "BuildingController" as Ctrl
 participant "UpdateBuildingUseCase" as UC
 participant "BuildingMapper" as Mapper
@@ -10,7 +11,9 @@ participant "Building" as Entity
 participant "BuildingRepositoryPort" as Repo
 database "buildings" as DB
 
-Client -> Ctrl: PUT /buildings/{id}\n{name, address, totalFloors}
+User -> FE: edita dados e confirma
+activate FE
+FE -> Ctrl: PUT /buildings/{id}\n{name, address, totalFloors}
 activate Ctrl
 
 Ctrl -> UC: execute(id, UpdateBuildingRequest)
@@ -25,7 +28,8 @@ deactivate Repo
 
 alt not found
   UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> Client: 404 Not Found
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 else found
   UC -> Entity: update(name, address, totalFloors)
   activate Entity
@@ -46,10 +50,12 @@ else found
   deactivate Mapper
 
   UC --> Ctrl: BuildingResponse
-  Ctrl --> Client: 200 OK {BuildingResponse}
+  Ctrl --> FE: 200 OK {BuildingResponse}
+  FE --> User: exibe dados atualizados
 end
 
 deactivate UC
 deactivate Ctrl
+deactivate FE
 
 @enduml

@@ -2,7 +2,8 @@
 
 title POST /room-types — Criar Tipo de Sala
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "RoomTypeController" as Ctrl
 participant "CreateRoomTypeUseCase" as UC
 participant "RoomTypeMapper" as Mapper
@@ -10,7 +11,9 @@ participant "RoomType" as Entity
 participant "RoomTypeRepositoryPort" as Repo
 database "room_types" as DB
 
-Client -> Ctrl: POST /room-types\n{name, description, defaultCapacity, color, icon}
+User -> FE: preenche formulário e confirma
+activate FE
+FE -> Ctrl: POST /room-types\n{name, description, defaultCapacity, color, icon}
 activate Ctrl
 
 Ctrl -> UC: execute(CreateRoomTypeRequest)
@@ -39,7 +42,9 @@ deactivate Mapper
 UC --> Ctrl: RoomTypeResponse
 deactivate UC
 
-Ctrl --> Client: 201 Created {RoomTypeResponse}
+Ctrl --> FE: 201 Created {RoomTypeResponse}
 deactivate Ctrl
+FE --> User: exibe confirmação de criação
+deactivate FE
 
 @enduml

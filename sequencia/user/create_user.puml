@@ -2,7 +2,8 @@
 
 title POST /users — Criar Usuário
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "UserController" as Ctrl
 participant "CreateUserUseCase" as UC
 participant "PasswordEncoder" as Encoder
@@ -11,7 +12,9 @@ participant "User" as Entity
 participant "UserRepositoryPort" as Repo
 database "users" as DB
 
-Client -> Ctrl: POST /users\n{name, email, password, role}
+User -> FE: preenche formulário e confirma
+activate FE
+FE -> Ctrl: POST /users\n{name, email, password, role}
 activate Ctrl
 
 Ctrl -> UC: execute(CreateUserRequest)
@@ -26,7 +29,8 @@ deactivate Repo
 
 alt email já cadastrado
   UC --> Ctrl: DuplicateEmailException
-  Ctrl --> Client: 422 Unprocessable Entity
+  Ctrl --> FE: 422 Unprocessable Entity
+  FE --> User: exibe erro
 else email disponível
   UC -> Encoder: encode(request.password)
   activate Encoder
@@ -54,10 +58,12 @@ else email disponível
   deactivate Mapper
 
   UC --> Ctrl: UserResponse
-  Ctrl --> Client: 201 Created {UserResponse}
+  Ctrl --> FE: 201 Created {UserResponse}
+  FE --> User: exibe confirmação de criação
 end
 
 deactivate UC
 deactivate Ctrl
+deactivate FE
 
 @enduml

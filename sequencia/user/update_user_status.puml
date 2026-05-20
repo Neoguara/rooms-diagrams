@@ -2,7 +2,8 @@
 
 title PATCH /users/{id}/status — Atualizar Status do Usuário
 
-actor Client
+actor User
+boundary "Frontend" as FE
 participant "UserController" as Ctrl
 participant "UpdateUserStatusUseCase" as UC
 participant "UserMapper" as Mapper
@@ -10,7 +11,9 @@ participant "User" as Entity
 participant "UserRepositoryPort" as Repo
 database "users" as DB
 
-Client -> Ctrl: PATCH /users/{id}/status\n{status: ACTIVE|INACTIVE}
+User -> FE: solicita alteração de status
+activate FE
+FE -> Ctrl: PATCH /users/{id}/status\n{status: ACTIVE|INACTIVE}
 activate Ctrl
 
 Ctrl -> UC: execute(id, status)
@@ -25,7 +28,8 @@ deactivate Repo
 
 alt not found
   UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> Client: 404 Not Found
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 else found
 
   alt status == ACTIVE
@@ -52,10 +56,12 @@ else found
   deactivate Mapper
 
   UC --> Ctrl: UserResponse
-  Ctrl --> Client: 200 OK {UserResponse}
+  Ctrl --> FE: 200 OK {UserResponse}
+  FE --> User: exibe novo status
 end
 
 deactivate UC
 deactivate Ctrl
+deactivate FE
 
 @enduml
