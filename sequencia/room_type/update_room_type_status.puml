@@ -26,11 +26,7 @@ DB --> Repo: Optional<RoomType>
 Repo --> UC: Optional<RoomType>
 deactivate Repo
 
-alt not found
-  UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> FE: 404 Not Found
-  FE --> User: exibe erro
-else found
+alt found
 
   alt status == ACTIVE
     alt currentStatus == ARCHIVED
@@ -64,6 +60,10 @@ else found
   UC --> Ctrl: RoomTypeResponse
   Ctrl --> FE: 200 OK {RoomTypeResponse}
   FE --> User: exibe novo status
+else not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 end
 
 deactivate UC

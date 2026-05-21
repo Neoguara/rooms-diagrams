@@ -27,11 +27,7 @@ DB --> Repo: boolean
 Repo --> UC: boolean
 deactivate Repo
 
-alt email já cadastrado
-  UC --> Ctrl: DuplicateEmailException
-  Ctrl --> FE: 422 Unprocessable Entity
-  FE --> User: exibe erro
-else email disponível
+alt email disponível
   UC -> Encoder: encode(request.password)
   activate Encoder
   Encoder --> UC: encodedPassword
@@ -62,6 +58,10 @@ else email disponível
   UC --> Ctrl: UserResponse
   Ctrl --> FE: 201 Created {UserResponse}
   FE --> User: exibe confirmação de criação
+else email já cadastrado
+  UC --> Ctrl: DuplicateEmailException
+  Ctrl --> FE: 422 Unprocessable Entity
+  FE --> User: exibe erro
 end
 
 deactivate UC

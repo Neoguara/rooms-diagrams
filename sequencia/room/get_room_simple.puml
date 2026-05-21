@@ -56,11 +56,7 @@ DB --> Repo: Optional<Room>
 Repo --> UC: Optional<Room>
 deactivate Repo
 
-alt not found
-  UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> FE: 404 Not Found
-  FE --> User: exibe erro
-else found
+alt found
   UC -> Mapper: toDetailResponse(room, null, null, null)
   activate Mapper
   Mapper --> UC: RoomDetailResponse
@@ -69,6 +65,10 @@ else found
   UC --> Ctrl: RoomDetailResponse
   Ctrl --> FE: 200 OK {RoomDetailResponse}
   FE --> User: exibe dados da sala
+else not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 end
 
 deactivate UC

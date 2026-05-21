@@ -29,11 +29,7 @@ DB --> RoomRepo: Optional<Room>
 RoomRepo --> UC: Optional<Room>
 deactivate RoomRepo
 
-alt not found
-  UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> FE: 404 Not Found
-  FE --> User: exibe erro
-else found
+alt found
 
   opt expand contém BUILDING
     UC -> BldgRepo: findById(room.buildingId)
@@ -77,6 +73,10 @@ else found
   UC --> Ctrl: RoomDetailResponse
   Ctrl --> FE: 200 OK {RoomDetailResponse}
   FE --> User: exibe dados da sala
+else not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 end
 
 deactivate UC

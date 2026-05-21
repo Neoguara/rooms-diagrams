@@ -46,17 +46,17 @@ loop para cada resourceId em request.resourceIds (se não for nulo)
   ResRepo --> UC: Optional
   deactivate ResRepo
 
-  alt resource não encontrado
-    UC --> Ctrl: ResourceNotFoundException
-    Ctrl --> FE: 404 Not Found
-    FE --> User: exibe erro
-  else resource encontrado
+  alt resource encontrado
     UC -> RRRepo: save(RoomResource.create(roomId, resourceId))
     activate RRRepo
     RRRepo -> DB: INSERT INTO room_resources
     DB --> RRRepo:
     RRRepo --> UC:
     deactivate RRRepo
+  else resource não encontrado
+    UC --> Ctrl: ResourceNotFoundException
+    Ctrl --> FE: 404 Not Found
+    FE --> User: exibe erro
   end
 end
 

@@ -26,11 +26,7 @@ DB --> Repo: Optional<User>
 Repo --> UC: Optional<User>
 deactivate Repo
 
-alt not found
-  UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> FE: 404 Not Found
-  FE --> User: exibe erro
-else found
+alt found
 
   alt status == ACTIVE
     UC -> Entity: activate()
@@ -58,6 +54,10 @@ else found
   UC --> Ctrl: UserResponse
   Ctrl --> FE: 200 OK {UserResponse}
   FE --> User: exibe novo status
+else not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 end
 
 deactivate UC

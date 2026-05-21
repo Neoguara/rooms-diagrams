@@ -25,11 +25,7 @@ DB --> Repo: Optional<Building>
 Repo --> UC: Optional<Building>
 deactivate Repo
 
-alt not found
-  UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> FE: 404 Not Found
-  FE --> User: exibe erro
-else found
+alt found
   UC -> Entity: delete()
   activate Entity
   note right of Entity: Lança InvalidStateException (422)\nse status != ARCHIVED\nstatus = DELETED
@@ -46,6 +42,10 @@ else found
   UC --> Ctrl: void
   Ctrl --> FE: 204 No Content
   FE --> User: exibe confirmação de exclusão
+else not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 end
 
 deactivate UC

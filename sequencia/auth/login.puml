@@ -39,18 +39,7 @@ deactivate UserRepo
 AuthPort --> DetailsService: Optional<AuthUserData>
 deactivate AuthPort
 
-alt usuário não encontrado
-  DetailsService --> AuthMgr: UsernameNotFoundException
-  AuthMgr --> Service: BadCredentialsException
-  Service --> Ctrl: BadCredentialsException
-  deactivate DetailsService
-  deactivate AuthMgr
-  deactivate Service
-  Ctrl --> FE: 401 Unauthorized
-  deactivate Ctrl
-  FE --> User: exibe erro de credenciais
-  deactivate FE
-else usuário encontrado
+alt usuário encontrado
   DetailsService --> AuthMgr: AuthUserDetails
   deactivate DetailsService
 
@@ -59,16 +48,7 @@ else usuário encontrado
   Encoder --> AuthMgr: boolean
   deactivate Encoder
 
-  alt senha inválida
-    AuthMgr --> Service: BadCredentialsException
-    Service --> Ctrl: BadCredentialsException
-    deactivate AuthMgr
-    deactivate Service
-    Ctrl --> FE: 401 Unauthorized
-    deactivate Ctrl
-    FE --> User: exibe erro de credenciais
-    deactivate FE
-  else autenticado com sucesso
+  alt autenticado com sucesso
     AuthMgr --> Service: Authentication
     deactivate AuthMgr
 
@@ -85,7 +65,27 @@ else usuário encontrado
     deactivate Ctrl
     FE --> User: armazena token e redireciona
     deactivate FE
+  else senha inválida
+    AuthMgr --> Service: BadCredentialsException
+    Service --> Ctrl: BadCredentialsException
+    deactivate AuthMgr
+    deactivate Service
+    Ctrl --> FE: 401 Unauthorized
+    deactivate Ctrl
+    FE --> User: exibe erro de credenciais
+    deactivate FE
   end
+else usuário não encontrado
+  DetailsService --> AuthMgr: UsernameNotFoundException
+  AuthMgr --> Service: BadCredentialsException
+  Service --> Ctrl: BadCredentialsException
+  deactivate DetailsService
+  deactivate AuthMgr
+  deactivate Service
+  Ctrl --> FE: 401 Unauthorized
+  deactivate Ctrl
+  FE --> User: exibe erro de credenciais
+  deactivate FE
 end
 
 @enduml

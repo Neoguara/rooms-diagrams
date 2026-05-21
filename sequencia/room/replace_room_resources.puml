@@ -26,11 +26,7 @@ DB --> RoomRepo: Optional<Room>
 RoomRepo --> UC: Optional<Room>
 deactivate RoomRepo
 
-alt sala não encontrada
-  UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> FE: 404 Not Found
-  FE --> User: exibe erro
-else sala encontrada
+alt sala encontrada
 
   loop para cada resourceId na nova lista
     UC -> ResRepo: findById(ResourceId.of(resourceId))
@@ -40,7 +36,8 @@ else sala encontrada
     ResRepo --> UC: Optional
     deactivate ResRepo
 
-    alt resource não encontrado
+    alt resource encontrado
+    else resource não encontrado
       UC --> Ctrl: ResourceNotFoundException
       Ctrl --> FE: 404 Not Found
       FE --> User: exibe erro
@@ -68,6 +65,10 @@ else sala encontrada
   UC --> Ctrl: RoomResourcesResponse\n{roomId, resourceIds[]}
   Ctrl --> FE: 200 OK {RoomResourcesResponse}
   FE --> User: exibe recursos atualizados
+else sala não encontrada
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
 end
 
 deactivate UC

@@ -17,15 +17,7 @@ activate FE
 FE -> Filter: HTTP Request\nAuthorization: Bearer <token>
 activate Filter
 
-alt header Authorization ausente ou sem "Bearer "
-  Filter -> Ctrl: doFilterChain (sem autenticação)
-  activate Ctrl
-  Ctrl --> FE: 401 Unauthorized
-  deactivate Ctrl
-  deactivate Filter
-  FE --> User: exibe erro de autenticação
-  deactivate FE
-else token presente
+alt token presente
   Filter -> Jwt: extractUsername(token)
   activate Jwt
   Jwt --> Filter: email
@@ -37,15 +29,7 @@ else token presente
   Jwt --> Filter: boolean
   deactivate Jwt
 
-  alt token inválido ou expirado
-    Filter -> Ctrl: doFilterChain (sem autenticação)
-    activate Ctrl
-    Ctrl --> FE: 401 Unauthorized
-    deactivate Ctrl
-    deactivate Filter
-    FE --> User: exibe erro de autenticação
-    deactivate FE
-  else token válido
+  alt token válido
     Filter -> AuthPort: findByEmail(email)
     activate AuthPort
     AuthPort -> UserRepo: findByEmail(email)
@@ -69,7 +53,23 @@ else token presente
     deactivate Filter
     FE --> User: exibe resposta do endpoint
     deactivate FE
+  else token inválido ou expirado
+    Filter -> Ctrl: doFilterChain (sem autenticação)
+    activate Ctrl
+    Ctrl --> FE: 401 Unauthorized
+    deactivate Ctrl
+    deactivate Filter
+    FE --> User: exibe erro de autenticação
+    deactivate FE
   end
+else header Authorization ausente ou sem "Bearer "
+  Filter -> Ctrl: doFilterChain (sem autenticação)
+  activate Ctrl
+  Ctrl --> FE: 401 Unauthorized
+  deactivate Ctrl
+  deactivate Filter
+  FE --> User: exibe erro de autenticação
+  deactivate FE
 end
 
 @enduml
