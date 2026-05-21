@@ -39,9 +39,11 @@ else email disponível
 
   UC -> Mapper: toDomain(request, encodedPassword)
   activate Mapper
-  Mapper -> Entity **: create(name, email, encodedPassword, role)
+  Mapper -> Entity: create(name, email, encodedPassword, role)
+  activate Entity
   note right of Entity: UserValidator.validate()\nid = new UUID\nstatus = ACTIVE\ncreatedAt = now()
   Entity --> Mapper: user
+  deactivate Entity
   Mapper --> UC: user
   deactivate Mapper
 

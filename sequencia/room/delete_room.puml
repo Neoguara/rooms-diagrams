@@ -27,11 +27,8 @@ deactivate Repo
 
 alt not found
   UC --> Ctrl: ResourceNotFoundException
-  deactivate UC
   Ctrl --> FE: 404 Not Found
-  deactivate Ctrl
   FE --> User: exibe erro
-  deactivate FE
 else found
   UC -> Entity: delete()
   activate Entity
@@ -47,11 +44,12 @@ else found
   deactivate Repo
 
   UC --> Ctrl: void
-  deactivate UC
   Ctrl --> FE: 204 No Content
-  deactivate Ctrl
   FE --> User: exibe confirmação de exclusão
-  deactivate FE
 end
+
+deactivate UC
+deactivate Ctrl
+deactivate FE
 
 @enduml

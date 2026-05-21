@@ -66,11 +66,12 @@ else sala encontrada
   end
 
   UC --> Ctrl: RoomResourcesResponse\n{roomId, resourceIds[]}
-  deactivate UC
   Ctrl --> FE: 200 OK {RoomResourcesResponse}
-  deactivate Ctrl
   FE --> User: exibe recursos atualizados
-  deactivate FE
 end
+
+deactivate UC
+deactivate Ctrl
+deactivate FE
 
 @enduml

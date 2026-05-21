@@ -23,9 +23,11 @@ activate UC
 
 UC -> Mapper: toDomain(request)
 activate Mapper
-Mapper -> Entity **: create(name, code, roomTypeId, buildingId, floor, capacity)
+Mapper -> Entity: create(name, code, roomTypeId, buildingId, floor, capacity)
+activate Entity
 note right of Entity: RoomValidator.validate()\nid = new UUID\nstatus = AVAILABLE\ncreatedAt = now()
 Entity --> Mapper: room
+deactivate Entity
 Mapper --> UC: room
 deactivate Mapper
 

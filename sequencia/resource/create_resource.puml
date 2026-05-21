@@ -21,9 +21,11 @@ activate UC
 
 UC -> Mapper: toDomain(request)
 activate Mapper
-Mapper -> Entity **: create(name, description, icon)
+Mapper -> Entity: create(name, description, icon)
+activate Entity
 note right of Entity: ResourceValidation.validate()\nid = new UUID\nstatus = ACTIVE\ncreatedAt = now()
 Entity --> Mapper: resource
+deactivate Entity
 Mapper --> UC: resource
 deactivate Mapper
 
