@@ -1,0 +1,52 @@
+@startuml create_room_type
+
+title POST /room-types — Criar Tipo de Sala
+
+actor User
+boundary "Frontend" as FE
+participant "RoomTypeController" as Ctrl
+participant "CreateRoomTypeUseCase" as UC
+participant "RoomTypeMapper" as Mapper
+participant "RoomType" as Entity
+participant "RoomTypeRepositoryPort" as Repo
+database "room_types" as DB
+
+User -> FE: preenche formulário e confirma
+activate FE
+FE -> Ctrl: POST /room-types\n{name, description, defaultCapacity, color, icon}
+activate Ctrl
+
+Ctrl -> UC: execute(CreateRoomTypeRequest)
+activate UC
+
+UC -> Mapper: toDomain(request)
+activate Mapper
+Mapper -> Entity: create(name, description, defaultCapacity, color, icon)
+activate Entity
+note right of Entity: RoomTypeValidation.validate()\nid = new UUID\nstatus = ACTIVE\ncreatedAt = now()
+Entity --> Mapper: roomType
+deactivate Entity
+Mapper --> UC: roomType
+deactivate Mapper
+
+UC -> Repo: save(roomType)
+activate Repo
+Repo -> DB: INSERT INTO room_types
+DB --> Repo: roomType
+Repo --> UC: saved
+deactivate Repo
+
+UC -> Mapper: toResponse(saved)
+activate Mapper
+Mapper --> UC: RoomTypeResponse
+deactivate Mapper
+
+UC --> Ctrl: RoomTypeResponse
+deactivate UC
+
+Ctrl --> FE: 201 Created {RoomTypeResponse}
+deactivate Ctrl
+FE --> User: exibe confirmação de criação
+deactivate FE
+
+@enduml

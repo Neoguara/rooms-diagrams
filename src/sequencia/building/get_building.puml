@@ -1,0 +1,75 @@
+@startuml get_building
+
+title GET /buildings e GET /buildings/{id} — Buscar Prédio
+
+actor User
+boundary "Frontend" as FE
+participant "BuildingController" as Ctrl
+participant "GetBuildingUseCase" as UC
+participant "BuildingMapper" as Mapper
+participant "BuildingRepositoryPort" as Repo
+database "buildings" as DB
+
+== Listar todos ==
+
+User -> FE: solicita listagem de prédios
+activate FE
+FE -> Ctrl: GET /buildings
+activate Ctrl
+Ctrl -> UC: findAll()
+activate UC
+
+UC -> Repo: findAll()
+activate Repo
+Repo -> DB: SELECT * FROM buildings\nWHERE status != DELETED
+DB --> Repo: List<Building>
+Repo --> UC: List<Building>
+deactivate Repo
+
+UC -> Mapper: toResponse(each building)
+activate Mapper
+Mapper --> UC: List<BuildingResponse>
+deactivate Mapper
+
+UC --> Ctrl: List<BuildingResponse>
+deactivate UC
+Ctrl --> FE: 200 OK {List<BuildingResponse>}
+deactivate Ctrl
+FE --> User: exibe listagem
+deactivate FE
+
+== Buscar por ID ==
+
+User -> FE: solicita busca por ID
+activate FE
+FE -> Ctrl: GET /buildings/{id}
+activate Ctrl
+Ctrl -> UC: findById(id)
+activate UC
+
+UC -> Repo: findById(BuildingId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM buildings\nWHERE id=? AND status!=DELETED
+DB --> Repo: Optional<Building>
+Repo --> UC: Optional<Building>
+deactivate Repo
+
+alt found
+  UC -> Mapper: toResponse(building)
+  activate Mapper
+  Mapper --> UC: BuildingResponse
+  deactivate Mapper
+  UC --> Ctrl: BuildingResponse
+  Ctrl --> FE: 200 OK {BuildingResponse}
+  FE --> User: exibe dados
+else not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
+end
+
+deactivate UC
+deactivate Ctrl
+deactivate FE
+
+@enduml

@@ -1,0 +1,84 @@
+@startuml update_resource_status
+
+title PATCH /resources/{id}/status — Atualizar Status do Recurso
+
+actor User
+boundary "Frontend" as FE
+participant "ResourceController" as Ctrl
+participant "UpdateResourceStatusUseCase" as UC
+participant "ResourceMapper" as Mapper
+participant "Resource" as Entity
+participant "ResourceRepositoryPort" as Repo
+database "resources" as DB
+
+User -> FE: solicita alteração de status
+activate FE
+FE -> Ctrl: PATCH /resources/{id}/status\n{status: ACTIVE|INACTIVE|ARCHIVED}
+activate Ctrl
+
+Ctrl -> UC: execute(id, status)
+activate UC
+
+UC -> Repo: findById(ResourceId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM resources WHERE id=?
+DB --> Repo: Optional<Resource>
+Repo --> UC: Optional<Resource>
+deactivate Repo
+
+alt found
+
+  alt status == ACTIVE
+    alt currentStatus == ARCHIVED
+      UC -> Entity: restore()
+      activate Entity
+      note right of Entity: Lança InvalidStateException (422)\nse a transição for inválida
+      Entity --> UC:
+      deactivate Entity
+    else
+      UC -> Entity: activate()
+      activate Entity
+      note right of Entity: Lança InvalidStateException (422)\nse a transição for inválida
+      Entity --> UC:
+      deactivate Entity
+    end
+  else status == INACTIVE
+    UC -> Entity: deactivate()
+    activate Entity
+    note right of Entity: Lança InvalidStateException (422)\nse a transição for inválida
+    Entity --> UC:
+    deactivate Entity
+  else status == ARCHIVED
+    UC -> Entity: archive()
+    activate Entity
+    note right of Entity: Lança InvalidStateException (422)\nse a transição for inválida\n(ex: DELETED não pode ser modificado)
+    Entity --> UC:
+    deactivate Entity
+  end
+
+  UC -> Repo: save(resource)
+  activate Repo
+  Repo -> DB: UPDATE resources SET status=?
+  DB --> Repo: resource
+  Repo --> UC: saved
+  deactivate Repo
+
+  UC -> Mapper: toResponse(saved)
+  activate Mapper
+  Mapper --> UC: ResourceResponse
+  deactivate Mapper
+
+  UC --> Ctrl: ResourceResponse
+  Ctrl --> FE: 200 OK {ResourceResponse}
+  FE --> User: exibe novo status
+else not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
+end
+
+deactivate UC
+deactivate Ctrl
+deactivate FE
+
+@enduml

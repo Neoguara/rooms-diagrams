@@ -1,0 +1,52 @@
+@startuml create_resource
+
+title POST /resources — Criar Recurso
+
+actor User
+boundary "Frontend" as FE
+participant "ResourceController" as Ctrl
+participant "CreateResourceUseCase" as UC
+participant "ResourceMapper" as Mapper
+participant "Resource" as Entity
+participant "ResourceRepositoryPort" as Repo
+database "resources" as DB
+
+User -> FE: preenche formulário e confirma
+activate FE
+FE -> Ctrl: POST /resources\n{name, description, icon}
+activate Ctrl
+
+Ctrl -> UC: execute(CreateResourceRequest)
+activate UC
+
+UC -> Mapper: toDomain(request)
+activate Mapper
+Mapper -> Entity: create(name, description, icon)
+activate Entity
+note right of Entity: ResourceValidation.validate()\nid = new UUID\nstatus = ACTIVE\ncreatedAt = now()
+Entity --> Mapper: resource
+deactivate Entity
+Mapper --> UC: resource
+deactivate Mapper
+
+UC -> Repo: save(resource)
+activate Repo
+Repo -> DB: INSERT INTO resources
+DB --> Repo: resource
+Repo --> UC: saved
+deactivate Repo
+
+UC -> Mapper: toResponse(saved)
+activate Mapper
+Mapper --> UC: ResourceResponse
+deactivate Mapper
+
+UC --> Ctrl: ResourceResponse
+deactivate UC
+
+Ctrl --> FE: 201 Created {ResourceResponse}
+deactivate Ctrl
+FE --> User: exibe confirmação de criação
+deactivate FE
+
+@enduml

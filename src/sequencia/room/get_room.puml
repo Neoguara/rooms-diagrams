@@ -1,0 +1,86 @@
+@startuml get_room
+
+title GET /rooms/{id}?expand= — Buscar Sala com Expansão
+
+actor User
+boundary "Frontend" as FE
+participant "RoomController" as Ctrl
+participant "GetRoomUseCase" as UC
+participant "RoomRepositoryPort" as RoomRepo
+participant "BuildingRepositoryPort" as BldgRepo
+participant "RoomTypeRepositoryPort" as TypeRepo
+participant "RoomResourceRepositoryPort" as RRRepo
+participant "ResourceRepositoryPort" as ResRepo
+participant "RoomMapper" as Mapper
+database "Database" as DB
+
+User -> FE: solicita detalhes da sala com expansão
+activate FE
+FE -> Ctrl: GET /rooms/{id}?expand=building,roomType,resources
+activate Ctrl
+
+Ctrl -> UC: findById(id, Set<RoomExpandField>)
+activate UC
+
+UC -> RoomRepo: findById(RoomId.of(id))
+activate RoomRepo
+RoomRepo -> DB: SELECT * FROM rooms WHERE id=?
+DB --> RoomRepo: Optional<Room>
+RoomRepo --> UC: Optional<Room>
+deactivate RoomRepo
+
+alt found
+
+  opt expand contém BUILDING
+    UC -> BldgRepo: findById(room.buildingId)
+    activate BldgRepo
+    BldgRepo -> DB: SELECT * FROM buildings WHERE id=?
+    DB --> BldgRepo: Optional<Building>
+    BldgRepo --> UC: Optional<Building>
+    deactivate BldgRepo
+  end
+
+  opt expand contém ROOM_TYPE
+    UC -> TypeRepo: findById(room.roomTypeId)
+    activate TypeRepo
+    TypeRepo -> DB: SELECT * FROM room_types WHERE id=?
+    DB --> TypeRepo: Optional<RoomType>
+    TypeRepo --> UC: Optional<RoomType>
+    deactivate TypeRepo
+  end
+
+  opt expand contém RESOURCES
+    UC -> RRRepo: findByRoomId(room.id)
+    activate RRRepo
+    RRRepo -> DB: SELECT * FROM room_resources WHERE room_id=?
+    DB --> RRRepo: List<RoomResource>
+    RRRepo --> UC: List<RoomResource>
+    deactivate RRRepo
+
+    UC -> ResRepo: findAllById(resourceIds)
+    activate ResRepo
+    ResRepo -> DB: SELECT * FROM resources WHERE id IN (...)
+    DB --> ResRepo: List<Resource>
+    ResRepo --> UC: List<Resource>
+    deactivate ResRepo
+  end
+
+  UC -> Mapper: toDetailResponse(room, building, roomType, resources)
+  activate Mapper
+  Mapper --> UC: RoomDetailResponse
+  deactivate Mapper
+
+  UC --> Ctrl: RoomDetailResponse
+  Ctrl --> FE: 200 OK {RoomDetailResponse}
+  FE --> User: exibe dados da sala
+else not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
+end
+
+deactivate UC
+deactivate Ctrl
+deactivate FE
+
+@enduml

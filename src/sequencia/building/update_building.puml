@@ -1,0 +1,61 @@
+@startuml update_building
+
+title PUT /buildings/{id} — Atualizar Prédio
+
+actor User
+boundary "Frontend" as FE
+participant "BuildingController" as Ctrl
+participant "UpdateBuildingUseCase" as UC
+participant "BuildingMapper" as Mapper
+participant "Building" as Entity
+participant "BuildingRepositoryPort" as Repo
+database "buildings" as DB
+
+User -> FE: edita dados e confirma
+activate FE
+FE -> Ctrl: PUT /buildings/{id}\n{name, address, totalFloors}
+activate Ctrl
+
+Ctrl -> UC: execute(id, UpdateBuildingRequest)
+activate UC
+
+UC -> Repo: findById(BuildingId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM buildings WHERE id=?
+DB --> Repo: Optional<Building>
+Repo --> UC: Optional<Building>
+deactivate Repo
+
+alt found
+  UC -> Entity: update(name, address, totalFloors)
+  activate Entity
+  note right of Entity: BuildingValidator.validate()\nupdatedAt = now()
+  Entity --> UC:
+  deactivate Entity
+
+  UC -> Repo: save(building)
+  activate Repo
+  Repo -> DB: UPDATE buildings SET\nname=?, address=?, total_floors=?,\nupdated_at=?
+  DB --> Repo: building
+  Repo --> UC: saved
+  deactivate Repo
+
+  UC -> Mapper: toResponse(saved)
+  activate Mapper
+  Mapper --> UC: BuildingResponse
+  deactivate Mapper
+
+  UC --> Ctrl: BuildingResponse
+  Ctrl --> FE: 200 OK {BuildingResponse}
+  FE --> User: exibe dados atualizados
+else not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
+end
+
+deactivate UC
+deactivate Ctrl
+deactivate FE
+
+@enduml

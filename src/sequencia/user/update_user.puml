@@ -1,0 +1,67 @@
+@startuml update_user
+
+title PUT /users/{id} — Atualizar Usuário
+
+actor User
+boundary "Frontend" as FE
+participant "UserController" as Ctrl
+participant "UpdateUserUseCase" as UC
+participant "PasswordEncoder" as Encoder
+participant "UserMapper" as Mapper
+participant "User" as Entity
+participant "UserRepositoryPort" as Repo
+database "users" as DB
+
+User -> FE: edita dados e confirma
+activate FE
+FE -> Ctrl: PUT /users/{id}\n{name, email, password, role}
+activate Ctrl
+
+Ctrl -> UC: execute(id, UpdateUserRequest)
+activate UC
+
+UC -> Repo: findById(UserId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM users WHERE id=?
+DB --> Repo: Optional<User>
+Repo --> UC: Optional<User>
+deactivate Repo
+
+alt found
+  UC -> Encoder: encode(request.password)
+  activate Encoder
+  Encoder --> UC: encodedPassword
+  deactivate Encoder
+
+  UC -> Entity: update(name, email, encodedPassword, role)
+  activate Entity
+  note right of Entity: UserValidator.validate()\nupdatedAt = now()
+  Entity --> UC:
+  deactivate Entity
+
+  UC -> Repo: save(user)
+  activate Repo
+  Repo -> DB: UPDATE users SET\nname=?, email=?, password=?,\nrole=?, updated_at=?
+  DB --> Repo: user
+  Repo --> UC: saved
+  deactivate Repo
+
+  UC -> Mapper: toResponse(saved)
+  activate Mapper
+  Mapper --> UC: UserResponse
+  deactivate Mapper
+
+  UC --> Ctrl: UserResponse
+  Ctrl --> FE: 200 OK {UserResponse}
+  FE --> User: exibe dados atualizados
+else not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
+end
+
+deactivate UC
+deactivate Ctrl
+deactivate FE
+
+@enduml

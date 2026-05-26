@@ -1,0 +1,440 @@
+@startuml
+
+skinparam linetype ortho
+skinparam packageStyle rectangle
+left to right direction
+
+package "Domain" #EEF2FF {
+
+  package "entities" {
+    class Event {
+      - EventId id
+      - RoomId roomId
+      - String title
+      - String description
+      - LocalDateTime startAt
+      - LocalDateTime endAt
+      - Boolean isAllDay
+      - String recurrenceRule
+      - EventStatus status
+      - LocalDateTime createdAt
+      - LocalDateTime updatedAt
+      + {static} Event create(RoomId,String,String,LocalDateTime,LocalDateTime,Boolean,String)
+      + void update(RoomId,String,String,LocalDateTime,LocalDateTime,Boolean,String)
+      + void cancel()
+      + void complete()
+      + void archive()
+    }
+
+    class EventRequest {
+      - EventRequestId id
+      - EventId eventId
+      - UserId createdBy
+      - EventRequestStatus status
+      - EventRequestType type
+      - String justification
+      - LocalDateTime createdAt
+      + {static} EventRequest createEvent(UserId,String)
+      + {static} EventRequest updateEvent(EventId,UserId,String)
+      + {static} EventRequest cancelEvent(EventId,UserId,String)
+      + void approve()
+      + void reject()
+    }
+
+    class EventChangeItem {
+      - EventChangeItemId id
+      - EventRequestId eventRequestId
+      - EventSnapshot before
+      - EventSnapshot after
+      - {static} EventChangeItem validated(EventRequestId,EventSnapshot,EventSnapshot)
+      + {static} EventChangeItem create(EventRequestId,EventSnapshot)
+      + {static} EventChangeItem update(EventRequestId,Event,EventSnapshot)
+      + {static} EventChangeItem cancel(EventRequestId,Event)
+      - {static} EventSnapshot snapshotOf(Event)
+    }
+
+    class Approval {
+      - ApprovalId id
+    }
+  }
+
+  package "valueobjects" {
+    class EventId {
+      - UUID id
+      + {static} EventId of(UUID)
+    }
+    class EventRequestId {
+      - UUID id
+      + {static} EventRequestId of(UUID)
+    }
+    class EventChangeItemId {
+      - UUID id
+      + {static} EventChangeItemId of(UUID)
+    }
+    class RoomId {
+      - UUID id
+      + {static} RoomId of(UUID)
+    }
+    class UserId {
+      - UUID id
+      + {static} UserId of(UUID)
+    }
+    class ApprovalId {
+      - UUID id
+      + {static} ApprovalId of(UUID)
+    }
+    class EventSnapshot {
+      - RoomId roomId
+      - String title
+      - String description
+      - LocalDateTime startAt
+      - LocalDateTime endAt
+      - Boolean isAllDay
+      - String recurrenceRule
+      + {static} EventSnapshot of(RoomId,String,String,LocalDateTime,LocalDateTime,Boolean,String)
+    }
+  }
+
+  package "enums" {
+    enum EventStatus {
+      +  ACTIVE
+      +  CANCELLED
+      +  COMPLETED
+      +  ARCHIVED
+    }
+    enum EventRequestStatus {
+      +  PENDING
+      +  APPROVED
+      +  REJECTED
+      +  CANCELLED
+    }
+    enum EventRequestType {
+      +  CREATE
+      +  UPDATE
+      +  CANCEL
+    }
+  }
+
+  package "validation" {
+    class EventValidation {
+      + void validate(Event,Notification)
+    }
+    class EventRequestValidation {
+      + void validate(EventRequest,Notification)
+    }
+    class EventChangeItemValidation {
+      + void validate(EventChangeItem,Notification)
+      - void validateSnapshot(EventSnapshot,Notification)
+    }
+  }
+}
+
+package "Application" #F0FFF0 {
+
+  package "ports" {
+    interface EventRepositoryPort {
+      ~ List<Event> findAll()
+      ~ Optional<Event> findById(EventId)
+      ~ Event save(Event)
+    }
+    interface EventRequestRepositoryPort {
+      ~ EventRequest save(EventRequest)
+      ~ Optional<EventRequest> findById(EventRequestId)
+      ~ List<EventRequest> findAll()
+    }
+    interface EventChangeItemRepositoryPort {
+      ~ EventChangeItem save(EventChangeItem)
+      ~ Optional<EventChangeItem> findByEventRequestId(EventRequestId)
+    }
+  }
+
+  package "usecases" {
+    class GetEventUseCase {
+      - EventRepositoryPort repository
+      + List<EventResponse> findAll()
+    }
+    class GetEventRequestUseCase {
+      - EventRequestRepositoryPort repository
+      - EventChangeItemRepositoryPort changeItemRepository
+      + List<EventRequestResponse> findAll()
+    }
+    class RequestEventCreationUseCase {
+      - EventRequestRepositoryPort eventRequestRepository
+      - EventChangeItemRepositoryPort changeItemRepository
+      + CreateEventRequestResponse execute(CreateEventRequest)
+    }
+    class RequestEventUpdateUseCase {
+      - EventRepositoryPort eventRepository
+      - EventRequestRepositoryPort eventRequestRepository
+      - EventChangeItemRepositoryPort changeItemRepository
+      + CreateEventRequestResponse execute(UUID,UpdateEventRequest)
+    }
+    class RequestEventCancellationUseCase {
+      - EventRepositoryPort eventRepository
+      - EventRequestRepositoryPort eventRequestRepository
+      - EventChangeItemRepositoryPort changeItemRepository
+      + CreateEventRequestResponse execute(UUID,CancelEventRequest)
+    }
+    class ApproveEventRequestUseCase {
+      - EventRequestRepositoryPort eventRequestRepository
+      - EventChangeItemRepositoryPort changeItemRepository
+      - EventRepositoryPort eventRepository
+      + void execute(UUID)
+    }
+    class RejectEventRequestUseCase {
+      - EventRequestRepositoryPort eventRequestRepository
+      + void execute(UUID)
+    }
+  }
+
+  package "mappers" {
+    class EventMapper {
+      + {static} EventResponse toResponse(Event)
+    }
+    class EventRequestMapper {
+      + {static} EventRequestResponse toResponse(EventRequest,EventChangeItem)
+      - {static} EventChangeItemResponse toItemResponse(EventChangeItem)
+    }
+    class CreateEventRequestMapper {
+      + {static} EventRequest toDomain(CreateEventRequest)
+      + {static} CreateEventRequestResponse toResponse(EventRequest)
+    }
+  }
+
+  package "dtos" {
+    class CreateEventRequest {
+      - String title
+      - String description
+      - LocalDateTime startAt
+      - LocalDateTime endAt
+      - Boolean isAllDay
+      - String recurrenceRule
+      - String justification
+      - UUID userId
+      - UUID roomId
+    }
+    class UpdateEventRequest {
+      - UUID eventId
+      - String title
+      - String description
+      - LocalDateTime startAt
+      - LocalDateTime endAt
+      - Boolean isAllDay
+      - String recurrenceRule
+      - String justification
+      - UUID userId
+      - UUID roomId
+    }
+    class CancelEventRequest {
+      - UUID eventId
+      - UUID userId
+      - String justification
+    }
+    class CreateEventRequestResponse {
+      - UUID id
+      - UUID createdBy
+      - String status
+      - String type
+      - String justification
+      - LocalDateTime createdAt
+    }
+    class EventRequestResponse {
+      - UUID id
+      - UUID eventId
+      - UUID createdBy
+      - String status
+      - String type
+      - String justification
+      - LocalDateTime createdAt
+      - EventChangeItemResponse changeItem
+    }
+    class EventChangeItemResponse {
+      - UUID id
+      - UUID oldRoomId
+      - UUID newRoomId
+      - String oldTitle
+      - String newTitle
+      - String oldDescription
+      - String newDescription
+      - LocalDateTime oldStartAt
+      - LocalDateTime newStartAt
+      - LocalDateTime oldEndAt
+      - LocalDateTime newEndAt
+      - Boolean oldIsAllDay
+      - Boolean newIsAllDay
+      - String oldRecurrenceRule
+      - String newRecurrenceRule
+    }
+    class EventResponse {
+      - UUID id
+      - UUID roomId
+      - String title
+      - String description
+      - LocalDateTime startAt
+      - LocalDateTime endAt
+      - Boolean isAllDay
+      - String recurrenceRule
+      - String status
+      - LocalDateTime createdAt
+      - LocalDateTime updatedAt
+    }
+  }
+}
+
+package "Infrastructure" #FFF8F0 {
+
+  package "web" {
+    class EventController {
+      - GetEventUseCase getEventUseCase
+      + ResponseEntity<List<EventResponse>> listEvents()
+    }
+    class EventRequestController {
+      - GetEventRequestUseCase getEventRequestUseCase
+      - RequestEventCreationUseCase requestEventCreationUseCase
+      - RequestEventUpdateUseCase requestEventUpdateUseCase
+      - RequestEventCancellationUseCase requestEventCancellationUseCase
+      - ApproveEventRequestUseCase approveEventRequestUseCase
+      - RejectEventRequestUseCase rejectEventRequestUseCase
+      + ResponseEntity<List<EventRequestResponse>> listEventRequests()
+      + ResponseEntity<CreateEventRequestResponse> requestEventCreation(CreateEventRequest)
+      + ResponseEntity<CreateEventRequestResponse> requestEventUpdate(UpdateEventRequest)
+      + ResponseEntity<CreateEventRequestResponse> requestEventCancellation(CancelEventRequest)
+      + ResponseEntity<Void> approveEventRequest(UUID)
+      + ResponseEntity<Void> rejectEventRequest(UUID)
+    }
+  }
+
+  package "repositories" {
+    class EventRepositoryImpl {
+      - EventJpaRepository jpaRepository
+      + List<Event> findAll()
+      + Optional<Event> findById(EventId)
+      + Event save(Event)
+    }
+    class EventRequestRepositoryImpl {
+      - EventRequestJpaRepository repository
+      + EventRequest save(EventRequest)
+      + Optional<EventRequest> findById(EventRequestId)
+      + List<EventRequest> findAll()
+    }
+    class EventChangeItemRepositoryImpl {
+      - EventChangeItemJpaRepository jpaRepository
+      + EventChangeItem save(EventChangeItem)
+      + Optional<EventChangeItem> findByEventRequestId(EventRequestId)
+    }
+    interface EventJpaRepository {
+    }
+    interface EventRequestJpaRepository {
+    }
+    interface EventChangeItemJpaRepository {
+      ~ Optional<EventChangeItem> findByEventRequestId(EventRequestId)
+    }
+  }
+}
+
+' ── Implementações de interfaces ──────────────────────────────────────────
+shared.domain.validation.Validator <|.. EventValidation
+shared.domain.validation.Validator <|.. EventRequestValidation
+shared.domain.validation.Validator <|.. EventChangeItemValidation
+
+EventRepositoryPort <|.. EventRepositoryImpl
+EventRequestRepositoryPort <|.. EventRequestRepositoryImpl
+EventChangeItemRepositoryPort <|.. EventChangeItemRepositoryImpl
+
+JpaRepository <|-- EventJpaRepository
+JpaRepository <|-- EventRequestJpaRepository
+JpaRepository <|-- EventChangeItemJpaRepository
+
+' ── Composição: Entidades → Value Objects ──────────────────────────────────
+Event *-- EventId
+Event *-- RoomId
+Event --> EventStatus
+
+EventRequest *-- EventRequestId
+EventRequest --> EventId
+EventRequest --> UserId
+EventRequest --> EventRequestStatus
+EventRequest --> EventRequestType
+
+EventChangeItem *-- EventChangeItemId
+EventChangeItem --> EventRequestId
+EventChangeItem *-- EventSnapshot
+EventChangeItem ..> Event
+
+Approval *-- ApprovalId
+
+EventSnapshot --> RoomId
+
+' ── Entidades → Validação (dependência interna) ────────────────────────────
+Event ..> EventValidation
+EventRequest ..> EventRequestValidation
+EventChangeItem ..> EventChangeItemValidation
+
+' ── Controllers → Use Cases e DTOs de entrada ─────────────────────────────
+EventController --> GetEventUseCase
+EventController ..> EventResponse
+EventRequestController --> GetEventRequestUseCase
+EventRequestController --> RequestEventCreationUseCase
+EventRequestController --> RequestEventUpdateUseCase
+EventRequestController --> RequestEventCancellationUseCase
+EventRequestController --> ApproveEventRequestUseCase
+EventRequestController --> RejectEventRequestUseCase
+EventRequestController ..> CreateEventRequest
+EventRequestController ..> UpdateEventRequest
+EventRequestController ..> CancelEventRequest
+EventRequestController ..> CreateEventRequestResponse
+EventRequestController ..> EventRequestResponse
+
+' ── Use Cases → Ports (injeção de dependência) ────────────────────────────
+GetEventUseCase --> EventRepositoryPort
+GetEventRequestUseCase --> EventRequestRepositoryPort
+GetEventRequestUseCase --> EventChangeItemRepositoryPort
+
+RequestEventCreationUseCase --> EventRequestRepositoryPort
+RequestEventCreationUseCase --> EventChangeItemRepositoryPort
+RequestEventCreationUseCase ..> CreateEventRequest
+RequestEventCreationUseCase ..> EventSnapshot
+RequestEventCreationUseCase ..> EventChangeItem
+
+RequestEventUpdateUseCase --> EventRepositoryPort
+RequestEventUpdateUseCase --> EventRequestRepositoryPort
+RequestEventUpdateUseCase --> EventChangeItemRepositoryPort
+RequestEventUpdateUseCase ..> UpdateEventRequest
+
+RequestEventCancellationUseCase --> EventRepositoryPort
+RequestEventCancellationUseCase --> EventRequestRepositoryPort
+RequestEventCancellationUseCase --> EventChangeItemRepositoryPort
+RequestEventCancellationUseCase ..> CancelEventRequest
+
+ApproveEventRequestUseCase --> EventRequestRepositoryPort
+ApproveEventRequestUseCase --> EventChangeItemRepositoryPort
+ApproveEventRequestUseCase --> EventRepositoryPort
+
+RejectEventRequestUseCase --> EventRequestRepositoryPort
+
+' ── Use Cases → Mappers (chamadas estáticas) ──────────────────────────────
+GetEventUseCase ..> EventMapper
+GetEventRequestUseCase ..> EventRequestMapper
+RequestEventCreationUseCase ..> CreateEventRequestMapper
+RequestEventUpdateUseCase ..> CreateEventRequestMapper
+RequestEventCancellationUseCase ..> CreateEventRequestMapper
+
+' ── Mappers → Domínio e DTOs ──────────────────────────────────────────────
+EventMapper ..> Event
+EventMapper ..> EventResponse
+
+EventRequestMapper ..> EventRequest
+EventRequestMapper ..> EventChangeItem
+EventRequestMapper ..> EventRequestResponse
+EventRequestMapper ..> EventChangeItemResponse
+
+CreateEventRequestMapper ..> CreateEventRequest
+CreateEventRequestMapper ..> EventRequest
+CreateEventRequestMapper ..> CreateEventRequestResponse
+
+' ── Repository Impls → JPA Repositories ──────────────────────────────────
+EventRepositoryImpl --> EventJpaRepository
+EventRequestRepositoryImpl --> EventRequestJpaRepository
+EventChangeItemRepositoryImpl --> EventChangeItemJpaRepository
+
+@enduml

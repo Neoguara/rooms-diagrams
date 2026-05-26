@@ -1,0 +1,75 @@
+@startuml create_room
+
+title POST /rooms — Criar Sala
+
+actor User
+boundary "Frontend" as FE
+participant "RoomController" as Ctrl
+participant "CreateRoomUseCase" as UC
+participant "RoomMapper" as Mapper
+participant "Room" as Entity
+participant "RoomRepositoryPort" as RoomRepo
+participant "ResourceRepositoryPort" as ResRepo
+participant "RoomResourceRepositoryPort" as RRRepo
+database "rooms\nroom_resources\nresources" as DB
+
+User -> FE: preenche formulário e confirma
+activate FE
+FE -> Ctrl: POST /rooms\n{name, code, roomTypeId, buildingId,\nfloor, capacity, resourceIds[]}
+activate Ctrl
+
+Ctrl -> UC: execute(CreateRoomRequest)
+activate UC
+
+UC -> Mapper: toDomain(request)
+activate Mapper
+Mapper -> Entity: create(name, code, roomTypeId, buildingId, floor, capacity)
+activate Entity
+note right of Entity: RoomValidator.validate()\nid = new UUID\nstatus = AVAILABLE\ncreatedAt = now()
+Entity --> Mapper: room
+deactivate Entity
+Mapper --> UC: room
+deactivate Mapper
+
+UC -> RoomRepo: save(room)
+activate RoomRepo
+RoomRepo -> DB: INSERT INTO rooms
+DB --> RoomRepo: room
+RoomRepo --> UC: saved
+deactivate RoomRepo
+
+loop para cada resourceId em request.resourceIds (se não for nulo)
+  UC -> ResRepo: findById(ResourceId.of(resourceId))
+  activate ResRepo
+  ResRepo -> DB: SELECT * FROM resources WHERE id=?
+  DB --> ResRepo: Optional<Resource>
+  ResRepo --> UC: Optional
+  deactivate ResRepo
+
+  alt resource encontrado
+    UC -> RRRepo: save(RoomResource.create(roomId, resourceId))
+    activate RRRepo
+    RRRepo -> DB: INSERT INTO room_resources
+    DB --> RRRepo:
+    RRRepo --> UC:
+    deactivate RRRepo
+  else resource não encontrado
+    UC --> Ctrl: ResourceNotFoundException
+    Ctrl --> FE: 404 Not Found
+    FE --> User: exibe erro
+  end
+end
+
+UC -> Mapper: toResponse(saved)
+activate Mapper
+Mapper --> UC: RoomResponse
+deactivate Mapper
+
+UC --> Ctrl: RoomResponse
+deactivate UC
+Ctrl --> FE: 201 Created {RoomResponse}
+deactivate Ctrl
+FE --> User: exibe confirmação de criação
+deactivate FE
+
+@enduml

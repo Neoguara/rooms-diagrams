@@ -1,0 +1,52 @@
+@startuml create_building
+
+title POST /buildings — Criar Prédio
+
+actor User
+boundary "Frontend" as FE
+participant "BuildingController" as Ctrl
+participant "CreateBuildingUseCase" as UC
+participant "BuildingMapper" as Mapper
+participant "Building" as Entity
+participant "BuildingRepositoryPort" as Repo
+database "buildings" as DB
+
+User -> FE: preenche formulário e confirma
+activate FE
+FE -> Ctrl: POST /buildings\n{name, address, totalFloors}
+activate Ctrl
+
+Ctrl -> UC: execute(CreateBuildingRequest)
+activate UC
+
+UC -> Mapper: toDomain(request)
+activate Mapper
+Mapper -> Entity: create(name, address, totalFloors)
+activate Entity
+note right of Entity: BuildingValidator.validate()\nid = new UUID\nstatus = ACTIVE\ncreatedAt = now()
+Entity --> Mapper: building
+deactivate Entity
+Mapper --> UC: building
+deactivate Mapper
+
+UC -> Repo: save(building)
+activate Repo
+Repo -> DB: INSERT INTO buildings
+DB --> Repo: building
+Repo --> UC: saved
+deactivate Repo
+
+UC -> Mapper: toResponse(saved)
+activate Mapper
+Mapper --> UC: BuildingResponse
+deactivate Mapper
+
+UC --> Ctrl: BuildingResponse
+deactivate UC
+
+Ctrl --> FE: 201 Created {BuildingResponse}
+deactivate Ctrl
+FE --> User: exibe confirmação de criação
+deactivate FE
+
+@enduml
