@@ -1,0 +1,31 @@
+@startuml user_status
+
+title User — Ciclo de Vida do Status
+
+skinparam state {
+  BackgroundColor #EEF2FF
+  BorderColor #7070AA
+  ArrowColor #555588
+  FontSize 13
+}
+skinparam noteBackgroundColor #FFFDE7
+skinparam noteBorderColor #CCBB55
+
+[*] --> ACTIVE : create()
+
+ACTIVE --> INACTIVE : deactivate()
+ACTIVE --> DELETED  : delete()
+
+INACTIVE --> ACTIVE  : activate()
+INACTIVE --> DELETED : delete()
+
+DELETED --> [*]
+
+note right of DELETED
+  Estado terminal (soft delete).
+  Nenhuma transição permitida.
+  Lança InvalidStateException (422)
+  se tentar modificar um usuário DELETED.
+end note
+
+@enduml

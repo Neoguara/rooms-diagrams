@@ -1,0 +1,40 @@
+@startuml resource_status
+
+title Resource — Ciclo de Vida do Status
+
+skinparam state {
+  BackgroundColor #EEF2FF
+  BorderColor #7070AA
+  ArrowColor #555588
+  FontSize 13
+}
+skinparam noteBackgroundColor #FFFDE7
+skinparam noteBorderColor #CCBB55
+
+[*] --> ACTIVE : create()
+
+ACTIVE   --> INACTIVE : deactivate()
+ACTIVE   --> ARCHIVED : archive()
+
+INACTIVE --> ACTIVE   : activate()
+INACTIVE --> ARCHIVED : archive()
+
+ARCHIVED --> ACTIVE   : restore()
+ARCHIVED --> DELETED  : delete()
+
+DELETED --> [*]
+
+note right of ARCHIVED
+  ARCHIVED não pode ir para INACTIVE.
+  Lança InvalidStateException (422).
+  Única origem válida para delete().
+  restore() exige status == ARCHIVED.
+end note
+
+note right of DELETED
+  Estado terminal (soft delete).
+  Nenhuma transição permitida.
+  Somente alcançável via ARCHIVED.
+end note
+
+@enduml

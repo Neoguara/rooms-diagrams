@@ -1,0 +1,50 @@
+@startuml event_request_status
+
+title EventRequest — Ciclo de Vida do Status
+
+skinparam state {
+  BackgroundColor #EEF2FF
+  BorderColor #7070AA
+  ArrowColor #555588
+  FontSize 13
+}
+skinparam noteBackgroundColor #FFFDE7
+skinparam noteBorderColor #CCBB55
+
+[*] --> PENDING : createEvent() / updateEvent() / cancelEvent()
+
+PENDING --> APPROVED  : approve()
+PENDING --> REJECTED  : reject()
+PENDING --> CANCELLED : cancel()
+
+APPROVED  --> [*]
+REJECTED  --> [*]
+CANCELLED --> [*]
+
+note right of PENDING
+  Tipo da requisição determina o efeito:
+  • CREATE — solicita criação de novo Event
+  • UPDATE — solicita alteração de Event existente
+  • CANCEL — solicita cancelamento de Event existente
+end note
+
+note right of APPROVED
+  Estado terminal.
+  Efeito no Event conforme tipo:
+  • CREATE  → Event é criado (ACTIVE)
+  • UPDATE  → Event é atualizado
+  • CANCEL  → Event.cancel() → CANCELLED
+end note
+
+note right of REJECTED
+  Estado terminal.
+  Nenhum efeito no Event.
+end note
+
+note right of CANCELLED
+  Estado terminal.
+  Cancelado pelo próprio solicitante
+  antes da aprovação.
+end note
+
+@enduml
