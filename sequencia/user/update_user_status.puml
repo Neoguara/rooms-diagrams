@@ -30,14 +30,17 @@ alt found
 
   alt status == ACTIVE
     UC -> Entity: activate()
+    activate Entity
+    note right of Entity: Lança InvalidStateException (422)\nse a transição for inválida
+    Entity --> UC:
+    deactivate Entity
   else status == INACTIVE
     UC -> Entity: deactivate()
+    activate Entity
+    note right of Entity: Lança InvalidStateException (422)\nse a transição for inválida\n(ex: DELETED não pode ser modificado)
+    Entity --> UC:
+    deactivate Entity
   end
-
-  activate Entity
-  note right of Entity: Lança InvalidStateException (422)\nse a transição for inválida\n(ex: DELETED não pode ser modificado)
-  Entity --> UC:
-  deactivate Entity
 
   UC -> Repo: save(user)
   activate Repo
