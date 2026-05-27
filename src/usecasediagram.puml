@@ -1,0 +1,38 @@
+@startuml
+left to right direction
+
+actor sa_professor
+actor sa_coordenador
+
+' Herança entre atores
+sa_coordenador --|> sa_professor
+
+rectangle "uc" {
+
+    usecase "suc_enviar_notificação" as UC1
+    usecase "suc_gerenciar_autenticação" as UC2
+    usecase "suc_gerenciar_salas" as UC3
+    usecase "suc_gerenciar_agendamentos" as UC4
+    usecase "suc_gerar_relatorios" as UC5
+    usecase "suc_gerenciar_histórico" as UC6
+    usecase "suc_gerenciar_usuarios" as UC7
+    usecase "suc_montar_grade" as UC8
+    usecase "suc_exportar_PDF" as UC9
+}
+
+' Relações do professor
+sa_professor --> UC1
+sa_professor --> UC2
+sa_professor --> UC3
+sa_professor --> UC4
+sa_professor --> UC5
+sa_professor --> UC6
+
+' Relação do coordenador
+sa_coordenador --> UC7
+
+' Extends
+UC8 ..> UC4 : <<extend>>
+UC9 ..> UC5 : <<extend>>
+
+@enduml

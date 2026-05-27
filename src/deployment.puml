@@ -1,0 +1,40 @@
+@startuml
+skinparam linetype ortho
+skinparam backgroundColor white
+skinparam node {
+  BorderColor #444444
+  BackgroundColor #f9f9f9
+  FontStyle bold
+}
+skinparam artifact {
+  BorderColor #444444
+  BackgroundColor #FFFFFF
+}
+skinparam database {
+  BorderColor #444444
+  BackgroundColor #FFF3CC
+}
+skinparam arrow {
+  Color #555555
+}
+
+node "Cliente" <<device>> #DDEEFF {
+  artifact "Navegador Web" as browser
+}
+
+node "Servidor Web" <<server>> #DDFFD8 {
+  artifact "Frontend" as Frontend
+}
+
+node "Servidor de Aplicação" <<server>> #FFE0D8 {
+  artifact "Backend API" as api
+}
+
+node "Servidor de Banco de Dados" <<server>> #FFF3CC {
+  database "PostgreSQL" as db
+}
+
+browser --> Frontend  : HTTPS
+Frontend   --> api    : HTTPS
+api     --> db     : JDBC
+@enduml
