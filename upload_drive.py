@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
+import argparse
+import json
 import os
 import sys
+import urllib.request
 from pathlib import Path
 
 try:
@@ -20,6 +23,8 @@ SCOPES = ["https://www.googleapis.com/auth/drive"]
 CREDENTIALS_FILE = Path(__file__).parent / "credentials.json"
 TOKEN_FILE = Path(__file__).parent / "token.json"
 OUT_BASE = Path(__file__).parent / "out" / "src" / "plantuml"
+LINKS_FILE = Path(__file__).parent / "src" / "data" / "diagramas-drive.json"
+DRIVE_API_URL = "https://script.google.com/macros/s/AKfycbyHmuo-A6GeeQQoqyJ7eoviOQd1O3GPTBRx8JGQw_IH1BXU0zpojzWI0uKPgJ0nJ8xW/exec"
 
 
 def get_service():
@@ -90,7 +95,25 @@ def upload_svg(service, file_path, parent_id):
     print(f"  uploaded: {file_path.relative_to(OUT_BASE)}")
 
 
+def fetch_drive_links():
+    print("Fetching Drive links from API...")
+    with urllib.request.urlopen(DRIVE_API_URL) as resp:
+        data = json.loads(resp.read().decode())
+    LINKS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    LINKS_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False))
+    count = len(data) if isinstance(data, list) else "?"
+    print(f"  saved {count} links to {LINKS_FILE.relative_to(Path(__file__).parent)}")
+
+
 def main():
+    parser = argparse.ArgumentParser(description="Upload PlantUML SVGs to Google Drive.")
+    parser.add_argument("--fetch-links", action="store_true", help="Only fetch and update diagramas-drive.json")
+    args = parser.parse_args()
+
+    if args.fetch_links:
+        fetch_drive_links()
+        return
+
     folder_id = os.environ.get("DRIVE_FOLDER_ID")
     if not folder_id:
         print("Error: DRIVE_FOLDER_ID environment variable is not set.")
@@ -107,7 +130,7 @@ def main():
         print("No SVG files found. Run ./generate.sh --svg first.")
         sys.exit(1)
 
-    print(f"Authenticating with Google Drive...")
+    print("Authenticating with Google Drive...")
     service = get_service()
 
     print(f"\nClearing Drive folder ({folder_id})...")
@@ -124,6 +147,9 @@ def main():
         upload_svg(service, svg_file, parent)
 
     print(f"\nDone. {len(svg_files)} files uploaded.")
+
+    print("")
+    fetch_drive_links()
 
 
 if __name__ == "__main__":
