@@ -30,7 +30,6 @@ english,brazil}{abntex2}%
 \RequirePackage{color}
 \RequirePackage[dvipsnames]{xcolor}
 \RequirePackage[intlimits]{amsmath}
-\RequirePackage{chemfig}
 \RequirePackage{lipsum}
 
 \RequirePackage[subentrycounter,seeautonumberlist]{glossaries}
