@@ -35,7 +35,7 @@ def get_service():
                 print("Download it from Google Cloud Console > APIs > Credentials > OAuth 2.0 Client IDs.")
                 sys.exit(1)
             flow = InstalledAppFlow.from_client_secrets_file(str(CREDENTIALS_FILE), SCOPES)
-            creds = flow.run_local_server(port=0)
+            creds = flow.run_local_server(port=49921)
         TOKEN_FILE.write_text(creds.to_json())
     return build("drive", "v3", credentials=creds)
 
