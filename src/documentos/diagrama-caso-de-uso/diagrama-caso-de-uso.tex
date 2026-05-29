@@ -1,0 +1,37 @@
+\documentclass[12pt,a4paper]{article}
+
+% ABNT formatting packages
+\usepackage[inner=30mm,outer=20mm,top=30mm,bottom=20mm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[colorlinks=true,linkcolor=black,urlcolor=black,citecolor=black]{hyperref}
+\usepackage{indentfirst}
+\usepackage{setspace}
+\usepackage{helvet}
+\usepackage[font=normalsize,labelfont=bf,labelsep=endash,justification=centering,position=above]{caption}
+
+\renewcommand{\familydefault}{\sfdefault}
+\onehalfspacing
+\setlength{\parindent}{1.5cm}
+
+\begin{document}
+
+\section{Diagrama de Caso de Uso}
+
+Na Figura~\ref{fig:caso-de-uso} são apresentados os principais atores e
+funcionalidades da aplicação.
+
+\begin{figure}[H]
+    \caption{Diagrama de caso de uso do sistema de reserva de salas}
+    \label{fig:caso-de-uso}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{imagens/usecasediagram.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.
+    \textbf{Acesso:} \href{https://drive.google.com/file/d/1C0CoAWWw4klkZST2oQt5cN_ZAOlecXC6/view?usp=drivesdk}{Diagrama de Caso de Uso -- Google Drive}.}
+\end{figure}
+
+\end{document}
