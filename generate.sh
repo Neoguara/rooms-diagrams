@@ -47,6 +47,22 @@ if $COMPILE_LATEX; then
   echo ""
   echo "Compiling LaTeX documents..."
 
+  echo "  Generating out/drive-links.tex from diagramas-drive.json..."
+  python3 << 'PYEOF'
+import json, re, os
+
+with open('src/data/diagramas-drive.json') as f:
+    data = json.load(f)
+
+os.makedirs('out', exist_ok=True)
+with open('out/drive-links.tex', 'w') as out:
+    for entry in data:
+        name = entry['name']
+        link = entry['link']
+        macro = ''.join(w.capitalize() for w in re.split(r'[_\-]', name.rsplit('.', 1)[0]))
+        out.write(f'\\def\\link{macro}{{{link}}}\n')
+PYEOF
+
   find . -name "*.tex" | while read -r file; do
     if ! grep -q '\\documentclass' "$file"; then
       continue
