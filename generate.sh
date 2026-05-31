@@ -36,7 +36,7 @@ mkdir -p "$OUT"
 find . -name "*.puml" | while read -r file; do
   dir="$OUT/$(dirname "$file" | sed 's|^\./||')"
   mkdir -p "$dir"
-  if ! plantuml -t"$FORMAT" -o "$(realpath "$dir")" "$file" 2>/dev/null; then
+  if ! plantuml -DPLANTUML_LIMIT_SIZE=16384 -t"$FORMAT" -o "$(realpath "$dir")" "$file" 2>/dev/null; then
     echo "WARN: failed to generate $file"
   fi
 done
