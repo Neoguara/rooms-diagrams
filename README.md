@@ -30,6 +30,36 @@ Baixe o `.jar` em https://plantuml.com/download e execute com:
 java -jar plantuml.jar <arquivo.puml>
 ```
 
+### Compilação de documentos LaTeX (opcional)
+
+Para usar a flag `--latex`, instale os pacotes do TeX Live:
+
+**Arch Linux / Manjaro:**
+```bash
+sudo pacman -S texlive-basic texlive-latexextra texlive-fontsrecommended \
+               texlive-langportuguese texlive-plaingeneric texlive-publishers
+```
+
+**Ubuntu / Debian:**
+```bash
+sudo apt install texlive-latex-base texlive-latex-extra texlive-fonts-recommended \
+                 texlive-lang-portuguese
+```
+
+**macOS (Homebrew):**
+```bash
+brew install --cask mactex
+```
+
+| Pacote (Arch) | Conteúdo relevante |
+|---|---|
+| `texlive-basic` | `pdflatex`, núcleo do TeX Live |
+| `texlive-latexextra` | `abntex2`, `glossaries`, `backref`, `geometry`, `listings` |
+| `texlive-fontsrecommended` | Fontes padrão (Helvetica, CM) |
+| `texlive-langportuguese` | Suporte babel para português |
+| `texlive-plaingeneric` | `tracklang`, `xkeyval` e outros pacotes genéricos |
+| `texlive-publishers` | Classe `abntex2` e estilos acadêmicos |
+
 ## Uso
 
 ### Gerar diagramas em PNG (padrão)
@@ -45,6 +75,14 @@ java -jar plantuml.jar <arquivo.puml>
 ```
 
 As imagens geradas são salvas no diretório `out/`, mantendo a estrutura de pastas dos arquivos fonte.
+
+### Gerar diagramas e compilar PDFs
+
+```bash
+./generate.sh --latex
+```
+
+Gera os PNGs e compila todos os `.tex` com `\documentclass`. Os PDFs são salvos em `out/`, espelhando a estrutura de `src/`.
 
 ### Atualizar pasta no Google Drive
 
