@@ -1,1 +1,39 @@
+\documentclass[12pt,a4paper]{article}
 
+% ABNT formatting packages
+\usepackage[inner=30mm,outer=20mm,top=30mm,bottom=20mm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[colorlinks=true,linkcolor=black,urlcolor=black,citecolor=black]{hyperref}
+\usepackage{indentfirst}
+\usepackage{setspace}
+\usepackage{helvet}
+\usepackage[font=normalsize,labelfont=bf,labelsep=endash,justification=centering,position=above]{caption}
+
+\renewcommand{\familydefault}{\sfdefault}
+\onehalfspacing
+\setlength{\parindent}{1.5cm}
+
+\input{../../../out/drive-links.tex}
+
+\begin{document}
+
+\section{Diagrama de Entidade-Relacionamento}
+
+Na Figura~\ref{fig:der} é apresentado o diagrama de entidade-relacionamento do sistema,
+evidenciando as entidades, seus atributos e os relacionamentos entre elas.
+
+\begin{figure}[H]
+    \caption{Diagrama de entidade-relacionamento do sistema de reserva de salas}
+    \label{fig:der}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../out/src/plantuml/der.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.
+    \textbf{Acesso:} \href{\linkDer}{Diagrama de Entidade-Relacionamento}.}
+\end{figure}
+
+\end{document}
