@@ -1,5 +1,15 @@
 \subsubsection{Tipo de Sala}
 
+Nas figuras a seguir são apresentados os diagramas de sequência das operações sobre a entidade \texttt{RoomType}.
+
+\begin{itemize}
+    \item A Figura~\ref{fig:seq-create-room-type} representa o fluxo de criação de um novo tipo de sala.
+    \item A Figura~\ref{fig:seq-get-room-type} representa as operações de consulta: listagem de todos os tipos de sala e busca por identificador.
+    \item A Figura~\ref{fig:seq-update-room-type} representa a atualização dos dados de um tipo de sala existente.
+    \item A Figura~\ref{fig:seq-update-room-type-status} representa a alteração do status de um tipo de sala, respeitando as transições de estado válidas.
+    \item A Figura~\ref{fig:seq-delete-room-type} representa a exclusão lógica (\textit{soft delete}) de um tipo de sala, que exige status \texttt{ARCHIVED} e marca o registro com status \texttt{DELETED}.
+\end{itemize}
+
 \begin{figure}[H]
     \caption{Diagrama de sequência -- Criar Tipo de Sala}
     \label{fig:seq-create-room-type}

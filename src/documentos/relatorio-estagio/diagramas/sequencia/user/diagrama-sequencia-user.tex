@@ -2,11 +2,14 @@
 
 Nas figuras a seguir são apresentados os diagramas de sequência das operações do módulo de gerenciamento de usuários,
 descrevendo o fluxo de mensagens entre os componentes para cada caso de uso.
-A Figura~\ref{fig:seq-create-user} representa o fluxo de criação de um novo usuário.
-A Figura~\ref{fig:seq-get-user} representa as operações de consulta: listagem de todos os usuários e busca por identificador.
-A Figura~\ref{fig:seq-update-user} representa a atualização dos dados de um usuário existente.
-A Figura~\ref{fig:seq-update-user-status} representa a alteração do status de um usuário, respeitando as transições de estado válidas.
-A Figura~\ref{fig:seq-delete-user} representa a exclusão lógica (\textit{soft delete}) de um usuário, que marca o registro com status \texttt{DELETED}.
+
+\begin{itemize}
+    \item A Figura~\ref{fig:seq-create-user} representa o fluxo de criação de um novo usuário.
+    \item A Figura~\ref{fig:seq-get-user} representa as operações de consulta: listagem de todos os usuários e busca por identificador.
+    \item A Figura~\ref{fig:seq-update-user} representa a atualização dos dados de um usuário existente.
+    \item A Figura~\ref{fig:seq-update-user-status} representa a alteração do status de um usuário, respeitando as transições de estado válidas.
+    \item A Figura~\ref{fig:seq-delete-user} representa a exclusão lógica (\textit{soft delete}) de um usuário, que marca o registro com status \texttt{DELETED}.
+\end{itemize}
 
 \begin{figure}[H]
     \caption{Diagrama de sequência -- Criar Usuário}

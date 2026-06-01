@@ -1,5 +1,15 @@
 \subsubsection{Recurso}
 
+Nas figuras a seguir são apresentados os diagramas de sequência das operações sobre a entidade \texttt{Resource}.
+
+\begin{itemize}
+    \item A Figura~\ref{fig:seq-create-resource} representa o fluxo de criação de um novo recurso.
+    \item A Figura~\ref{fig:seq-get-resource} representa as operações de consulta: listagem de todos os recursos e busca por identificador.
+    \item A Figura~\ref{fig:seq-update-resource} representa a atualização dos dados de um recurso existente.
+    \item A Figura~\ref{fig:seq-update-resource-status} representa a alteração do status de um recurso, respeitando as transições de estado válidas.
+    \item A Figura~\ref{fig:seq-delete-resource} representa a exclusão lógica (\textit{soft delete}) de um recurso, que exige status \texttt{ARCHIVED} e marca o registro com status \texttt{DELETED}.
+\end{itemize}
+
 \begin{figure}[H]
     \caption{Diagrama de sequência -- Criar Recurso}
     \label{fig:seq-create-resource}
