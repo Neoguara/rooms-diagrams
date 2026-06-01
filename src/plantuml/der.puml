@@ -127,17 +127,17 @@ entity "event_change_items" as EventChangeItem {
 }
 
 ' ── Relacionamentos ────────────────────────────────────
-Building      ||--o{ Room
-RoomType      ||--o{ Room
+Building     "(1,1)" ||--o{ "(0,n)" Room
+RoomType     "(1,1)" ||--o{ "(0,n)" Room
 
-Room          ||--o{ RoomResource
-Resource      ||--o{ RoomResource
+Room         "(1,1)" ||--o{ "(0,n)" RoomResource
+Resource     "(1,1)" ||--o{ "(0,n)" RoomResource
 
-Room          ||--o{ Event
+Room         "(1,1)" ||--o{ "(0,n)" Event
 
-User          ||--o{ EventRequest
-Event         |o--o{ EventRequest
+User         "(1,1)" ||--o{ "(0,n)" EventRequest
+Event        "(0,1)" |o--o{ "(0,n)" EventRequest
 
-EventRequest  ||--o| EventChangeItem
+EventRequest "(1,1)" ||--o| "(0,1)" EventChangeItem
 
 @enduml
