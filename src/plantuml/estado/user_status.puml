@@ -15,11 +15,19 @@ skinparam noteBorderColor #CCBB55
 
 ACTIVE --> INACTIVE : deactivate()
 ACTIVE --> DELETED  : delete()
+ACTIVE --> [*]
 
 INACTIVE --> ACTIVE  : activate()
 INACTIVE --> DELETED : delete()
+INACTIVE --> [*]
 
 DELETED --> [*]
+
+note right of ACTIVE
+  Estado final mais comum.
+  O usuário pode permanecer ACTIVE
+  indefinidamente no sistema.
+end note
 
 note right of DELETED
   Estado terminal (soft delete).

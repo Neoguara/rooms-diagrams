@@ -15,12 +15,15 @@ skinparam noteBorderColor #CCBB55
 
 ACTIVE   --> INACTIVE : deactivate()
 ACTIVE   --> ARCHIVED : archive()
+ACTIVE   --> [*]
 
 INACTIVE --> ACTIVE   : activate()
 INACTIVE --> ARCHIVED : archive()
+INACTIVE --> [*]
 
 ARCHIVED --> ACTIVE   : restore()
 ARCHIVED --> DELETED  : delete()
+ARCHIVED --> [*]
 
 DELETED --> [*]
 

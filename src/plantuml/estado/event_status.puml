@@ -16,15 +16,20 @@ skinparam noteBorderColor #CCBB55
 ACTIVE --> CANCELLED : cancel()\n[aprovação de EventRequest tipo CANCEL]
 ACTIVE --> COMPLETED : complete()
 ACTIVE --> ARCHIVED  : archive()
+ACTIVE --> [*]
 
 CANCELLED --> ARCHIVED : archive()
+CANCELLED --> [*]
+
 COMPLETED --> ARCHIVED : archive()
+COMPLETED --> [*]
 
 ARCHIVED --> [*]
 
 note right of ACTIVE
   Um Event só é criado após a aprovação
   de um EventRequest do tipo CREATE.
+  Pode permanecer ACTIVE indefinidamente.
 end note
 
 note right of CANCELLED
@@ -33,7 +38,7 @@ note right of CANCELLED
 end note
 
 note right of ARCHIVED
-  Estado terminal.
+  Estado terminal explícito.
   Nenhuma transição permitida.
 end note
 

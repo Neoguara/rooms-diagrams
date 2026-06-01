@@ -16,17 +16,21 @@ skinparam noteBorderColor #CCBB55
 AVAILABLE   --> INACTIVE    : deactivate()
 AVAILABLE   --> ARCHIVED    : archive()
 AVAILABLE   --> MAINTENANCE : putUnderMaintenance()
+AVAILABLE   --> [*]
 
 INACTIVE    --> AVAILABLE   : activate()
 INACTIVE    --> ARCHIVED    : archive()
 INACTIVE    --> MAINTENANCE : putUnderMaintenance()
+INACTIVE    --> [*]
 
 MAINTENANCE --> AVAILABLE   : activate()
 MAINTENANCE --> INACTIVE    : deactivate()
 MAINTENANCE --> ARCHIVED    : archive()
+MAINTENANCE --> [*]
 
 ARCHIVED    --> AVAILABLE   : restore()
 ARCHIVED    --> DELETED     : delete()
+ARCHIVED    --> [*]
 
 DELETED --> [*]
 
