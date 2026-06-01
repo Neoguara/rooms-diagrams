@@ -1,6 +1,11 @@
 \section{Diagramas de Classe}
 
-Nas figuras a seguir são apresentadas as classes do sistema, organizadas por domínio.
+O sistema segue uma arquitetura de modulos, cada módulo possui seu próprio domínio, casos de uso e camada de infraestrutura. Cada diagrama exibe as três camadas da arquitetura do módulo: \textbf{Domain} (entidades, objetos de valor e enumerações), \textbf{Application} (casos de uso, portas e DTOs) e \textbf{Infrastructure} (controladores, repositórios e adaptadores).
+A Figura~\ref{fig:classe-user} representa o módulo de gerenciamento de usuarios.
+A Figura~\ref{fig:classe-room} representa o módulo de gerenciamento de salas.
+A Figura~\ref{fig:classe-event} representa o módulo de gerenciamento de eventos.
+A Figura~\ref{fig:classe-auth} representa o módulo de gerenciamento de autenticação.
+
 
 \begin{figure}[H]
     \caption{Diagrama de classe -- Usuário}
@@ -31,6 +36,7 @@ Nas figuras a seguir são apresentadas as classes do sistema, organizadas por do
     {\footnotesize \textbf{Fonte:} O autor.
     \textbf{Acesso:} \href{\linkEvent}{Diagrama de Classe: Evento}.}
 \end{figure}
+
 
 \begin{figure}[H]
     \caption{Diagrama de classe -- Autenticação}

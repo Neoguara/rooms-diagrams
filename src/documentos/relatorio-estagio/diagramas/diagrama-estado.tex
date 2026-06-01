@@ -1,9 +1,11 @@
 \section{Diagramas de Estado}
 
 Nas figuras a seguir são apresentados os diagramas de estado das entidades do sistema,
-descrevendo os ciclos de vida e as transições de estado possíveis.
+descrevendo os ciclos de vida e as transições de estado possíveis. A exclusão é implementada como \textit{soft delete}: o registro permanece no banco de dados com status \texttt{DELETED}, impedindo qualquer operação futura sobre ele. Para as entidades \texttt{Building}, \texttt{RoomType} e \texttt{Resource}, o estado \texttt{DELETED} só é acessível a partir de \texttt{ARCHIVED}, exigindo o arquivamento prévio antes da exclusão.
 
 \subsection{Usuário}
+
+Na Figura~\ref{fig:estado-user} é representado o ciclo de vida da entidade \textit{User} do módulo de gerenciamento de usuarios
 
 \begin{figure}[H]
     \caption{Diagrama de estado -- Usuário}
@@ -17,6 +19,8 @@ descrevendo os ciclos de vida e as transições de estado possíveis.
 
 \subsection{Sala}
 
+Na Figura~\ref{fig:estado-room}, Figura~\ref{fig:estado-room-type}, Figura~\ref{fig:estado-building} e Figura~\ref{fig:estado-resource} são representado respectivamente o ciclo de vida das entidades \texttt{Room}, \texttt{RoomType}, \texttt{Building} e \texttt{Resource} do módulo de gerenciamento de Salas.
+
 \begin{figure}[H]
     \caption{Diagrama de estado -- Sala}
     \label{fig:estado-room}
@@ -26,6 +30,7 @@ descrevendo os ciclos de vida e as transições de estado possíveis.
     {\footnotesize \textbf{Fonte:} O autor.
     \textbf{Acesso:} \href{\linkRoomStatus}{Diagrama de Estado: Sala}.}
 \end{figure}
+
 
 \begin{figure}[H]
     \caption{Diagrama de estado -- Tipo de Sala}
