@@ -18,6 +18,10 @@ Comandos úteis:
 ./generate.sh --fetch-links   # atualiza src/data/diagramas-drive.json com os links do Drive
 ```
 
+## Leitura de imagens PlantUML
+
+Sempre que um arquivo (`.tex`, `.md`, ou qualquer outro) referenciar uma imagem gerada pelo PlantUML (ex: `out/src/plantuml/<nome>.png` ou `out/src/plantuml/<nome>.svg`), **leia o arquivo fonte `.puml` correspondente** em `src/<nome>.puml` em vez da imagem gerada. A imagem é um artefato binário; o `.puml` é a fonte legível que contém a informação útil.
+
 ## Convenções dos arquivos `.tex`
 
 O `pdflatex` é executado a partir do diretório do próprio `.tex` (ex: `src/documentos/diagrama-caso-de-uso/`), portanto os caminhos relativos partem daí:
