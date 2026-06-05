@@ -89,7 +89,7 @@ PYEOF
       echo "  -> $dest_dir/$filename.pdf"
       (cd "$src_dir" && rm -f ./*.aux "$filename.log" "$filename.toc" \
         "$filename.lot" "$filename.lof" "$filename.out" "$filename.bbl" "$filename.blg" \
-        "$filename.brf")
+        "$filename.brf" "$filename.nav" "$filename.snm")
     else
       echo "WARN: failed to compile $file"
     fi

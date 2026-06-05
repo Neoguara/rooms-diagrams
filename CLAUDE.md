@@ -51,3 +51,42 @@ Exemplos:
 
 \href{\linkNomeMacro}{Texto do link}  % no corpo
 ```
+
+## Template de slides (`src/documentos/slides/`)
+
+Template baseado em [pmichaillat/latex-presentation](https://github.com/pmichaillat/latex-presentation). Compilado com `pdflatex` como qualquer outro `.tex` do projeto via `./generate.sh --latex`.
+
+Arquivos principais:
+- `presentation.tex` — slides no formato 4:3
+- `wide.tex` — slides no formato 16:9 (`aspectratio=169`)
+- `presentation.sty` — estilos e pacotes do template (não editar)
+
+O template usa `\newcommand{\pdf}{figures.pdf}` para referenciar figuras; o arquivo `figures.pdf` deve estar na mesma pasta que o `.tex`.
+
+### Dependências do sistema
+
+#### Arch Linux
+
+```bash
+sudo pacman -S texlive-latex texlive-latexextra texlive-fontsextra
+```
+
+#### Ubuntu / Debian
+
+```bash
+sudo apt install texlive-latex-extra texlive-fonts-extra
+```
+
+### Pacotes LaTeX usados pelo `presentation.sty`
+
+| Pacote | Fornecido por |
+|---|---|
+| `beamer` (classe) | `texlive-latex` / `texlive-latexextra` |
+| `sourcesanspro`, `sourcecodepro` | `texlive-fontsextra` |
+| `MnSymbol` | `texlive-fontsextra` |
+| `mathalpha` | `texlive-fontsextra` |
+| `mathastext` | `texlive-latexextra` |
+| `bm` | `texlive-latex` |
+| `setspace`, `microtype` | `texlive-latexextra` |
+| `etoolbox`, `booktabs`, `multirow` | `texlive-latexextra` |
+| `fontenc` | `texlive-latex` |
