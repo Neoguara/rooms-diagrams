@@ -18,12 +18,18 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 % ---- Objetivos e Motivações ----
 \begin{frame}
 \frametitle{Objetivos e Motivações}
-\textbf{Objetivo principal:} desenvolver uma solução de agendamento de salas para a UniFil.
-\vspace{4mm}
+\textbf{Problema:}
 \begin{itemize}
-\item Substituir o processo anterior realizado em planilhas
-\item Centralização das informações de agendamentos
-\item Automatização do fluxo de agendamento
+\item Gerenciamento de salas dependia de planilhas e controle manual
+\item Trocas de horário, alta demanda e restrições tornavam o processo complexo
+\item Risco de conflitos de agendamento, retrabalho e perda de rastreabilidade
+\end{itemize}
+\vspace{3mm}
+\textbf{Objetivo principal:} desenvolver uma solução de agendamento de salas para a UniFil.
+\begin{itemize}
+\item Centralizar as informações de agendamento
+\item Automatizar o fluxo de solicitação e aprovação de reservas
+\item Manter histórico de alterações
 \end{itemize}
 \end{frame}
 
@@ -33,14 +39,14 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 \begin{itemize}
 \item \textbf{Linguagens de Programação:}
 \begin{itemize}
-\item \textit{Back-end}: Java
-\item \textit{Front-end}: JavaScript
+\item \textit{Back-end}: Java --- consolidado no mercado corporativo
+\item \textit{Front-end}: JavaScript --- padrão para interfaces web
 \end{itemize}
-\item \textbf{Banco de Dados:} PostgreSQL
+\item \textbf{Banco de Dados:} PostgreSQL --- maturidade e compatibilidade com os frameworks adotados
 \item \textbf{Frameworks de Desenvolvimento:}
 \begin{itemize}
-\item \textit{Front-end}: React
-\item \textit{Back-end}: Spring Boot
+\item \textit{Front-end}: React --- interfaces reativas e componentizadas
+\item \textit{Back-end}: Spring Boot --- exposição de APIs REST sobre o ecossistema Spring
 \end{itemize}
 \end{itemize}
 \end{frame}
@@ -85,13 +91,114 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 \end{figure}
 \end{frame}
 
-% ---- Diagramas de Classe ----
+% ---- Diagrama de Classe: Usuário ----
 \begin{frame}
 \frametitle{Diagrama de Classe --- Usuário}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/classe/user.png}
 \caption{\href{\linkUser}{Diagrama de Classe: Usuário (acesso completo)}}
 \end{figure}
+\end{frame}
+
+% ---- Diagrama de Estado: Usuário ----
+\begin{frame}
+\frametitle{Diagrama de Estado --- Usuário}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/estado/user_status.png}
+\caption{\href{\linkUserStatus}{Diagrama de Estado: Usuário (acesso completo)}}
+\end{figure}
+\end{frame}
+
+% ---- Diagramas de Sequência: Usuário e Sala (representativos) ----
+\begin{frame}
+\frametitle{Diagrama de Sequência --- Criar Usuário}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/create_user.png}
+\caption{\href{\linkCreateUser}{Diagrama de Sequência: Criar Usuário (acesso completo)}}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Sequência --- Criar Sala}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/create_room.png}
+\caption{\href{\linkCreateRoom}{Diagrama de Sequência: Criar Sala (acesso completo)}}
+\end{figure}
+\end{frame}
+
+% ---- Diagrama de Implantação ----
+\begin{frame}
+\frametitle{Diagrama de Implantação}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/deployment.png}
+\caption{\href{\linkDeployment}{Diagrama de Implantação (acesso completo)}}
+\end{figure}
+\end{frame}
+
+% ---- Workflow AS-IS ----
+\begin{frame}
+\frametitle{Workflow AS-IS (BPMN)}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{../relatorio-estagio/imagens/workflow-as-is.png}
+\caption{Fluxo manual via planilha: consulta, negociação informal de conflitos e atualização/publicação manuais geram risco de erro e retrabalho}
+\end{figure}
+\end{frame}
+
+% ---- Separador: Telas ----
+\begin{frame}
+\heading{Apresentação do Sistema}
+\end{frame}
+
+% ---- Transição para demonstração ao vivo ----
+\begin{frame}
+\frametitle{Demonstração}
+\begin{itemize}
+\item Login e autenticação
+\item Cadastro e gerenciamento de salas
+\item Busca de salas disponíveis
+\item Solicitação e acompanhamento de reservas
+\item Grade de horários
+\end{itemize}
+\vspace{4mm}
+\centering\textit{(demonstração ao vivo do sistema)}
+\end{frame}
+
+% ---- Artefatos de Requisitos ----
+\begin{frame}
+\frametitle{Artefatos de Requisitos}
+\begin{itemize}
+\item \textbf{Documento de Visão} --- descreve o problema e a proposta de solução em alto nível
+\item \textbf{Especificação Complementar} --- requisitos não funcionais (segurança, desempenho, usabilidade)
+\item \textbf{Glossário} --- termos e definições do domínio do sistema
+\item \textbf{Solicitação dos Principais Envolvidos} --- necessidades levantadas com os stakeholders
+\item \textbf{Especificação de Caso de Uso} --- fluxos detalhados de cada caso de uso do sistema
+\end{itemize}
+\end{frame}
+
+% ---- Conclusão ----
+\begin{frame}
+\frametitle{Conclusão}
+\textbf{Resultados alcançados:}
+\begin{itemize}
+\item Autenticação e gerenciamento de usuários (professor/coordenador)
+\item Cadastro e gerenciamento de salas, recursos e prédios
+\item Modelagem completa do sistema (casos de uso, DER, classes, sequência, implantação)
+\end{itemize}
+\vspace{3mm}
+\textbf{Em desenvolvimento:}
+\begin{itemize}
+\item Fluxo de solicitação e aprovação de reservas
+\item Grade de horários e visualização de disponibilidade
+\end{itemize}
+\end{frame}
+
+% ======================================================================
+% Slides de apoio (não apresentados no tempo principal; usar se a banca
+% perguntar sobre algum desses diagramas/entidades específicas)
+% ======================================================================
+
+\begin{frame}
+\heading{Slides de Apoio}
 \end{frame}
 
 \begin{frame}
@@ -118,57 +225,6 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 \end{figure}
 \end{frame}
 
-% ---- Diagrama de Estado: Usuário ----
-\begin{frame}
-\frametitle{Diagrama de Estado --- Usuário}
-\begin{figure}
-\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/estado/user_status.png}
-\caption{\href{\linkUserStatus}{Diagrama de Estado: Usuário (acesso completo)}}
-\end{figure}
-\end{frame}
-
-% ---- Diagramas de Sequência: Usuário ----
-\begin{frame}
-\frametitle{Diagrama de Sequência --- Criar Usuário}
-\begin{figure}
-\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/create_user.png}
-\caption{\href{\linkCreateUser}{Diagrama de Sequência: Criar Usuário (acesso completo)}}
-\end{figure}
-\end{frame}
-
-\begin{frame}
-\frametitle{Diagrama de Sequência --- Buscar Usuário}
-\begin{figure}
-\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/get_user.png}
-\caption{\href{\linkGetUser}{Diagrama de Sequência: Buscar Usuário (acesso completo)}}
-\end{figure}
-\end{frame}
-
-\begin{frame}
-\frametitle{Diagrama de Sequência --- Atualizar Usuário}
-\begin{figure}
-\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/update_user.png}
-\caption{\href{\linkUpdateUser}{Diagrama de Sequência: Atualizar Usuário (acesso completo)}}
-\end{figure}
-\end{frame}
-
-\begin{frame}
-\frametitle{Diagrama de Sequência --- Atualizar Status do Usuário}
-\begin{figure}
-\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/update_user_status.png}
-\caption{\href{\linkUpdateUserStatus}{Diagrama de Sequência: Atualizar Status do Usuário (acesso completo)}}
-\end{figure}
-\end{frame}
-
-\begin{frame}
-\frametitle{Diagrama de Sequência --- Excluir Usuário}
-\begin{figure}
-\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/delete_user.png}
-\caption{\href{\linkDeleteUser}{Diagrama de Sequência: Excluir Usuário (acesso completo)}}
-\end{figure}
-\end{frame}
-
-% ---- Diagramas de Estado: Sala ----
 \begin{frame}
 \frametitle{Diagrama de Estado --- Sala}
 \begin{figure}
@@ -201,12 +257,35 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 \end{figure}
 \end{frame}
 
-% ---- Diagramas de Sequência: Sala ----
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Criar Sala}
+\frametitle{Diagrama de Sequência --- Buscar Usuário}
 \begin{figure}
-\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/create_room.png}
-\caption{\href{\linkCreateRoom}{Diagrama de Sequência: Criar Sala (acesso completo)}}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/get_user.png}
+\caption{\href{\linkGetUser}{Diagrama de Sequência: Buscar Usuário (acesso completo)}}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Sequência --- Atualizar Usuário}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/update_user.png}
+\caption{\href{\linkUpdateUser}{Diagrama de Sequência: Atualizar Usuário (acesso completo)}}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Sequência --- Atualizar Status do Usuário}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/update_user_status.png}
+\caption{\href{\linkUpdateUserStatus}{Diagrama de Sequência: Atualizar Status do Usuário (acesso completo)}}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Sequência --- Excluir Usuário}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/delete_user.png}
+\caption{\href{\linkDeleteUser}{Diagrama de Sequência: Excluir Usuário (acesso completo)}}
 \end{figure}
 \end{frame}
 
@@ -250,30 +329,7 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 \end{figure}
 \end{frame}
 
-% ---- Diagrama de Implantação ----
-\begin{frame}
-\frametitle{Diagrama de Implantação}
-\begin{figure}
-\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/deployment.png}
-\caption{\href{\linkDeployment}{Diagrama de Implantação (acesso completo)}}
-\end{figure}
-\end{frame}
-
-% ---- Workflow AS-IS ----
-\begin{frame}
-\frametitle{Workflow AS-IS (BPMN)}
-\begin{figure}
-\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{../relatorio-estagio/imagens/workflow-as-is.png}
-\caption{Fluxo atual do processo de agendamento}
-\end{figure}
-\end{frame}
-
-% ---- Separador: Telas ----
-\begin{frame}
-\heading{Apresentação do Sistema}
-\end{frame}
-
-% ---- Tela de Login ----
+% ---- Plano B: telas do sistema (caso a demo ao vivo falhe) ----
 \begin{frame}
 \frametitle{Tela de Login}
 \begin{figure}
@@ -282,7 +338,6 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 \end{figure}
 \end{frame}
 
-% ---- Tela de Gerenciar Salas ----
 \begin{frame}
 \frametitle{Gerenciamento de Salas}
 \begin{figure}
@@ -291,7 +346,6 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 \end{figure}
 \end{frame}
 
-% ---- Tela de Buscar Sala ----
 \begin{frame}
 \frametitle{Buscar Sala}
 \begin{figure}
@@ -300,7 +354,6 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 \end{figure}
 \end{frame}
 
-% ---- Tela de Minhas Reservas ----
 \begin{frame}
 \frametitle{Minhas Reservas}
 \begin{figure}
@@ -309,7 +362,6 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 \end{figure}
 \end{frame}
 
-% ---- Tela de Solicitações ----
 \begin{frame}
 \frametitle{Solicitações}
 \begin{figure}
@@ -318,7 +370,6 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 \end{figure}
 \end{frame}
 
-% ---- Tela de Grade de Horários ----
 \begin{frame}
 \frametitle{Grade de Horários}
 \begin{figure}
@@ -327,39 +378,12 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 \end{figure}
 \end{frame}
 
-% ---- Tela de Montar Grade ----
 \begin{frame}
 \frametitle{Montar Grade}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{../relatorio-estagio/imagens/telas/montar-grade.png}
 \caption{Estruturação da grade de horários por sala}
 \end{figure}
-\end{frame}
-
-% ---- Artefatos de Requisitos ----
-\begin{frame}
-\frametitle{Artefatos de Requisitos}
-\begin{itemize}
-\item Documento de Visão
-\item Especificação Complementar
-\item Glossário
-\item Solicitação dos Principais Envolvidos
-\item Especificação de Caso de Uso
-\end{itemize}
-\end{frame}
-
-% ---- Conclusão ----
-\begin{frame}
-\frametitle{Conclusão}
-\textbf{Tópicos apresentados:}
-\begin{itemize}
-\item Objetivos e motivações do projeto
-\item Tecnologias utilizadas
-\item Diagramas (caso de uso, DER, implantação)
-\item Workflow AS-IS do processo de agendamento
-\item Telas do sistema desenvolvido
-\item Artefatos de requisitos
-\end{itemize}
 \end{frame}
 
 \lastslide
