@@ -1,0 +1,367 @@
+\documentclass[11pt, xcolor={dvipsnames}, usepdftitle=false]{beamer}
+\usepackage{presentation}
+\usepackage[brazil]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\hypersetup{pdfpagemode=UseNone, hidelinks, pdfdisplaydoctitle=true,%
+pdftitle={Reserva de Salas -- Apresentação de Banca}}
+
+\input{../../../out/drive-links.tex}
+
+\title{Reserva de Salas}
+\author{José Ronaldo dos Santos Júnior\\[2mm]{\small Orientador: Prof.\ Gustavo Queiroz Silveira}}
+\date{Ciência da Computação -- Centro Universitário Filadélfia\\[1mm]Londrina, Junho de 2026}
+
+\begin{document}
+\frame{\titlepage}
+
+% ---- Objetivos e Motivações ----
+\begin{frame}
+\frametitle{Objetivos e Motivações}
+\textbf{Objetivo principal:} desenvolver uma solução de agendamento de salas para a UniFil.
+\vspace{4mm}
+\begin{itemize}
+\item Substituir o processo anterior realizado em planilhas
+\item Centralização das informações de agendamentos
+\item Automatização do fluxo de agendamento
+\end{itemize}
+\end{frame}
+
+% ---- Tecnologias ----
+\begin{frame}
+\frametitle{Tecnologias Utilizadas}
+\begin{itemize}
+\item \textbf{Linguagens de Programação:}
+\begin{itemize}
+\item \textit{Back-end}: Java
+\item \textit{Front-end}: JavaScript
+\end{itemize}
+\item \textbf{Banco de Dados:} PostgreSQL
+\item \textbf{Frameworks de Desenvolvimento:}
+\begin{itemize}
+\item \textit{Front-end}: React
+\item \textit{Back-end}: Spring Boot
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+% ---- Separador: Diagramas ----
+\begin{frame}
+\heading{Diagramas}
+\end{frame}
+
+% ---- Diagrama de Caso de Uso ----
+\begin{frame}
+\frametitle{Diagrama de Caso de Uso}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/usecasediagram.png}
+\caption{\href{\linkUsecasediagram}{Diagrama de Caso de Uso (acesso completo)}}
+\end{figure}
+\end{frame}
+
+% ---- Atores ----
+\begin{frame}
+\frametitle{Atores do Sistema}
+\begin{itemize}
+\item \textbf{sa\_professor} --- usuário comum:
+\begin{itemize}
+\item Autenticação, gerenciamento de salas e agendamentos
+\item Geração de relatórios e consulta ao histórico
+\end{itemize}
+\item \textbf{sa\_coordenador} --- especialização de \textbf{sa\_professor}:
+\begin{itemize}
+\item Todas as permissões de professor
+\item Acesso ao gerenciamento de usuários
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+% ---- DER ----
+\begin{frame}
+\frametitle{Modelagem do Banco de Dados (DER)}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/der-horizontal.png}
+\caption{\href{\linkDerHorizontal}{Diagrama Entidade-Relacionamento (acesso completo)}}
+\end{figure}
+\end{frame}
+
+% ---- Diagramas de Classe ----
+\begin{frame}
+\frametitle{Diagrama de Classe --- Usuário}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/classe/user.png}
+\caption{\href{\linkUser}{Diagrama de Classe: Usuário (acesso completo)}}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Classe --- Sala}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/classe/room.png}
+\caption{\href{\linkRoom}{Diagrama de Classe: Sala (acesso completo)}}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Classe --- Evento}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/classe/event.png}
+\caption{\href{\linkEvent}{Diagrama de Classe: Evento (acesso completo)}}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Classe --- Autenticação}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/classe/auth.png}
+\caption{\href{\linkAuth}{Diagrama de Classe: Autenticação (acesso completo)}}
+\end{figure}
+\end{frame}
+
+% ---- Diagrama de Estado: Usuário ----
+\begin{frame}
+\frametitle{Diagrama de Estado --- Usuário}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/estado/user_status.png}
+\caption{\href{\linkUserStatus}{Diagrama de Estado: Usuário (acesso completo)}}
+\end{figure}
+\end{frame}
+
+% ---- Diagramas de Sequência: Usuário ----
+\begin{frame}
+\frametitle{Diagrama de Sequência --- Criar Usuário}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/create_user.png}
+\caption{\href{\linkCreateUser}{Diagrama de Sequência: Criar Usuário (acesso completo)}}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Sequência --- Buscar Usuário}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/get_user.png}
+\caption{\href{\linkGetUser}{Diagrama de Sequência: Buscar Usuário (acesso completo)}}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Sequência --- Atualizar Usuário}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/update_user.png}
+\caption{\href{\linkUpdateUser}{Diagrama de Sequência: Atualizar Usuário (acesso completo)}}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Sequência --- Atualizar Status do Usuário}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/update_user_status.png}
+\caption{\href{\linkUpdateUserStatus}{Diagrama de Sequência: Atualizar Status do Usuário (acesso completo)}}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Sequência --- Excluir Usuário}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/delete_user.png}
+\caption{\href{\linkDeleteUser}{Diagrama de Sequência: Excluir Usuário (acesso completo)}}
+\end{figure}
+\end{frame}
+
+% ---- Diagramas de Estado: Sala ----
+\begin{frame}
+\frametitle{Diagrama de Estado --- Sala}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/estado/room_status.png}
+\caption{\href{\linkRoomStatus}{Diagrama de Estado: Sala (acesso completo)}}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Estado --- Tipo de Sala}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/estado/room_type_status.png}
+\caption{\href{\linkRoomTypeStatus}{Diagrama de Estado: Tipo de Sala (acesso completo)}}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Estado --- Prédio}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/estado/building_status.png}
+\caption{\href{\linkBuildingStatus}{Diagrama de Estado: Prédio (acesso completo)}}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Estado --- Recurso}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/estado/resource_status.png}
+\caption{\href{\linkResourceStatus}{Diagrama de Estado: Recurso (acesso completo)}}
+\end{figure}
+\end{frame}
+
+% ---- Diagramas de Sequência: Sala ----
+\begin{frame}
+\frametitle{Diagrama de Sequência --- Criar Sala}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/create_room.png}
+\caption{\href{\linkCreateRoom}{Diagrama de Sequência: Criar Sala (acesso completo)}}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Sequência --- Buscar Sala}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/get_room_simple.png}
+\caption{\href{\linkGetRoomSimple}{Diagrama de Sequência: Buscar Sala (acesso completo)}}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Sequência --- Atualizar Sala}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/update_room.png}
+\caption{\href{\linkUpdateRoom}{Diagrama de Sequência: Atualizar Sala (acesso completo)}}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Sequência --- Atualizar Status da Sala}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/update_room_status.png}
+\caption{\href{\linkUpdateRoomStatus}{Diagrama de Sequência: Atualizar Status da Sala (acesso completo)}}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Sequência --- Substituir Recursos da Sala}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/replace_room_resources.png}
+\caption{\href{\linkReplaceRoomResources}{Diagrama de Sequência: Substituir Recursos da Sala (acesso completo)}}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Sequência --- Excluir Sala}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/delete_room.png}
+\caption{\href{\linkDeleteRoom}{Diagrama de Sequência: Excluir Sala (acesso completo)}}
+\end{figure}
+\end{frame}
+
+% ---- Diagrama de Implantação ----
+\begin{frame}
+\frametitle{Diagrama de Implantação}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/deployment.png}
+\caption{\href{\linkDeployment}{Diagrama de Implantação (acesso completo)}}
+\end{figure}
+\end{frame}
+
+% ---- Workflow AS-IS ----
+\begin{frame}
+\frametitle{Workflow AS-IS (BPMN)}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{../relatorio-estagio/imagens/workflow-as-is.png}
+\caption{Fluxo atual do processo de agendamento}
+\end{figure}
+\end{frame}
+
+% ---- Separador: Telas ----
+\begin{frame}
+\heading{Apresentação do Sistema}
+\end{frame}
+
+% ---- Tela de Login ----
+\begin{frame}
+\frametitle{Tela de Login}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{../relatorio-estagio/imagens/telas/login.png}
+\caption{Autenticação com e-mail e senha}
+\end{figure}
+\end{frame}
+
+% ---- Tela de Gerenciar Salas ----
+\begin{frame}
+\frametitle{Gerenciamento de Salas}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{../relatorio-estagio/imagens/telas/gerenciar-salas.png}
+\caption{Visualização, cadastro, edição e remoção de salas}
+\end{figure}
+\end{frame}
+
+% ---- Tela de Buscar Sala ----
+\begin{frame}
+\frametitle{Buscar Sala}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{../relatorio-estagio/imagens/telas/buscar-sala.png}
+\caption{Consulta de salas disponíveis}
+\end{figure}
+\end{frame}
+
+% ---- Tela de Minhas Reservas ----
+\begin{frame}
+\frametitle{Minhas Reservas}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{../relatorio-estagio/imagens/telas/minhas-reservas.png}
+\caption{Acompanhamento dos agendamentos realizados}
+\end{figure}
+\end{frame}
+
+% ---- Tela de Solicitações ----
+\begin{frame}
+\frametitle{Solicitações}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{../relatorio-estagio/imagens/telas/solicitacoes.png}
+\caption{Pedidos e seus respectivos status}
+\end{figure}
+\end{frame}
+
+% ---- Tela de Grade de Horários ----
+\begin{frame}
+\frametitle{Grade de Horários}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{../relatorio-estagio/imagens/telas/grade-horarios.png}
+\caption{Visualização da ocupação e disponibilidade das salas}
+\end{figure}
+\end{frame}
+
+% ---- Tela de Montar Grade ----
+\begin{frame}
+\frametitle{Montar Grade}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{../relatorio-estagio/imagens/telas/montar-grade.png}
+\caption{Estruturação da grade de horários por sala}
+\end{figure}
+\end{frame}
+
+% ---- Artefatos de Requisitos ----
+\begin{frame}
+\frametitle{Artefatos de Requisitos}
+\begin{itemize}
+\item Documento de Visão
+\item Especificação Complementar
+\item Glossário
+\item Solicitação dos Principais Envolvidos
+\item Especificação de Caso de Uso
+\end{itemize}
+\end{frame}
+
+% ---- Conclusão ----
+\begin{frame}
+\frametitle{Conclusão}
+\textbf{Tópicos apresentados:}
+\begin{itemize}
+\item Objetivos e motivações do projeto
+\item Tecnologias utilizadas
+\item Diagramas (caso de uso, DER, implantação)
+\item Workflow AS-IS do processo de agendamento
+\item Telas do sistema desenvolvido
+\item Artefatos de requisitos
+\end{itemize}
+\end{frame}
+
+\lastslide
+
+\end{document}
