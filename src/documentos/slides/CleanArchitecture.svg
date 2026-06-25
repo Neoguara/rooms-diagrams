@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1245 965" width="1245" height="965">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="7" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#4d4d4d"/>
+    </marker>
+  </defs>
+
+  <!-- Anéis concêntricos (de fora para dentro) -->
+  <circle cx="618" cy="484" r="465" fill="lightskyblue"/>
+  <circle cx="618" cy="484" r="350" fill="lightgreen"/>
+  <circle cx="618" cy="484" r="235" fill="lightcoral"/>
+  <circle cx="618" cy="484" r="117" fill="khaki"/>
+
+  <!-- Rótulos das camadas -->
+  <text x="618" y="80"  text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="30">Framework</text>
+  <text x="618" y="888" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="30">External Systems</text>
+  <text x="618" y="204" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="30">Infrastructure</text>
+  <text x="618" y="317" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="30">Application</text>
+  <text x="618" y="494" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="30">Domain</text>
+
+  <!-- UI / DB -->
+  <text x="207" y="494" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="30">UI</text>
+  <text x="1030" y="485" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="30">DB</text>
+
+  <!-- Setas de fluxo (UI -> Domain) -->
+  <line x1="237" y1="484" x2="297" y2="484" stroke="#4d4d4d" stroke-width="3" marker-end="url(#arrowhead)"/>
+  <line x1="350" y1="484" x2="410" y2="484" stroke="#4d4d4d" stroke-width="3" marker-end="url(#arrowhead)"/>
+  <line x1="463" y1="484" x2="523" y2="484" stroke="#4d4d4d" stroke-width="3" marker-end="url(#arrowhead)"/>
+</svg>

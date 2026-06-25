@@ -91,12 +91,44 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 \end{figure}
 \end{frame}
 
-% ---- Diagrama de Classe: Usuário ----
+% ---- Conceitos de Engenharia de Software Aplicados ----
+\begin{frame}
+\frametitle{Conceitos de Engenharia de Software Aplicados}
+\begin{itemize}
+\item \textbf{Clean Architecture (Ports \& Adapters):} camadas Domain, Application e Infrastructure; portas (interfaces) implementadas por adaptadores
+\item \textbf{Domain-Driven Design:}
+\begin{itemize}
+\item Entidades ricas (ex: \texttt{activate()}, \texttt{archive()}, \texttt{restore()})
+\item Value Objects (\texttt{UserId}, \texttt{RoomId}, \texttt{BuildingId})
+\item Agregados referenciados por ID, mantendo limites de agregado pequenos
+\end{itemize}
+\item \textbf{Notification Pattern:} validadores que coletam erros (\texttt{validate(Entidade, Notification)}) em vez de lançar exceção por campo
+\item \textbf{Monólito Modular:} módulos por domínio (usuário, sala, autenticação) com núcleo compartilhado e comunicação entre módulos via portas
+\end{itemize}
+\end{frame}
+
+% ---- Clean Architecture ----
+% \begin{frame}
+% \frametitle{Clean Architecture}
+% \begin{figure}
+% \includegraphics[width=\textwidth,height=0.8\textheight,keepaspectratio]{CleanArchitecture.pdf}
+% \end{figure}
+% \end{frame}
+
+% ---- Diagramas de Classe: Usuário e Sala ----
 \begin{frame}
 \frametitle{Diagrama de Classe --- Usuário}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/classe/user.png}
 \caption{\href{\linkUser}{Diagrama de Classe: Usuário (acesso completo)}}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Classe --- Sala}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/classe/room.png}
+\caption{\href{\linkRoom}{Diagrama de Classe: Sala (acesso completo)}}
 \end{figure}
 \end{frame}
 
@@ -160,7 +192,6 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 \item Grade de horários
 \end{itemize}
 \vspace{4mm}
-\centering\textit{(demonstração ao vivo do sistema)}
 \end{frame}
 
 % ---- Artefatos de Requisitos ----
@@ -199,14 +230,6 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 
 \begin{frame}
 \heading{Slides de Apoio}
-\end{frame}
-
-\begin{frame}
-\frametitle{Diagrama de Classe --- Sala}
-\begin{figure}
-\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/classe/room.png}
-\caption{\href{\linkRoom}{Diagrama de Classe: Sala (acesso completo)}}
-\end{figure}
 \end{frame}
 
 \begin{frame}
