@@ -1,0 +1,24 @@
+@startuml
+
+title Visão Geral dos Módulos
+
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam backgroundColor white
+skinparam defaultFontSize 14
+skinparam package {
+  BorderColor #333333
+  FontStyle bold
+  FontSize 15
+}
+
+package "auth\nAutenticação & Segurança" as auth #DDEEFF
+package "user\nGestão de Usuários" as user #DDFFD8
+package "room\nGestão de Salas" as room #FFF3CC
+package "event\nGestão de Eventos e Aprovações" as event #FFE0D8
+
+auth  --> user  : UserAuthPort
+event ..> user  : referencia UserId
+event ..> room  : referencia RoomId
+
+@enduml
