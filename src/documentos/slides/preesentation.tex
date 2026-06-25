@@ -56,6 +56,15 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 \heading{Diagramas}
 \end{frame}
 
+% ---- Workflow AS-IS ----
+\begin{frame}
+\frametitle{Workflow AS-IS (BPMN)}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{../relatorio-estagio/imagens/workflow-as-is.png}
+\caption{Fluxo manual via planilha: consulta, negociação informal de conflitos e atualização/publicação manuais geram risco de erro e retrabalho}
+\end{figure}
+\end{frame}
+
 % ---- Diagrama de Caso de Uso ----
 \begin{frame}
 \frametitle{Diagrama de Caso de Uso}
@@ -89,31 +98,15 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 \end{figure}
 \end{frame}
 
-% ---- Conceitos de Engenharia de Software Aplicados ----
+% ---- Diagrama de Componentes ----
 \begin{frame}
-\frametitle{Conceitos de Engenharia de Software Aplicados}
-\begin{itemize}
-\item \textbf{Clean Architecture (Ports \& Adapters):} camadas Domain, Application e Infrastructure; portas (interfaces) implementadas por adaptadores
-\item \textbf{Domain-Driven Design:}
-\begin{itemize}
-\item Entidades ricas (ex: \texttt{activate()}, \texttt{archive()}, \texttt{restore()})
-\item Value Objects (\texttt{UserId}, \texttt{RoomId}, \texttt{BuildingId})
-\item Agregados referenciados por ID, mantendo limites de agregado pequenos
-\end{itemize}
-\item \textbf{Notification Pattern:} validadores que coletam erros (\texttt{validate(Entidade, Notification)}) em vez de lançar exceção por campo
-\item \textbf{Monólito Modular:} módulos por domínio (usuário, sala, autenticação) com núcleo compartilhado e comunicação entre módulos via portas
-\end{itemize}
+\frametitle{Diagrama de Componentes --- Visão Geral dos Módulos}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/componentes.png}
+\end{figure}
 \end{frame}
 
-% ---- Clean Architecture ----
-% \begin{frame}
-% \frametitle{Clean Architecture}
-% \begin{figure}
-% \includegraphics[width=\textwidth,height=0.8\textheight,keepaspectratio]{CleanArchitecture.pdf}
-% \end{figure}
-% \end{frame}
-
-% ---- Diagramas de Classe: Usuário e Sala ----
+% ---- Diagramas de Classes ----
 \begin{frame}
 \frametitle{Diagrama de Classe --- Usuário}
 \begin{figure}
@@ -125,6 +118,20 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 \frametitle{Diagrama de Classe --- Sala}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/classe/room.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Classe --- Evento}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/classe/event.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Classe --- Autenticação}
+\begin{figure}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/classe/auth.png}
 \end{figure}
 \end{frame}
 
@@ -159,15 +166,6 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 \end{figure}
 \end{frame}
 
-% ---- Workflow AS-IS ----
-\begin{frame}
-\frametitle{Workflow AS-IS (BPMN)}
-\begin{figure}
-\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{../relatorio-estagio/imagens/workflow-as-is.png}
-\caption{Fluxo manual via planilha: consulta, negociação informal de conflitos e atualização/publicação manuais geram risco de erro e retrabalho}
-\end{figure}
-\end{frame}
-
 % ---- Separador: Telas ----
 \begin{frame}
 \heading{Apresentação do Sistema}
@@ -198,6 +196,22 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 \end{itemize}
 \end{frame}
 
+% ---- Conceitos de Engenharia de Software Aplicados ----
+\begin{frame}
+\frametitle{Conceitos de Engenharia de Software Aplicados}
+\begin{itemize}
+\item \textbf{Clean Architecture (Ports \& Adapters):} camadas Domain, Application e Infrastructure; portas (interfaces) implementadas por adaptadores
+\item \textbf{Domain-Driven Design:}
+\begin{itemize}
+\item Entidades ricas (ex: \texttt{activate()}, \texttt{archive()}, \texttt{restore()})
+\item Value Objects (\texttt{UserId}, \texttt{RoomId}, \texttt{BuildingId})
+\item Agregados referenciados por ID, mantendo limites de agregado pequenos
+\end{itemize}
+\item \textbf{Notification Pattern:} validadores que coletam erros (\texttt{validate(Entidade, Notification)}) em vez de lançar exceção por campo
+\item \textbf{Monólito Modular:} módulos por domínio (usuário, sala, autenticação) com núcleo compartilhado e comunicação entre módulos via portas
+\end{itemize}
+\end{frame}
+
 % ---- Conclusão ----
 \begin{frame}
 \frametitle{Conclusão}
@@ -222,20 +236,6 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 
 \begin{frame}
 \heading{Slides de Apoio}
-\end{frame}
-
-\begin{frame}
-\frametitle{Diagrama de Classe --- Evento}
-\begin{figure}
-\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/classe/event.png}
-\end{figure}
-\end{frame}
-
-\begin{frame}
-\frametitle{Diagrama de Classe --- Autenticação}
-\begin{figure}
-\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/classe/auth.png}
-\end{figure}
 \end{frame}
 
 \begin{frame}
