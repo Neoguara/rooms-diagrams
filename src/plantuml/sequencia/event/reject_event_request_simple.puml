@@ -1,0 +1,45 @@
+@startuml reject_event_request_simple
+
+title POST /event-requests/{id}/reject — Rejeitar Solicitação de Evento (Simplificado)
+
+actor User
+boundary "Frontend" as FE
+participant "EventRequestController" as Ctrl
+participant "RejectEventRequestUseCase" as UC
+database "event_requests" as DB
+
+User -> FE: rejeita solicitação
+activate FE
+FE -> Ctrl: POST /event-requests/{id}/reject
+activate Ctrl
+
+Ctrl -> UC: execute(id)
+activate UC
+
+UC -> DB: busca EventRequest por id
+activate DB
+DB --> UC: Optional<EventRequest>
+deactivate DB
+
+alt encontrado
+  UC -> UC: eventRequest.reject()\n(status=REJECTED)
+
+  UC -> DB: salva EventRequest atualizado
+  activate DB
+  DB --> UC: ok
+  deactivate DB
+
+  UC --> Ctrl: void
+  Ctrl --> FE: 204 No Content
+  FE --> User: exibe confirmação de rejeição
+else não encontrado
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
+end
+
+deactivate UC
+deactivate Ctrl
+deactivate FE
+
+@enduml

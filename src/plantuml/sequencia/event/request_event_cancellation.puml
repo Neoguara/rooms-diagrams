@@ -1,0 +1,78 @@
+@startuml request_event_cancellation
+
+title POST /events/{id}/cancel-request — Solicitar Cancelamento de Evento
+
+actor User
+boundary "Frontend" as FE
+participant "EventRequestController" as Ctrl
+participant "RequestEventCancellationUseCase" as UC
+participant "CreateEventRequestMapper" as Mapper
+participant "EventRequest" as ReqEntity
+participant "EventChangeItem" as ChangeItem
+participant "EventRepositoryPort" as EventRepo
+participant "EventRequestRepositoryPort" as ReqRepo
+participant "EventChangeItemRepositoryPort" as ChangeRepo
+database "events\nevent_requests\nevent_change_items" as DB
+
+User -> FE: solicita cancelamento do evento e justifica
+activate FE
+FE -> Ctrl: POST /events/{id}/cancel-request\n{justification, userId}
+activate Ctrl
+
+Ctrl -> UC: execute(id, CancelEventRequest)
+activate UC
+
+UC -> EventRepo: findById(EventId.of(id))
+activate EventRepo
+EventRepo -> DB: SELECT * FROM events WHERE id=?
+DB --> EventRepo: Optional<Event>
+EventRepo --> UC: Optional<Event>
+deactivate EventRepo
+
+alt found
+
+  UC -> ReqEntity: EventRequest.cancelEvent(eventId, userId, justification)
+  activate ReqEntity
+  note right of ReqEntity: EventRequestValidation.validate()\nid = new UUID\nstatus = PENDING\ntype = CANCEL\ncreatedAt = now()
+  ReqEntity --> UC: eventRequest
+  deactivate ReqEntity
+
+  UC -> ReqRepo: save(eventRequest)
+  activate ReqRepo
+  ReqRepo -> DB: INSERT INTO event_requests
+  DB --> ReqRepo: eventRequest
+  ReqRepo --> UC: saved
+  deactivate ReqRepo
+
+  UC -> ChangeItem: EventChangeItem.cancel(eventRequestId, event)
+  activate ChangeItem
+  note right of ChangeItem: EventChangeItemValidation.validate()\nbefore = snapshot atual do Event\nafter = null (indica cancelamento)
+  ChangeItem --> UC: changeItem
+  deactivate ChangeItem
+
+  UC -> ChangeRepo: save(changeItem)
+  activate ChangeRepo
+  ChangeRepo -> DB: INSERT INTO event_change_items
+  DB --> ChangeRepo: changeItem
+  ChangeRepo --> UC: saved
+  deactivate ChangeRepo
+
+  UC -> Mapper: toResponse(eventRequest)
+  activate Mapper
+  Mapper --> UC: CreateEventRequestResponse
+  deactivate Mapper
+
+  UC --> Ctrl: CreateEventRequestResponse
+  Ctrl --> FE: 201 Created {CreateEventRequestResponse}
+  FE --> User: exibe confirmação da solicitação
+else not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
+end
+
+deactivate UC
+deactivate Ctrl
+deactivate FE
+
+@enduml

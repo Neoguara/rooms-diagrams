@@ -1,0 +1,45 @@
+@startuml request_event_cancellation_simple
+
+title POST /events/{id}/cancel-request — Solicitar Cancelamento de Evento (Simplificado)
+
+actor User
+boundary "Frontend" as FE
+participant "EventRequestController" as Ctrl
+participant "RequestEventCancellationUseCase" as UC
+database "events\nevent_requests\nevent_change_items" as DB
+
+User -> FE: solicita cancelamento do evento e justifica
+activate FE
+FE -> Ctrl: POST /events/{id}/cancel-request\n{justification, userId}
+activate Ctrl
+
+Ctrl -> UC: execute(id, CancelEventRequest)
+activate UC
+
+UC -> DB: busca Event por id
+activate DB
+DB --> UC: Optional<Event>
+deactivate DB
+
+alt encontrado
+  UC -> UC: cria EventRequest (status=PENDING, type=CANCEL)\ncria EventChangeItem (before=snapshot atual, after=null)
+
+  UC -> DB: salva event_request e event_change_item
+  activate DB
+  DB --> UC: ok
+  deactivate DB
+
+  UC --> Ctrl: CreateEventRequestResponse
+  Ctrl --> FE: 201 Created {CreateEventRequestResponse}
+  FE --> User: exibe confirmação da solicitação
+else não encontrado
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
+end
+
+deactivate UC
+deactivate Ctrl
+deactivate FE
+
+@enduml

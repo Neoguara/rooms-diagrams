@@ -1,0 +1,123 @@
+@startuml approve_event_request
+
+title POST /event-requests/{id}/approve — Aprovar Solicitação de Evento
+
+actor User
+boundary "Frontend" as FE
+participant "EventRequestController" as Ctrl
+participant "ApproveEventRequestUseCase" as UC
+participant "EventRequest" as ReqEntity
+participant "Event" as EventEntity
+participant "EventRequestRepositoryPort" as ReqRepo
+participant "EventChangeItemRepositoryPort" as ChangeRepo
+participant "EventRepositoryPort" as EventRepo
+database "events\nevent_requests\nevent_change_items" as DB
+
+User -> FE: aprova solicitação
+activate FE
+FE -> Ctrl: POST /event-requests/{id}/approve
+activate Ctrl
+
+Ctrl -> UC: execute(id)
+activate UC
+
+UC -> ReqRepo: findById(EventRequestId.of(id))
+activate ReqRepo
+ReqRepo -> DB: SELECT * FROM event_requests WHERE id=?
+DB --> ReqRepo: Optional<EventRequest>
+ReqRepo --> UC: Optional<EventRequest>
+deactivate ReqRepo
+
+alt found
+
+  UC -> ChangeRepo: findByEventRequestId(eventRequestId)
+  activate ChangeRepo
+  ChangeRepo -> DB: SELECT * FROM event_change_items WHERE event_request_id=?
+  DB --> ChangeRepo: Optional<EventChangeItem>
+  ChangeRepo --> UC: Optional<EventChangeItem>
+  deactivate ChangeRepo
+
+  UC -> ReqEntity: eventRequest.approve()
+  activate ReqEntity
+  note right of ReqEntity: Lança InvalidStateException (422)\nse status != PENDING\nstatus = APPROVED
+  ReqEntity --> UC:
+  deactivate ReqEntity
+
+  alt eventRequest.type == CREATE
+    UC -> EventEntity: Event.create(changeItem.after.roomId, title, description,\nstartAt, endAt, isAllDay, recurrenceRule)
+    activate EventEntity
+    note right of EventEntity: EventValidation.validate()\nid = new UUID\nstatus = ACTIVE\ncreatedAt = now()
+    EventEntity --> UC: event
+    deactivate EventEntity
+
+    UC -> EventRepo: save(event)
+    activate EventRepo
+    EventRepo -> DB: INSERT INTO events
+    DB --> EventRepo: event
+    EventRepo --> UC: saved
+    deactivate EventRepo
+
+  else eventRequest.type == UPDATE
+    UC -> EventRepo: findById(eventRequest.eventId)
+    activate EventRepo
+    EventRepo -> DB: SELECT * FROM events WHERE id=?
+    DB --> EventRepo: Optional<Event>
+    EventRepo --> UC: Optional<Event>
+    deactivate EventRepo
+
+    UC -> EventEntity: event.update(changeItem.after.roomId, title, description,\nstartAt, endAt, isAllDay, recurrenceRule)
+    activate EventEntity
+    note right of EventEntity: EventValidation.validate()\nupdatedAt = now()
+    EventEntity --> UC:
+    deactivate EventEntity
+
+    UC -> EventRepo: save(event)
+    activate EventRepo
+    EventRepo -> DB: UPDATE events SET ...
+    DB --> EventRepo: event
+    EventRepo --> UC: saved
+    deactivate EventRepo
+
+  else eventRequest.type == CANCEL
+    UC -> EventRepo: findById(eventRequest.eventId)
+    activate EventRepo
+    EventRepo -> DB: SELECT * FROM events WHERE id=?
+    DB --> EventRepo: Optional<Event>
+    EventRepo --> UC: Optional<Event>
+    deactivate EventRepo
+
+    UC -> EventEntity: event.cancel()
+    activate EventEntity
+    note right of EventEntity: Lança InvalidStateException (422)\nse status != ACTIVE\nstatus = CANCELLED
+    EventEntity --> UC:
+    deactivate EventEntity
+
+    UC -> EventRepo: save(event)
+    activate EventRepo
+    EventRepo -> DB: UPDATE events SET status = CANCELLED
+    DB --> EventRepo: event
+    EventRepo --> UC: saved
+    deactivate EventRepo
+  end
+
+  UC -> ReqRepo: save(eventRequest)
+  activate ReqRepo
+  ReqRepo -> DB: UPDATE event_requests SET status = APPROVED
+  DB --> ReqRepo: eventRequest
+  ReqRepo --> UC: saved
+  deactivate ReqRepo
+
+  UC --> Ctrl: void
+  Ctrl --> FE: 204 No Content
+  FE --> User: exibe confirmação de aprovação
+else not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
+end
+
+deactivate UC
+deactivate Ctrl
+deactivate FE
+
+@enduml

@@ -1,0 +1,84 @@
+\documentclass[12pt,a4paper]{article}
+
+% ABNT formatting packages
+\usepackage[inner=30mm,outer=20mm,top=30mm,bottom=20mm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[colorlinks=true,linkcolor=black,urlcolor=black,citecolor=black]{hyperref}
+\usepackage{indentfirst}
+\usepackage{setspace}
+\usepackage{helvet}
+\usepackage[font=normalsize,labelfont=bf,labelsep=endash,justification=centering,position=above]{caption}
+
+\renewcommand{\familydefault}{\sfdefault}
+\onehalfspacing
+\setlength{\parindent}{1.5cm}
+
+\input{../../../../out/drive-links.tex}
+
+\begin{document}
+
+\section{Diagramas de Sequência -- Evento}
+
+Nas figuras a seguir são apresentados os diagramas de sequência das operações relacionadas
+ao domínio de eventos, descrevendo o fluxo de solicitação, aprovação e rejeição de eventos
+entre os componentes do sistema.
+
+\subsection{Solicitação de Evento}
+
+\begin{figure}[H]
+    \caption{Diagrama de sequência -- Solicitar Criação de Evento}
+    \label{fig:seq-request-event-creation-simple}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../../out/src/plantuml/sequencia/event/request_event_creation_simple.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.
+    \textbf{Acesso:} \href{\linkRequestEventCreationSimple}{Diagrama de Sequência: Solicitar Criação de Evento}.}
+\end{figure}
+
+\begin{figure}[H]
+    \caption{Diagrama de sequência -- Solicitar Atualização de Evento}
+    \label{fig:seq-request-event-update-simple}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../../out/src/plantuml/sequencia/event/request_event_update_simple.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.
+    \textbf{Acesso:} \href{\linkRequestEventUpdateSimple}{Diagrama de Sequência: Solicitar Atualização de Evento}.}
+\end{figure}
+
+\begin{figure}[H]
+    \caption{Diagrama de sequência -- Solicitar Cancelamento de Evento}
+    \label{fig:seq-request-event-cancellation-simple}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../../out/src/plantuml/sequencia/event/request_event_cancellation_simple.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.
+    \textbf{Acesso:} \href{\linkRequestEventCancellationSimple}{Diagrama de Sequência: Solicitar Cancelamento de Evento}.}
+\end{figure}
+
+\subsection{Aprovação de Solicitação}
+
+\begin{figure}[H]
+    \caption{Diagrama de sequência -- Aprovar Solicitação de Evento}
+    \label{fig:seq-approve-event-request-simple}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../../out/src/plantuml/sequencia/event/approve_event_request_simple.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.
+    \textbf{Acesso:} \href{\linkApproveEventRequestSimple}{Diagrama de Sequência: Aprovar Solicitação de Evento}.}
+\end{figure}
+
+\begin{figure}[H]
+    \caption{Diagrama de sequência -- Rejeitar Solicitação de Evento}
+    \label{fig:seq-reject-event-request-simple}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../../out/src/plantuml/sequencia/event/reject_event_request_simple.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.
+    \textbf{Acesso:} \href{\linkRejectEventRequestSimple}{Diagrama de Sequência: Rejeitar Solicitação de Evento}.}
+\end{figure}
+
+\end{document}

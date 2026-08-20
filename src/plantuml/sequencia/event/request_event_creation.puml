@@ -1,0 +1,72 @@
+@startuml request_event_creation
+
+title POST /event-requests (type=CREATE) — Solicitar Criação de Evento
+
+actor User
+boundary "Frontend" as FE
+participant "EventRequestController" as Ctrl
+participant "RequestEventCreationUseCase" as UC
+participant "CreateEventRequestMapper" as Mapper
+participant "EventRequest" as ReqEntity
+participant "EventSnapshot" as Snapshot
+participant "EventChangeItem" as ChangeItem
+participant "EventRequestRepositoryPort" as ReqRepo
+participant "EventChangeItemRepositoryPort" as ChangeRepo
+database "event_requests\nevent_change_items" as DB
+
+User -> FE: preenche formulário de solicitação e confirma
+activate FE
+FE -> Ctrl: POST /event-requests\n{type: CREATE, title, description, startAt, endAt,\nisAllDay, recurrenceRule, roomId, justification, userId}
+activate Ctrl
+
+Ctrl -> UC: execute(CreateEventRequest)
+activate UC
+
+UC -> Mapper: toDomain(request)
+activate Mapper
+Mapper -> ReqEntity: EventRequest.createEvent(userId, justification)
+activate ReqEntity
+note right of ReqEntity: EventRequestValidation.validate()\nid = new UUID\nstatus = PENDING\ntype = CREATE\ncreatedAt = now()
+ReqEntity --> Mapper: eventRequest
+deactivate ReqEntity
+Mapper --> UC: eventRequest
+deactivate Mapper
+
+UC -> ReqRepo: save(eventRequest)
+activate ReqRepo
+ReqRepo -> DB: INSERT INTO event_requests
+DB --> ReqRepo: eventRequest
+ReqRepo --> UC: saved
+deactivate ReqRepo
+
+UC -> Snapshot: EventSnapshot.of(roomId, title, description,\nstartAt, endAt, isAllDay, recurrenceRule)
+activate Snapshot
+Snapshot --> UC: snapshot
+deactivate Snapshot
+
+UC -> ChangeItem: EventChangeItem.create(eventRequestId, snapshot)
+activate ChangeItem
+note right of ChangeItem: EventChangeItemValidation.validate()\nbefore = null\nafter = snapshot
+ChangeItem --> UC: changeItem
+deactivate ChangeItem
+
+UC -> ChangeRepo: save(changeItem)
+activate ChangeRepo
+ChangeRepo -> DB: INSERT INTO event_change_items
+DB --> ChangeRepo: changeItem
+ChangeRepo --> UC: saved
+deactivate ChangeRepo
+
+UC -> Mapper: toResponse(eventRequest)
+activate Mapper
+Mapper --> UC: CreateEventRequestResponse
+deactivate Mapper
+
+UC --> Ctrl: CreateEventRequestResponse
+deactivate UC
+Ctrl --> FE: 201 Created {CreateEventRequestResponse}
+deactivate Ctrl
+FE --> User: exibe confirmação da solicitação
+deactivate FE
+
+@enduml

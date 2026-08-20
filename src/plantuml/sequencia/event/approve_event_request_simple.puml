@@ -1,0 +1,53 @@
+@startuml approve_event_request_simple
+
+title POST /event-requests/{id}/approve — Aprovar Solicitação de Evento (Simplificado)
+
+actor User
+boundary "Frontend" as FE
+participant "EventRequestController" as Ctrl
+participant "ApproveEventRequestUseCase" as UC
+database "events\nevent_requests\nevent_change_items" as DB
+
+User -> FE: aprova solicitação
+activate FE
+FE -> Ctrl: POST /event-requests/{id}/approve
+activate Ctrl
+
+Ctrl -> UC: execute(id)
+activate UC
+
+UC -> DB: busca EventRequest e EventChangeItem por id
+activate DB
+DB --> UC: Optional<EventRequest>, Optional<EventChangeItem>
+deactivate DB
+
+alt encontrado
+  UC -> UC: eventRequest.approve()\n(status=APPROVED)
+
+  alt type == CREATE
+    UC -> UC: cria Event a partir do snapshot (status=ACTIVE)
+  else type == UPDATE
+    UC -> UC: atualiza Event existente com o snapshot
+  else type == CANCEL
+    UC -> UC: event.cancel() (status=CANCELLED)
+  end
+
+  UC -> DB: salva Event e EventRequest atualizados
+  activate DB
+  DB --> UC: ok
+  deactivate DB
+
+  UC --> Ctrl: void
+  Ctrl --> FE: 204 No Content
+  FE --> User: exibe confirmação de aprovação
+else não encontrado
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
+end
+
+deactivate UC
+deactivate Ctrl
+deactivate FE
+
+@enduml

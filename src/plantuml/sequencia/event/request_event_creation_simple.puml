@@ -1,0 +1,33 @@
+@startuml request_event_creation_simple
+
+title POST /event-requests (type=CREATE) — Solicitar Criação de Evento (Simplificado)
+
+actor User
+boundary "Frontend" as FE
+participant "EventRequestController" as Ctrl
+participant "RequestEventCreationUseCase" as UC
+database "event_requests\nevent_change_items" as DB
+
+User -> FE: preenche formulário de solicitação e confirma
+activate FE
+FE -> Ctrl: POST /event-requests\n{type: CREATE, title, description, startAt, endAt,\nisAllDay, recurrenceRule, roomId, justification, userId}
+activate Ctrl
+
+Ctrl -> UC: execute(CreateEventRequest)
+activate UC
+
+UC -> UC: cria EventRequest (status=PENDING, type=CREATE)\ncria EventChangeItem (before=null, after=snapshot)
+
+UC -> DB: salva event_request e event_change_item
+activate DB
+DB --> UC: ok
+deactivate DB
+
+UC --> Ctrl: CreateEventRequestResponse
+deactivate UC
+Ctrl --> FE: 201 Created {CreateEventRequestResponse}
+deactivate Ctrl
+FE --> User: exibe confirmação da solicitação
+deactivate FE
+
+@enduml

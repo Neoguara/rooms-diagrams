@@ -1,0 +1,45 @@
+@startuml request_event_update_simple
+
+title PATCH /events/{id}/update-request — Solicitar Atualização de Evento (Simplificado)
+
+actor User
+boundary "Frontend" as FE
+participant "EventRequestController" as Ctrl
+participant "RequestEventUpdateUseCase" as UC
+database "events\nevent_requests\nevent_change_items" as DB
+
+User -> FE: edita dados do evento e confirma
+activate FE
+FE -> Ctrl: PATCH /events/{id}/update-request\n{title, description, startAt, endAt,\nisAllDay, recurrenceRule, roomId, justification, userId}
+activate Ctrl
+
+Ctrl -> UC: execute(id, UpdateEventRequest)
+activate UC
+
+UC -> DB: busca Event por id
+activate DB
+DB --> UC: Optional<Event>
+deactivate DB
+
+alt encontrado
+  UC -> UC: cria EventRequest (status=PENDING, type=UPDATE)\ncria EventChangeItem (before=snapshot atual, after=snapshot novo)
+
+  UC -> DB: salva event_request e event_change_item
+  activate DB
+  DB --> UC: ok
+  deactivate DB
+
+  UC --> Ctrl: CreateEventRequestResponse
+  Ctrl --> FE: 201 Created {CreateEventRequestResponse}
+  FE --> User: exibe confirmação da solicitação
+else não encontrado
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
+end
+
+deactivate UC
+deactivate Ctrl
+deactivate FE
+
+@enduml

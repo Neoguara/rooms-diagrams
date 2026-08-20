@@ -1,0 +1,55 @@
+@startuml reject_event_request
+
+title POST /event-requests/{id}/reject — Rejeitar Solicitação de Evento
+
+actor User
+boundary "Frontend" as FE
+participant "EventRequestController" as Ctrl
+participant "RejectEventRequestUseCase" as UC
+participant "EventRequest" as Entity
+participant "EventRequestRepositoryPort" as Repo
+database "event_requests" as DB
+
+User -> FE: rejeita solicitação
+activate FE
+FE -> Ctrl: POST /event-requests/{id}/reject
+activate Ctrl
+
+Ctrl -> UC: execute(id)
+activate UC
+
+UC -> Repo: findById(EventRequestId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM event_requests WHERE id=?
+DB --> Repo: Optional<EventRequest>
+Repo --> UC: Optional<EventRequest>
+deactivate Repo
+
+alt found
+  UC -> Entity: eventRequest.reject()
+  activate Entity
+  note right of Entity: Lança InvalidStateException (422)\nse status != PENDING\nstatus = REJECTED
+  Entity --> UC:
+  deactivate Entity
+
+  UC -> Repo: save(eventRequest)
+  activate Repo
+  Repo -> DB: UPDATE event_requests SET status = REJECTED
+  DB --> Repo: eventRequest
+  Repo --> UC: saved
+  deactivate Repo
+
+  UC --> Ctrl: void
+  Ctrl --> FE: 204 No Content
+  FE --> User: exibe confirmação de rejeição
+else not found
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
+end
+
+deactivate UC
+deactivate Ctrl
+deactivate FE
+
+@enduml
