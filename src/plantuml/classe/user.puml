@@ -24,8 +24,9 @@ package "Domain" #EEF2FF {
   }
 
   package "valueobjects" {
-    class UserId {
+    class UserId <<record>> {
       - UUID id
+      + UserId()
       + {static} UserId of(UUID)
       + UUID id()
     }
@@ -54,12 +55,11 @@ package "Application" #F0FFF0 {
 
   package "ports" {
     interface UserRepositoryPort {
-      ~ User save(User)
-      ~ Optional<User> findById(UserId)
-      ~ List<User> findAll()
-      ~ Optional<User> findByEmail(String)
-      ~ boolean existsByEmail(String)
-      ~ void delete(User)
+      + User save(User)
+      + Optional<User> findById(UserId)
+      + List<User> findAll()
+      + Optional<User> findByEmail(String)
+      + boolean existsByEmail(String)
     }
   }
 
@@ -97,22 +97,22 @@ package "Application" #F0FFF0 {
   }
 
   package "dtos" {
-    class CreateUserRequest {
+    class CreateUserRequest <<record>> {
       - String name
       - String email
       - String password
       - UserRole role
     }
-    class UpdateUserRequest {
+    class UpdateUserRequest <<record>> {
       - String name
       - String email
       - String password
       - UserRole role
     }
-    class UpdateUserStatusRequest {
+    class UpdateUserStatusRequest <<record>> {
       - Status status
     }
-    class UserResponse {
+    class UserResponse <<record>> {
       - UUID id
       - String name
       - String email
@@ -154,15 +154,14 @@ package "Infrastructure" #FFF8F0 {
       + List<User> findAll()
       + Optional<User> findByEmail(String)
       + boolean existsByEmail(String)
-      + void delete(User)
     }
     interface UserJpaRepository {
-      ~ Optional<User> findByEmail(String)
-      ~ boolean existsByEmail(String)
-      ~ List<User> findAllByStatusNot(UserStatus)
-      ~ Optional<User> findByIdAndStatusNot(UserId,UserStatus)
-      ~ Optional<User> findByEmailAndStatusNot(String,UserStatus)
-      ~ boolean existsByEmailAndStatusNot(String,UserStatus)
+      + Optional<User> findByEmail(String)
+      + boolean existsByEmail(String)
+      + List<User> findAllByStatusNot(UserStatus)
+      + Optional<User> findByIdAndStatusNot(UserId,UserStatus)
+      + Optional<User> findByEmailAndStatusNot(String,UserStatus)
+      + boolean existsByEmailAndStatusNot(String,UserStatus)
     }
   }
 
@@ -214,6 +213,7 @@ UserMapper ..> User
 ' Infrastructure
 UserRepositoryImpl --> UserJpaRepository
 UserAuthAdapter --> UserRepositoryPort
+UserAuthAdapter ..> rooms.auth.AuthUserData
 
 ' Domínio: User -> composição e enums
 User *-- UserId

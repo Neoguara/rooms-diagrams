@@ -3,34 +3,9 @@
 skinparam linetype ortho
 skinparam packageStyle rectangle
 
-class auth.AuthUserDetailsService {
-  - UserAuthPort userAuthPort
-  + UserDetails loadUserByUsername(String)
-}
-
-class auth.SecurityConfig {
-  - SecurityFilter securityFilter
-  + SecurityFilterChain filterChain(HttpSecurity)
-  + AuthenticationManager authenticationManager(AuthenticationConfiguration)
-  + PasswordEncoder passwordEncoder()
-  + CorsConfigurationSource corsConfigurationSource()
-}
-
-interface auth.UserAuthPort {
-  ~ Optional<AuthUserData> findByEmail(String)
-}
-
 class auth.AuthController {
   - AuthService authService
   + ResponseEntity<TokenResponse> login(LoginRequest, HttpServletResponse)
-}
-
-class auth.AuthUserDetails {
-  - AuthUserData data
-  + Collection<? extends GrantedAuthority> getAuthorities()
-  + String getPassword()
-  + String getUsername()
-  + boolean isEnabled()
 }
 
 class auth.AuthService {
@@ -45,32 +20,45 @@ class auth.JwtService {
   + String generateToken(String)
   + String extractUsername(String)
   + boolean isTokenValid(String)
+  - Claims parseClaims(String)
+  - Key signingKey()
 }
 
-class auth.LoginRequest {
-  - String email
-  - String password
+class auth.AuthUserDetailsService {
+  - UserAuthPort userAuthPort
+  + UserDetails loadUserByUsername(String)
 }
 
-class auth.TokenResponse {
-  - String token
-  - UUID id
-  - String name
-  - String email
-  - String role
-  - Boolean isActive
-  - LocalDateTime createdAt
-  - LocalDateTime updatedAt
-  - LocalDateTime deletedAt
+class auth.AuthUserDetails {
+  - AuthUserData data
+  + AuthUserData getData()
+  + UUID getId()
+  + Collection<? extends GrantedAuthority> getAuthorities()
+  + String getPassword()
+  + String getUsername()
+  + boolean isEnabled()
 }
 
 class auth.SecurityFilter {
   - JwtService jwtService
   - UserAuthPort userAuthPort
   # void doFilterInternal(HttpServletRequest, HttpServletResponse, FilterChain)
+  - String extractToken(HttpServletRequest)
 }
 
-class auth.AuthUserData {
+class auth.SecurityConfig {
+  - SecurityFilter securityFilter
+  + SecurityFilterChain filterChain(HttpSecurity)
+  + AuthenticationManager authenticationManager(AuthenticationConfiguration)
+  + PasswordEncoder passwordEncoder()
+  + CorsConfigurationSource corsConfigurationSource()
+}
+
+interface auth.UserAuthPort {
+  + Optional<AuthUserData> findByEmail(String)
+}
+
+class auth.AuthUserData <<record>> {
   - UUID id
   - String name
   - String email
@@ -82,27 +70,46 @@ class auth.AuthUserData {
   - LocalDateTime deletedAt
 }
 
+class auth.LoginRequest <<record>> {
+  - String email
+  - String password
+}
+
+class auth.TokenResponse <<record>> {
+  - String token
+  - UUID id
+  - String name
+  - String email
+  - String role
+  - Boolean isActive
+  - LocalDateTime createdAt
+  - LocalDateTime updatedAt
+  - LocalDateTime deletedAt
+}
+
 ' Herança / Implementação
 org.springframework.security.core.userdetails.UserDetailsService <|.. auth.AuthUserDetailsService
 org.springframework.security.core.userdetails.UserDetails <|.. auth.AuthUserDetails
 org.springframework.web.filter.OncePerRequestFilter <|-- auth.SecurityFilter
+auth.UserAuthPort <|.. user.infrastructure.auth.UserAuthAdapter
 
 ' Composição
 auth.AuthUserDetails *-- auth.AuthUserData
 
 ' Dependências por campo (injeção)
-auth.AuthUserDetailsService --> auth.UserAuthPort
-auth.SecurityConfig --> auth.SecurityFilter
 auth.AuthController --> auth.AuthService
 auth.AuthService --> auth.JwtService
+auth.AuthUserDetailsService --> auth.UserAuthPort
 auth.SecurityFilter --> auth.JwtService
 auth.SecurityFilter --> auth.UserAuthPort
+auth.SecurityConfig --> auth.SecurityFilter
 
 ' Uso (parâmetros e retornos de métodos)
 auth.AuthController ..> auth.LoginRequest
 auth.AuthController ..> auth.TokenResponse
 auth.AuthService ..> auth.LoginRequest
 auth.AuthService ..> auth.TokenResponse
+auth.AuthService ..> auth.AuthUserDetails
 auth.AuthUserDetailsService ..> auth.AuthUserDetails
 auth.UserAuthPort ..> auth.AuthUserData
 
