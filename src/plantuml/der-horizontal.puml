@@ -84,11 +84,12 @@ entity "events" as Event {
   --
   * room_id : UUID <<FK>>
   title : VARCHAR
-  description : TEXT
+  description : VARCHAR
   start_at : TIMESTAMP
   end_at : TIMESTAMP
   is_all_day : BOOLEAN
   recurrence_rule : VARCHAR
+  series_id : UUID
   status : VARCHAR
   created_at : TIMESTAMP
   updated_at : TIMESTAMP
@@ -98,11 +99,10 @@ entity "events" as Event {
 entity "event_requests" as EventRequest {
   * id : UUID <<PK>>
   --
-  event_id : UUID <<FK>>
-  * created_by : UUID <<FK>>
+  * user_id : UUID <<FK>>
+  reversal_of : UUID <<FK>>
   status : VARCHAR
-  type : VARCHAR
-  justification : TEXT
+  justification : VARCHAR
   created_at : TIMESTAMP
 }
 
@@ -111,20 +111,63 @@ entity "event_change_items" as EventChangeItem {
   * id : UUID <<PK>>
   --
   * event_request_id : UUID <<FK>>
-  before_room_id : UUID
-  before_title : VARCHAR
-  before_description : TEXT
-  before_start_at : TIMESTAMP
-  before_end_at : TIMESTAMP
-  before_is_all_day : BOOLEAN
-  before_recurrence_rule : VARCHAR
-  after_room_id : UUID
-  after_title : VARCHAR
-  after_description : TEXT
-  after_start_at : TIMESTAMP
-  after_end_at : TIMESTAMP
-  after_is_all_day : BOOLEAN
-  after_recurrence_rule : VARCHAR
+  event_id : UUID <<FK>>
+  reversal_of : UUID <<FK>>
+  type : VARCHAR
+  item_position : INTEGER
+  --
+  old_room_id : UUID
+  old_title : VARCHAR
+  old_description : VARCHAR
+  old_start_at : TIMESTAMP
+  old_end_at : TIMESTAMP
+  old_is_all_day : BOOLEAN
+  old_recurrence_rule : VARCHAR
+  old_series_id : UUID
+  --
+  new_room_id : UUID
+  new_title : VARCHAR
+  new_description : VARCHAR
+  new_start_at : TIMESTAMP
+  new_end_at : TIMESTAMP
+  new_is_all_day : BOOLEAN
+  new_recurrence_rule : VARCHAR
+  new_series_id : UUID
+}
+
+' ── approvals ──────────────────────────────────────────
+entity "approvals" as Approval {
+  * id : UUID <<PK>>
+  --
+  * event_request_id : UUID <<FK>>
+  * user_id : UUID <<FK>>
+  decision : VARCHAR
+  comment : VARCHAR
+  decided_at : TIMESTAMP
+}
+
+' ── reports ────────────────────────────────────────────
+entity "reports" as Report {
+  * id : UUID <<PK>>
+  --
+  * requested_by : UUID <<FK>>
+  type : VARCHAR
+  format : VARCHAR
+  status : VARCHAR
+  --
+  start_at : TIMESTAMP
+  end_at : TIMESTAMP
+  room_id : UUID <<FK>>
+  --
+  filename : VARCHAR
+  content_type : VARCHAR
+  size_bytes : BIGINT
+  storage_key : VARCHAR
+  --
+  failure_reason : VARCHAR
+  requested_at : TIMESTAMP
+  started_at : TIMESTAMP
+  finished_at : TIMESTAMP
 }
 
 ' ── Relacionamentos ────────────────────────────────────
@@ -137,8 +180,13 @@ Resource     "(1,1)" ||--o{ "(0,n)" RoomResource
 Room         "(1,1)" ||--o{ "(0,n)" Event
 
 User         "(1,1)" ||--o{ "(0,n)" EventRequest
-Event        "(0,1)" |o--o{ "(0,n)" EventRequest
+EventRequest "(1,1)" ||--o{ "(1,n)" EventChangeItem
+Event        "(0,1)" |o--o{ "(0,n)" EventChangeItem
 
-EventRequest "(1,1)" ||--o| "(0,1)" EventChangeItem
+EventRequest "(1,1)" ||--o{ "(0,n)" Approval
+User         "(1,1)" ||--o{ "(0,n)" Approval
+
+User         "(1,1)" ||--o{ "(0,n)" Report
+Room         "(0,1)" |o--o{ "(0,n)" Report
 
 @enduml
