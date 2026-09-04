@@ -1,6 +1,6 @@
 @startuml room_status
 
-title Room — Ciclo de Vida do Status
+title Room: Ciclo de Vida do Status
 
 skinparam state {
   BackgroundColor #EEF2FF
@@ -14,37 +14,19 @@ skinparam noteBorderColor #CCBB55
 [*] --> AVAILABLE : create()
 
 AVAILABLE   --> INACTIVE    : deactivate()
-AVAILABLE   --> ARCHIVED    : archive()
 AVAILABLE   --> MAINTENANCE : putUnderMaintenance()
-AVAILABLE   --> [*]
-
-INACTIVE    --> AVAILABLE   : activate()
-INACTIVE    --> ARCHIVED    : archive()
-INACTIVE    --> MAINTENANCE : putUnderMaintenance()
-INACTIVE    --> [*]
 
 MAINTENANCE --> AVAILABLE   : activate()
 MAINTENANCE --> INACTIVE    : deactivate()
-MAINTENANCE --> ARCHIVED    : archive()
-MAINTENANCE --> [*]
 
-ARCHIVED    --> AVAILABLE   : restore()
-ARCHIVED    --> DELETED     : delete()
-ARCHIVED    --> [*]
+INACTIVE    --> AVAILABLE   : activate()
+INACTIVE    --> MAINTENANCE : putUnderMaintenance()
+INACTIVE    --> DELETED     : delete()
 
 DELETED --> [*]
 
-note right of ARCHIVED
-  ARCHIVED não pode ir para INACTIVE
-  nem para MAINTENANCE.
-  Lança InvalidStateException (422).
-  Única origem válida para delete().
-end note
-
-note right of DELETED
-  Estado terminal (soft delete).
-  Nenhuma transição permitida.
-  Somente alcançável via ARCHIVED.
+note right of AVAILABLE
+  Único estado que aceita eventos.
 end note
 
 @enduml

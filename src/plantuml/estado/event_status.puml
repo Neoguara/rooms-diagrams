@@ -1,6 +1,6 @@
 @startuml event_status
 
-title Event — Ciclo de Vida do Status
+title Event: Ciclo de Vida do Status
 
 skinparam state {
   BackgroundColor #EEF2FF
@@ -11,35 +11,20 @@ skinparam state {
 skinparam noteBackgroundColor #FFFDE7
 skinparam noteBorderColor #CCBB55
 
-[*] --> ACTIVE : aprovação de EventRequest\n[tipo: CREATE]
+[*] --> ACTIVE : aprovação de item CREATE
 
-ACTIVE --> CANCELLED : cancel()\n[aprovação de EventRequest tipo CANCEL]
-ACTIVE --> COMPLETED : complete()
-ACTIVE --> ARCHIVED  : archive()
-ACTIVE --> [*]
+ACTIVE    --> CANCELLED : cancel()
+CANCELLED --> ACTIVE    : reactivate()
+
+ACTIVE    --> DISCARDED : discard()
+CANCELLED --> DISCARDED : discard()
+
+ACTIVE    --> COMPLETED : complete()
 
 CANCELLED --> ARCHIVED : archive()
-CANCELLED --> [*]
-
 COMPLETED --> ARCHIVED : archive()
-COMPLETED --> [*]
+DISCARDED --> ARCHIVED : archive()
 
 ARCHIVED --> [*]
-
-note right of ACTIVE
-  Um Event só é criado após a aprovação
-  de um EventRequest do tipo CREATE.
-  Pode permanecer ACTIVE indefinidamente.
-end note
-
-note right of CANCELLED
-  Disparado pela aprovação de um
-  EventRequest do tipo CANCEL.
-end note
-
-note right of ARCHIVED
-  Estado terminal explícito.
-  Nenhuma transição permitida.
-end note
 
 @enduml

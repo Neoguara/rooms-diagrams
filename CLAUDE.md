@@ -55,3 +55,16 @@ Exemplos:
 
 \href{\linkNomeMacro}{Texto do link}  % no corpo
 ```
+
+## Estilo de escrita
+
+**Nunca usar travessão (—).** Vale para tudo: respostas no chat, comentários de
+código, notas dos diagramas PlantUML, texto dos `.tex` e mensagens de commit.
+
+Em vez do travessão, use vírgula, dois-pontos, parênteses ou ponto final.
+
+| Em vez de | Escreva |
+|---|---|
+| `ACTIVE e COMPLETED seguram a sala — ele de fato aconteceu` | `ACTIVE e COMPLETED seguram a sala: ele de fato aconteceu` |
+| `Event — Ciclo de Vida do Status` | `Event: Ciclo de Vida do Status` |
+| `Estado terminal — nenhuma transição` | `Estado terminal. Nenhuma transição` |

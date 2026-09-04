@@ -1,6 +1,6 @@
 @startuml user_status
 
-title User — Ciclo de Vida do Status
+title User: Ciclo de Vida do Status
 
 skinparam state {
   BackgroundColor #EEF2FF
@@ -13,27 +13,10 @@ skinparam noteBorderColor #CCBB55
 
 [*] --> ACTIVE : create()
 
-ACTIVE --> INACTIVE : deactivate()
-ACTIVE --> DELETED  : delete()
-ACTIVE --> [*]
-
-INACTIVE --> ACTIVE  : activate()
-INACTIVE --> DELETED : delete()
-INACTIVE --> [*]
+ACTIVE   --> INACTIVE : deactivate()
+INACTIVE --> ACTIVE   : activate()
+INACTIVE --> DELETED  : delete()
 
 DELETED --> [*]
-
-note right of ACTIVE
-  Estado final mais comum.
-  O usuário pode permanecer ACTIVE
-  indefinidamente no sistema.
-end note
-
-note right of DELETED
-  Estado terminal (soft delete).
-  Nenhuma transição permitida.
-  Lança InvalidStateException (422)
-  se tentar modificar um usuário DELETED.
-end note
 
 @enduml
