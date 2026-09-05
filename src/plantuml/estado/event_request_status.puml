@@ -1,15 +1,12 @@
 @startuml event_request_status
 
+' Fonte: EventRequestStatus e os métodos approve/reject de EventRequest (rooms-backend).
+' A reversão não aparece aqui porque não é transição: ReverseEventRequestUseCase abre um
+' EventRequest novo, em PENDING, e deixa o grupo revertido no estado em que estava.
+
 title EventRequest: Ciclo de Vida do Status
 
-skinparam state {
-  BackgroundColor #EEF2FF
-  BorderColor #7070AA
-  ArrowColor #555588
-  FontSize 13
-}
-skinparam noteBackgroundColor #FFFDE7
-skinparam noteBorderColor #CCBB55
+!include estilo.iuml
 
 [*] --> PENDING : EventRequest.open()
 
@@ -18,12 +15,5 @@ PENDING --> REJECTED : reject()
 
 APPROVED --> [*]
 REJECTED --> [*]
-
-APPROVED -[dotted]-> PENDING : reverse()
-REJECTED -[dotted]-> PENDING : reverse()
-
-note as N1
-  reverse()abre um grupo novo em PENDING.
-end note
 
 @enduml

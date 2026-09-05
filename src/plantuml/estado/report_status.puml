@@ -1,0 +1,22 @@
+@startuml report_status
+
+' Fonte: ReportStatus e os métodos start/complete/fail/expire de Report (rooms-backend).
+' Não há reprocessamento: um relatório que falhou continua falhado, e pedir de novo é
+' criar outro relatório.
+
+title Report: Ciclo de Vida do Status
+
+!include estilo.iuml
+
+[*] --> PENDING : Report.request()
+
+PENDING    --> PROCESSING : start()\nReportStateWriter.markProcessing
+PROCESSING --> COMPLETED  : complete(artifact)\nReportStateWriter.markCompleted
+PROCESSING --> FAILED     : fail(reason)\nReportStateWriter.markFailed
+COMPLETED  --> EXPIRED    : expire()\nsem chamador na aplicação
+
+COMPLETED --> [*]
+FAILED    --> [*]
+EXPIRED   --> [*]
+
+@enduml

@@ -1,20 +1,18 @@
 @startuml resource_status
 
+' Fonte: ResourceStatus e os métodos activate/deactivate/delete de Resource (rooms-backend).
+
 title Resource: Ciclo de Vida do Status
 
-skinparam state {
-  BackgroundColor #EEF2FF
-  BorderColor #7070AA
-  ArrowColor #555588
-  FontSize 13
-}
-skinparam noteBackgroundColor #FFFDE7
-skinparam noteBorderColor #CCBB55
+!include estilo.iuml
 
-[*] --> ACTIVE : create()
+[*] --> ACTIVE : Resource.create()
 
+ACTIVE   --> ACTIVE   : activate()
 ACTIVE   --> INACTIVE : deactivate()
+
 INACTIVE --> ACTIVE   : activate()
+INACTIVE --> INACTIVE : deactivate()
 INACTIVE --> DELETED  : delete()
 
 DELETED --> [*]

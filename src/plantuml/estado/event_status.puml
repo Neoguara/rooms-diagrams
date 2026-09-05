@@ -1,29 +1,26 @@
 @startuml event_status
 
+' Fonte: EventStatus e os métodos cancel/discard/reactivate/complete/archive de Event
+' (rooms-backend). Quem dispara as transições é ReviewEventRequestUseCase, ao aprovar um
+' grupo: cada tipo de EventChangeItem vira uma chamada dessas.
+
 title Event: Ciclo de Vida do Status
 
-skinparam state {
-  BackgroundColor #EEF2FF
-  BorderColor #7070AA
-  ArrowColor #555588
-  FontSize 13
-}
-skinparam noteBackgroundColor #FFFDE7
-skinparam noteBorderColor #CCBB55
+!include estilo.iuml
 
-[*] --> ACTIVE : aprovação de item CREATE
+[*] --> ACTIVE : Event.create()\naprovação de item CREATE
 
-ACTIVE    --> CANCELLED : cancel()
-CANCELLED --> ACTIVE    : reactivate()
+ACTIVE    --> CANCELLED : cancel()\naprovação de item CANCEL
+CANCELLED --> ACTIVE    : reactivate()\naprovação de item REACTIVATE
 
-ACTIVE    --> DISCARDED : discard()
-CANCELLED --> DISCARDED : discard()
+ACTIVE    --> DISCARDED : discard()\naprovação de item DISCARD
+CANCELLED --> DISCARDED : discard()\naprovação de item DISCARD
 
-ACTIVE    --> COMPLETED : complete()
+ACTIVE    --> COMPLETED : complete()\nsem chamador na aplicação
 
-CANCELLED --> ARCHIVED : archive()
-COMPLETED --> ARCHIVED : archive()
-DISCARDED --> ARCHIVED : archive()
+CANCELLED --> ARCHIVED : archive()\nsem chamador na aplicação
+COMPLETED --> ARCHIVED : archive()\nsem chamador na aplicação
+DISCARDED --> ARCHIVED : archive()\nsem chamador na aplicação
 
 ARCHIVED --> [*]
 

@@ -1,19 +1,16 @@
 @startuml room_type_status
 
+' Fonte: RoomTypeStatus e os métodos activate/deactivate/delete de RoomType (rooms-backend).
+
 title RoomType: Ciclo de Vida do Status
 
-skinparam state {
-  BackgroundColor #EEF2FF
-  BorderColor #7070AA
-  ArrowColor #555588
-  FontSize 13
-}
-skinparam noteBackgroundColor #FFFDE7
-skinparam noteBorderColor #CCBB55
+!include estilo.iuml
 
-[*] --> ACTIVE : create()
+[*] --> ACTIVE : RoomType.create()
 
+ACTIVE   --> ACTIVE   : activate()
 ACTIVE   --> INACTIVE : deactivate()
+
 INACTIVE --> ACTIVE   : activate()
 INACTIVE --> DELETED  : delete()
 

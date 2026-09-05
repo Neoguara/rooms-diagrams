@@ -1,32 +1,27 @@
 @startuml room_status
 
+' Fonte: RoomStatus e os métodos activate/deactivate/putUnderMaintenance/delete de Room
+' (rooms-backend). Os três primeiros só recusam quando a sala já está DELETED, então valem
+' a partir de qualquer outro estado, inclusive do próprio.
+
 title Room: Ciclo de Vida do Status
 
-skinparam state {
-  BackgroundColor #EEF2FF
-  BorderColor #7070AA
-  ArrowColor #555588
-  FontSize 13
-}
-skinparam noteBackgroundColor #FFFDE7
-skinparam noteBorderColor #CCBB55
+!include estilo.iuml
 
-[*] --> AVAILABLE : create()
+[*] --> AVAILABLE : Room.create()
 
+AVAILABLE   --> AVAILABLE   : activate()
 AVAILABLE   --> INACTIVE    : deactivate()
 AVAILABLE   --> MAINTENANCE : putUnderMaintenance()
 
 MAINTENANCE --> AVAILABLE   : activate()
 MAINTENANCE --> INACTIVE    : deactivate()
+MAINTENANCE --> MAINTENANCE : putUnderMaintenance()
 
 INACTIVE    --> AVAILABLE   : activate()
 INACTIVE    --> MAINTENANCE : putUnderMaintenance()
 INACTIVE    --> DELETED     : delete()
 
 DELETED --> [*]
-
-note right of AVAILABLE
-  Único estado que aceita eventos.
-end note
 
 @enduml

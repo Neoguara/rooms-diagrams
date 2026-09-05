@@ -1,19 +1,16 @@
 @startuml user_status
 
+' Fonte: UserStatus e os métodos activate/deactivate/delete de User (rooms-backend).
+
 title User: Ciclo de Vida do Status
 
-skinparam state {
-  BackgroundColor #EEF2FF
-  BorderColor #7070AA
-  ArrowColor #555588
-  FontSize 13
-}
-skinparam noteBackgroundColor #FFFDE7
-skinparam noteBorderColor #CCBB55
+!include estilo.iuml
 
-[*] --> ACTIVE : create()
+[*] --> ACTIVE : User.create()
 
+ACTIVE   --> ACTIVE   : activate()
 ACTIVE   --> INACTIVE : deactivate()
+
 INACTIVE --> ACTIVE   : activate()
 INACTIVE --> DELETED  : delete()
 

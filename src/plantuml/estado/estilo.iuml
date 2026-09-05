@@ -1,0 +1,8 @@
+' Estilo comum dos diagramas de estado. Incluído por todos os .puml desta pasta.
+
+skinparam state {
+  BackgroundColor #EEF2FF
+  BorderColor #7070AA
+  ArrowColor #555588
+  FontSize 13
+}
