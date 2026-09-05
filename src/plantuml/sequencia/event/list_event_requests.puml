@@ -1,0 +1,98 @@
+@startuml list_event_requests
+
+' Fonte: EventRequestController.listEventRequests e GetEventRequestUseCase
+' (rooms-backend). A agenda é carregada uma única vez, cobrindo a faixa de todos os grupos
+' pendentes, para que a listagem não dispare uma consulta por alteração.
+
+title GET /event-requests: Listar Grupos com Conflitos Previstos
+
+actor Aprovador
+boundary "Frontend" as FE
+participant "EventRequestController" as Ctrl
+participant "GetEventRequestUseCase" as UC
+participant "EventRequestRepositoryPort" as ReqRepo
+participant "EventChangeItemRepositoryPort" as ItemRepo
+participant "EventRequestConflicts" as Conflicts
+participant "LoadedOccupancy" as Occupancy
+participant "EventRepositoryPort" as EventRepo
+participant "EventRequestMapper" as Mapper
+database "event_requests" as DBReq
+database "event_change_items" as DBItem
+database "events" as DBEvent
+
+Aprovador -> FE: abre a fila de solicitações
+activate FE
+FE -> Ctrl: GET /event-requests
+activate Ctrl
+
+Ctrl -> UC: findAll()
+activate UC
+
+UC -> ReqRepo: findAll()
+activate ReqRepo
+ReqRepo -> DBReq: SELECT * FROM event_requests
+DBReq --> ReqRepo: List<EventRequest>
+ReqRepo --> UC: List<EventRequest>
+deactivate ReqRepo
+
+UC -> ItemRepo: findByEventRequestIdIn(ids)
+activate ItemRepo
+ItemRepo -> DBItem: SELECT * FROM event_change_items\nWHERE event_request_id IN (...)\nORDER BY item_position ASC
+DBItem --> ItemRepo: List<EventChangeItem>
+ItemRepo --> UC: List<EventChangeItem>
+deactivate ItemRepo
+
+UC -> UC: agrupa os itens por grupo\ne separa os itens dos grupos PENDING
+
+UC -> Conflicts: claims(itens pendentes)
+activate Conflicts
+Conflicts --> UC: List<OccupiedSlot>\nhorários que os grupos pretendem ocupar
+deactivate Conflicts
+
+alt nenhum grupo pendente reivindica horário
+  UC -> Occupancy: LoadedOccupancy.of(List.of())
+  activate Occupancy
+  Occupancy --> UC: agenda vazia
+  deactivate Occupancy
+else há horários reivindicados
+  UC -> EventRepo: findOccupyingBetween(menor startAt, maior endAt)
+  activate EventRepo
+  EventRepo -> DBEvent: SELECT * FROM events\nWHERE status IN ('ACTIVE','COMPLETED')\nAND start_at < ? AND end_at > ?\nORDER BY start_at
+  DBEvent --> EventRepo: List<Event>
+  EventRepo --> UC: List<Event>
+  deactivate EventRepo
+  UC -> Occupancy: LoadedOccupancy.of(agenda)
+  activate Occupancy
+  Occupancy --> UC: agenda em memória
+  deactivate Occupancy
+end
+
+loop para cada EventRequest
+
+  alt grupo PENDING
+    UC -> Conflicts: preview(itens do grupo, agenda)
+    activate Conflicts
+    Conflicts -> Occupancy: occupying(roomId, startAt, endAt)
+    activate Occupancy
+    Occupancy --> Conflicts: List<Event>\nfiltrado em memória, sem ida ao banco
+    deactivate Occupancy
+    Conflicts --> UC: List<EventConflict>
+    deactivate Conflicts
+  else grupo APPROVED ou REJECTED
+    UC -> UC: conflicts vazio\nnão há o que antecipar
+  end
+
+  UC -> Mapper: toResponse(eventRequest, items, conflicts)
+  activate Mapper
+  Mapper --> UC: EventRequestResponse
+  deactivate Mapper
+end
+
+UC --> Ctrl: List<EventRequestResponse>
+deactivate UC
+Ctrl --> FE: 200 OK [EventRequestResponse]
+deactivate Ctrl
+FE --> Aprovador: exibe a fila com os choques previstos
+deactivate FE
+
+@enduml

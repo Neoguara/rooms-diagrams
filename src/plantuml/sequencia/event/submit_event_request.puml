@@ -1,0 +1,164 @@
+@startuml submit_event_request
+
+' Fonte: EventRequestController.requestEventChanges e RequestEventChangesUseCase
+' (rooms-backend). Nada é gravado no evento aqui: a submissão só registra o que se
+' pretende fazer. O evento só muda quando o grupo for aprovado.
+
+title POST /event-requests: Submeter um Grupo de Alterações
+
+actor User
+boundary "Frontend" as FE
+participant "EventRequestController" as Ctrl
+participant "RequestEventChangesUseCase" as UC
+participant "EventRequest" as ReqEntity
+participant "RecurrenceRule" as Rule
+participant "RecurrenceExpander" as Expander
+participant "EventChangeItem" as Item
+participant "EventRequestConflicts" as Conflicts
+participant "RoomOccupancy\n(RoomOccupancyAdapter)" as Occupancy
+participant "EventRepositoryPort" as EventRepo
+participant "EventRequestRepositoryPort" as ReqRepo
+participant "EventChangeItemRepositoryPort" as ItemRepo
+participant "EventRequestMapper" as Mapper
+database "events" as DBEvent
+database "event_requests" as DBReq
+database "event_change_items" as DBItem
+
+User -> FE: monta as alterações e submete
+activate FE
+FE -> Ctrl: POST /event-requests\n{justification, changes: [{type, ...}]}\nAuthorization: Bearer <token>
+activate Ctrl
+
+Ctrl -> UC: execute(principal.getId(), SubmitEventRequest)
+activate UC
+
+UC -> UC: changes não pode ser vazia
+
+alt changes vazia
+  UC --> Ctrl: DomainValidationException
+  Ctrl --> FE: 422 Unprocessable Entity\nDOMAIN_VALIDATION_ERROR
+  FE --> User: exibe erro
+else changes com ao menos um item
+
+  UC -> ReqEntity: EventRequest.open(UserId, justification)
+  activate ReqEntity
+  ReqEntity --> UC: EventRequest (PENDING)
+  deactivate ReqEntity
+
+  loop para cada EventChangeRequest, na ordem submetida
+
+    alt type = CREATE, sem recurrenceRule
+      UC -> Item: EventChangeItem.create(requestId, position,\nEventSnapshot(roomId, title, ..., seriesId=null))
+      activate Item
+      Item --> UC: 1 item
+      deactivate Item
+
+    else type = CREATE, com recurrenceRule
+      UC -> Rule: parse(recurrenceRule)
+      activate Rule
+      Rule --> UC: RecurrenceRule
+      deactivate Rule
+      UC -> Expander: expand(rule, startAt, endAt)
+      activate Expander
+      Expander --> UC: List<Occurrence>\nno máximo MAX_OCCURRENCES = 200
+      deactivate Expander
+      UC -> UC: novo SeriesId,\nregra na forma canônica rule.format()
+      loop para cada Occurrence
+        UC -> Item: EventChangeItem.create(requestId, position+i,\nsnapshot com o mesmo seriesId)
+        activate Item
+        Item --> UC: item
+        deactivate Item
+      end
+
+    else type = UPDATE
+      UC -> EventRepo: findById(EventId.of(eventId))
+      activate EventRepo
+      EventRepo -> DBEvent: SELECT * FROM events WHERE id=?
+      DBEvent --> EventRepo: Optional<Event>
+      EventRepo --> UC: Event de referência
+      deactivate EventRepo
+      UC -> UC: recurrenceRule submetida deve ser igual à do evento
+
+      alt scope = THIS_OCCURRENCE (padrão)
+        UC -> Item: EventChangeItem.update(requestId, position,\nreferência, snapshot com a série preservada)
+        activate Item
+        Item --> UC: 1 item
+        deactivate Item
+      else scope = THIS_AND_FOLLOWING ou ALL_OCCURRENCES
+        UC -> EventRepo: findBySeriesId(seriesId)
+        activate EventRepo
+        EventRepo -> DBEvent: SELECT * FROM events\nWHERE series_id=? ORDER BY start_at
+        DBEvent --> EventRepo: List<Event>
+        EventRepo --> UC: ocorrências da série
+        deactivate EventRepo
+        UC -> UC: filtra por alcance e por status ACTIVE\nOccurrenceShift.between(referência, startAt, endAt)\nreescreve o BYDAY só se o lote cobrir a série inteira
+        loop para cada ocorrência aplicável
+          UC -> Item: EventChangeItem.update(requestId, position+i,\nocorrência, snapshot deslocado)
+          activate Item
+          Item --> UC: item
+          deactivate Item
+        end
+      end
+
+    else type = CANCEL ou REACTIVATE
+      UC -> EventRepo: findById(EventId.of(eventId))
+      activate EventRepo
+      EventRepo -> DBEvent: SELECT * FROM events WHERE id=?
+      DBEvent --> EventRepo: Optional<Event>
+      EventRepo --> UC: Event de referência
+      deactivate EventRepo
+      UC -> UC: alcance resolve as ocorrências,\nfiltrando por ACTIVE (CANCEL) ou CANCELLED (REACTIVATE)
+      loop para cada ocorrência aplicável
+        UC -> Item: EventChangeItem.cancel / reactivate(\nrequestId, position+i, ocorrência)
+        activate Item
+        Item --> UC: item
+        deactivate Item
+      end
+    end
+  end
+
+  UC -> ReqRepo: save(eventRequest)
+  activate ReqRepo
+  ReqRepo -> DBReq: INSERT INTO event_requests\n(id, user_id, status='PENDING', justification, created_at)
+  DBReq --> ReqRepo: EventRequest
+  ReqRepo --> UC: EventRequest
+  deactivate ReqRepo
+
+  UC -> ItemRepo: saveAll(changeItems)
+  activate ItemRepo
+  ItemRepo -> DBItem: INSERT INTO event_change_items\n(id, event_request_id, event_id, type,\nitem_position, old_*, new_*)
+  DBItem --> ItemRepo: List<EventChangeItem>
+  ItemRepo --> UC: List<EventChangeItem>
+  deactivate ItemRepo
+
+  UC -> Conflicts: preview(changeItems, roomOccupancy)
+  activate Conflicts
+  loop para cada item que ocupa sala
+    Conflicts -> Occupancy: occupying(roomId, startAt, endAt)
+    activate Occupancy
+    Occupancy -> EventRepo: findOverlapping(roomId, startAt, endAt)
+    activate EventRepo
+    EventRepo -> DBEvent: SELECT * FROM events\nWHERE room_id=? AND status IN ('ACTIVE','COMPLETED')\nAND start_at < ? AND end_at > ?
+    DBEvent --> EventRepo: List<Event>
+    EventRepo --> Occupancy: List<Event>
+    deactivate EventRepo
+    Occupancy --> Conflicts: List<Event>
+    deactivate Occupancy
+  end
+  Conflicts --> UC: List<EventConflict>\naviso, não recusa
+  deactivate Conflicts
+
+  UC -> Mapper: toResponse(eventRequest, changeItems, conflicts)
+  activate Mapper
+  Mapper --> UC: EventRequestResponse
+  deactivate Mapper
+
+  UC --> Ctrl: EventRequestResponse
+  deactivate UC
+  Ctrl --> FE: 201 Created {EventRequestResponse}\nLocation: /event-requests/{id}
+  FE --> User: exibe o grupo pendente\ne os conflitos previstos
+end
+deactivate Ctrl
+deactivate FE
+
+@enduml

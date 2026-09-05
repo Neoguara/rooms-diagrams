@@ -1,0 +1,116 @@
+@startuml user_simples
+
+' Versão simples do módulo user, para leitura. A versão exaustiva está em
+' classe/user.puml, e é ela que serve de referência de sincronia com o backend.
+'
+' O que esta versão corta: DTOs, mappers, validators, exceções, getters, construtores,
+' métodos privados, os tipos de fora do módulo, e as dependências de uso, exceto as que
+' ligam um serviço de domínio ao que ele opera.
+
+left to right direction
+skinparam packageStyle rectangle
+
+package "Domain" #EEF2FF {
+
+  class User <<Entity>> {
+    - UserId id
+    - String name
+    - String email
+    - String password
+    - UserRole role
+    - UserStatus status
+    - LocalDateTime createdAt
+    - LocalDateTime updatedAt
+    + {static} create()
+    + update()
+    + activate()
+    + deactivate()
+    + delete()
+  }
+
+  class UserId <<record>> {
+    - UUID id
+  }
+
+  enum UserRole {
+    ADMIN
+    USER
+  }
+
+  enum UserStatus {
+    ACTIVE
+    INACTIVE
+    DELETED
+  }
+}
+
+package "Application" #F0FFF0 {
+
+  interface UserRepositoryPort {
+    + User save(User)
+    + Optional<User> findById(UserId)
+    + List<User> findAll()
+    + Optional<User> findByEmail(String)
+    + boolean existsByEmail(String)
+  }
+
+  class CreateUserUseCase <<Service>> {
+    + execute()
+  }
+  class GetUserUseCase <<Service>> {
+    + findById()
+    + findAll()
+  }
+  class UpdateUserUseCase <<Service>> {
+    + execute()
+  }
+  class UpdateUserStatusUseCase <<Service>> {
+    + execute()
+  }
+  class DeleteUserUseCase <<Service>> {
+    + execute()
+  }
+}
+
+package "Infrastructure" #FFF8F0 {
+
+  class UserController <<RestController>> {
+    + create()
+    + findAll()
+    + findById()
+    + update()
+    + deleteById()
+    + updateStatus()
+  }
+
+  class UserRepositoryImpl <<Repository>>
+
+  interface UserJpaRepository
+
+  class UserAuthAdapter <<Component>>
+}
+
+' ── Implementação ──────────────────────────────────────
+UserRepositoryPort <|.. UserRepositoryImpl
+
+' ── Campos ─────────────────────────────────────────────
+User *-- UserId
+User --> UserRole
+User --> UserStatus
+
+UserController --> CreateUserUseCase
+UserController --> GetUserUseCase
+UserController --> UpdateUserUseCase
+UserController --> UpdateUserStatusUseCase
+UserController --> DeleteUserUseCase
+
+CreateUserUseCase --> UserRepositoryPort
+GetUserUseCase --> UserRepositoryPort
+UpdateUserUseCase --> UserRepositoryPort
+UpdateUserStatusUseCase --> UserRepositoryPort
+DeleteUserUseCase --> UserRepositoryPort
+
+UserRepositoryImpl --> UserJpaRepository
+UserAuthAdapter --> UserRepositoryPort
+
+@enduml

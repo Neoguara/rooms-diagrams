@@ -1,0 +1,106 @@
+@startuml room_room_type
+
+' Versão simples do recorte de tipo de sala, dentro do módulo room. A versão exaustiva do
+' módulo inteiro está em classe/room.puml, e é ela que serve de referência de sincronia.
+'
+' O que esta versão corta: DTOs, mappers, validators, exceções, getters, construtores,
+' métodos privados, os tipos de fora do módulo, e as dependências de uso, exceto as que
+' ligam um serviço de domínio ao que ele opera.
+
+left to right direction
+skinparam packageStyle rectangle
+
+package "Domain" #EEF2FF {
+
+  class RoomType <<Entity>> {
+    - RoomTypeId id
+    - String name
+    - String description
+    - String defaultCapacity
+    - String color
+    - String icon
+    - RoomTypeStatus status
+    - LocalDateTime createdAt
+    - LocalDateTime updatedAt
+    + {static} create()
+    + update()
+    + activate()
+    + deactivate()
+    + delete()
+  }
+
+  class RoomTypeId <<record>> {
+    - UUID id
+  }
+
+  enum RoomTypeStatus {
+    ACTIVE
+    INACTIVE
+    DELETED
+  }
+}
+
+package "Application" #F0FFF0 {
+
+  interface RoomTypeRepositoryPort {
+    + RoomType save(RoomType)
+    + Optional<RoomType> findById(RoomTypeId)
+    + List<RoomType> findAll()
+  }
+
+  class CreateRoomTypeUseCase <<Service>> {
+    + execute()
+  }
+  class GetRoomTypeUseCase <<Service>> {
+    + findById()
+    + findAll()
+  }
+  class UpdateRoomTypeUseCase <<Service>> {
+    + execute()
+  }
+  class UpdateRoomTypeStatusUseCase <<Service>> {
+    + execute()
+  }
+  class DeleteRoomTypeUseCase <<Service>> {
+    + execute()
+  }
+}
+
+package "Infrastructure" #FFF8F0 {
+
+  class RoomTypeController <<RestController>> {
+    + createRoomType()
+    + listRoomTypes()
+    + getRoomType()
+    + updateRoomType()
+    + updateRoomTypeStatus()
+    + deleteRoomType()
+  }
+
+  class RoomTypeRepositoryImpl <<Repository>>
+
+  interface RoomTypeJpaRepository
+}
+
+' ── Implementação ──────────────────────────────────────
+RoomTypeRepositoryPort <|.. RoomTypeRepositoryImpl
+
+' ── Campos ─────────────────────────────────────────────
+RoomType *-- RoomTypeId
+RoomType --> RoomTypeStatus
+
+RoomTypeController --> CreateRoomTypeUseCase
+RoomTypeController --> GetRoomTypeUseCase
+RoomTypeController --> UpdateRoomTypeUseCase
+RoomTypeController --> UpdateRoomTypeStatusUseCase
+RoomTypeController --> DeleteRoomTypeUseCase
+
+CreateRoomTypeUseCase --> RoomTypeRepositoryPort
+GetRoomTypeUseCase --> RoomTypeRepositoryPort
+UpdateRoomTypeUseCase --> RoomTypeRepositoryPort
+UpdateRoomTypeStatusUseCase --> RoomTypeRepositoryPort
+DeleteRoomTypeUseCase --> RoomTypeRepositoryPort
+
+RoomTypeRepositoryImpl --> RoomTypeJpaRepository
+
+@enduml

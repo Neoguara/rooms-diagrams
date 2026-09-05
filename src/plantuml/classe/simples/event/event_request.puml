@@ -1,0 +1,241 @@
+@startuml event_event_request
+
+' Versão simples do recorte de solicitação, dentro do módulo event. A versão exaustiva do
+' módulo inteiro está em classe/event.puml, e é ela que serve de referência de sincronia.
+'
+' É o recorte da aprovação: o grupo de alterações, os itens que ele carrega, a decisão
+' tomada sobre ele e a reversão. Nada aqui toca o evento antes da aprovação.
+'
+' O que esta versão corta: DTOs, mappers, validators, exceções, getters, construtores,
+' métodos privados, os tipos de fora do módulo, e as dependências de uso, exceto as que
+' ligam um serviço de domínio ao que ele opera.
+
+left to right direction
+skinparam packageStyle rectangle
+
+package "Domain" #EEF2FF {
+
+  package "entities" {
+    class EventRequest <<Entity>> {
+      - EventRequestId id
+      - UserId createdBy
+      - EventRequestStatus status
+      - EventRequestId reversalOf
+      - String justification
+      - LocalDateTime createdAt
+      + {static} open()
+      + markAsReversalOf()
+      + approve()
+      + reject()
+    }
+    class EventChangeItem <<Entity>> {
+      - EventChangeItemId id
+      - EventRequestId eventRequestId
+      - EventId eventId
+      - EventChangeType type
+      - Integer position
+      - EventChangeItemId reversalOf
+      - EventSnapshot before
+      - EventSnapshot after
+      + {static} create()
+      + {static} update()
+      + {static} cancel()
+      + {static} reactivate()
+      + {static} discard()
+      + markAsReversalOf()
+      + linkCreatedEvent()
+    }
+    class Approval <<Entity>> {
+      - ApprovalId id
+      - EventRequestId eventRequestId
+      - UserId decidedBy
+      - ApprovalDecision decision
+      - String comment
+      - LocalDateTime decidedAt
+      + {static} of()
+    }
+  }
+
+  package "valueobjects" {
+    class EventRequestId <<record>> {
+      - UUID id
+    }
+    class EventChangeItemId <<record>> {
+      - UUID id
+    }
+    class ApprovalId <<record>> {
+      - UUID id
+    }
+    class UserId <<record>> {
+      - UUID id
+    }
+    class EventSnapshot {
+      - RoomId roomId
+      - String title
+      - String description
+      - LocalDateTime startAt
+      - LocalDateTime endAt
+      - Boolean isAllDay
+      - String recurrenceRule
+      - SeriesId seriesId
+      + {static} of()
+    }
+  }
+
+  package "enums" {
+    enum EventRequestStatus {
+      PENDING
+      APPROVED
+      REJECTED
+    }
+    enum EventChangeType {
+      CREATE
+      UPDATE
+      CANCEL
+      REACTIVATE
+      DISCARD
+    }
+    enum ApprovalDecision {
+      APPROVED
+      REJECTED
+    }
+  }
+
+  package "services" {
+    class EventRequestConflicts {
+      + {static} List<OccupiedSlot> claims()
+      + {static} List<EventConflict> preview()
+    }
+  }
+}
+
+package "Application" #F0FFF0 {
+
+  interface EventRequestRepositoryPort {
+    + EventRequest save(EventRequest)
+    + Optional<EventRequest> findById(EventRequestId)
+    + List<EventRequest> findAll()
+    + boolean hasReversal(EventRequestId)
+  }
+  interface EventChangeItemRepositoryPort {
+    + EventChangeItem save(EventChangeItem)
+    + List<EventChangeItem> saveAll(List<EventChangeItem>)
+    + List<EventChangeItem> findByEventRequestId(EventRequestId)
+    + List<EventChangeItem> findByEventRequestIdIn(Collection<EventRequestId>)
+  }
+  interface ApprovalRepositoryPort {
+    + Approval save(Approval)
+    + List<Approval> findByEventRequestId(EventRequestId)
+  }
+
+  class RequestEventChangesUseCase <<Service>> {
+    + execute()
+  }
+  class ReviewEventRequestUseCase <<Service>> {
+    + execute()
+  }
+  class ReverseEventRequestUseCase <<Service>> {
+    + execute()
+  }
+  class GetEventRequestUseCase <<Service>> {
+    + findAll()
+  }
+  class GetEventRequestAuditUseCase <<Service>> {
+    + execute()
+  }
+}
+
+package "Infrastructure" #FFF8F0 {
+
+  class EventRequestController <<RestController>> {
+    + listEventRequests()
+    + requestEventChanges()
+    + reviewEventRequest()
+    + reverseEventRequest()
+    + getEventRequestAudit()
+  }
+
+  class EventRequestRepositoryImpl <<Repository>>
+  class EventChangeItemRepositoryImpl <<Repository>>
+  class ApprovalRepositoryImpl <<Repository>>
+
+  interface EventRequestJpaRepository
+  interface EventChangeItemJpaRepository
+  interface ApprovalJpaRepository
+}
+
+package "Recorte de evento" #EEEEFF {
+  class Event <<Entity>>
+  class EventId <<record>>
+  interface RoomOccupancy
+  interface EventRepositoryPort
+  class EventConflict <<record>>
+}
+
+' ── Implementação ──────────────────────────────────────
+
+EventRequestRepositoryPort <|.. EventRequestRepositoryImpl
+EventChangeItemRepositoryPort <|.. EventChangeItemRepositoryImpl
+ApprovalRepositoryPort <|.. ApprovalRepositoryImpl
+
+' ── Campos: domínio ────────────────────────────────────
+EventRequest *-- EventRequestId
+EventRequest --> UserId
+EventRequest --> EventRequestStatus
+EventChangeItem *-- EventChangeItemId
+EventChangeItem --> EventRequestId
+EventChangeItem --> EventId
+EventChangeItem --> EventChangeType
+EventChangeItem *-- EventSnapshot
+Approval *-- ApprovalId
+Approval --> EventRequestId
+Approval --> UserId
+Approval --> ApprovalDecision
+
+' ── Campos: controller e casos de uso ──────────────────
+EventRequestController --> RequestEventChangesUseCase
+EventRequestController --> ReviewEventRequestUseCase
+EventRequestController --> ReverseEventRequestUseCase
+EventRequestController --> GetEventRequestUseCase
+EventRequestController --> GetEventRequestAuditUseCase
+
+RequestEventChangesUseCase --> EventRequestRepositoryPort
+RequestEventChangesUseCase --> EventChangeItemRepositoryPort
+RequestEventChangesUseCase --> EventRepositoryPort
+RequestEventChangesUseCase --> RoomOccupancy
+
+ReviewEventRequestUseCase --> EventRequestRepositoryPort
+ReviewEventRequestUseCase --> EventChangeItemRepositoryPort
+ReviewEventRequestUseCase --> ApprovalRepositoryPort
+ReviewEventRequestUseCase --> EventRepositoryPort
+ReviewEventRequestUseCase --> RoomOccupancy
+
+ReverseEventRequestUseCase --> EventRequestRepositoryPort
+ReverseEventRequestUseCase --> EventChangeItemRepositoryPort
+ReverseEventRequestUseCase --> EventRepositoryPort
+ReverseEventRequestUseCase --> RoomOccupancy
+
+GetEventRequestUseCase --> EventRequestRepositoryPort
+GetEventRequestUseCase --> EventChangeItemRepositoryPort
+GetEventRequestUseCase --> EventRepositoryPort
+
+GetEventRequestAuditUseCase --> EventRequestRepositoryPort
+GetEventRequestAuditUseCase --> EventChangeItemRepositoryPort
+GetEventRequestAuditUseCase --> ApprovalRepositoryPort
+
+' ── Campos: infraestrutura ─────────────────────────────
+EventRequestRepositoryImpl --> EventRequestJpaRepository
+EventChangeItemRepositoryImpl --> EventChangeItemJpaRepository
+ApprovalRepositoryImpl --> ApprovalJpaRepository
+
+' ── Uso: o que efetiva a alteração no evento ───────────
+EventChangeItem ..> Event : snapshot do antes
+ReviewEventRequestUseCase ..> Event : aplica na aprovação
+EventRequestConflicts ..> EventChangeItem
+EventRequestConflicts ..> EventConflict
+EventRequestConflicts ..> RoomOccupancy
+RequestEventChangesUseCase ..> EventRequestConflicts
+ReverseEventRequestUseCase ..> EventRequestConflicts
+GetEventRequestUseCase ..> EventRequestConflicts
+
+@enduml

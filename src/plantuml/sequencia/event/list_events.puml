@@ -1,0 +1,56 @@
+@startuml list_events
+
+' Fonte: EventController.listEvents e GetEventUseCase (rooms-backend).
+' Não há recurso próprio de série: as ocorrências de uma recorrência são listadas
+' filtrando os eventos por seriesId.
+
+title GET /events: Listar Eventos
+
+actor User
+boundary "Frontend" as FE
+participant "EventController" as Ctrl
+participant "GetEventUseCase" as UC
+participant "EventRepositoryPort\n(EventRepositoryImpl)" as Repo
+participant "EventMapper" as Mapper
+database "events" as DB
+
+User -> FE: abre a agenda
+activate FE
+FE -> Ctrl: GET /events\n[?seriesId=<uuid>]
+activate Ctrl
+
+alt sem seriesId
+  Ctrl -> UC: findAll()
+  activate UC
+  UC -> Repo: findAll()
+  activate Repo
+  Repo -> DB: SELECT * FROM events
+  DB --> Repo: List<Event>
+  Repo --> UC: List<Event>
+  deactivate Repo
+else com seriesId
+  Ctrl -> UC: findBySeries(seriesId)
+  UC -> Repo: findBySeriesId(SeriesId.of(seriesId))
+  activate Repo
+  Repo -> DB: SELECT * FROM events\nWHERE series_id=? ORDER BY start_at
+  DB --> Repo: List<Event>
+  Repo --> UC: List<Event>
+  deactivate Repo
+end
+
+loop para cada Event
+  UC -> Mapper: toResponse(event)
+  activate Mapper
+  Mapper --> UC: EventResponse
+  deactivate Mapper
+end
+
+UC --> Ctrl: List<EventResponse>
+deactivate UC
+
+Ctrl --> FE: 200 OK [EventResponse]
+deactivate Ctrl
+FE --> User: exibe os eventos
+deactivate FE
+
+@enduml

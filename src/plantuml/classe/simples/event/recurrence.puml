@@ -1,0 +1,90 @@
+@startuml event_recurrence
+
+' Versão simples do recorte de recorrência, dentro do módulo event. A versão exaustiva do
+' módulo inteiro está em classe/event.puml, e é ela que serve de referência de sincronia.
+'
+' Não existe entidade de série: a recorrência é expandida na submissão, e o que sobra no
+' banco é uma ocorrência por linha, amarrada às irmãs pelo seriesId.
+'
+' O que esta versão corta: DTOs, mappers, validators, exceções, getters, construtores,
+' métodos privados, os tipos de fora do módulo, e as dependências de uso, exceto as que
+' ligam um serviço de domínio ao que ele opera.
+
+left to right direction
+skinparam packageStyle rectangle
+
+package "Domain" #EEF2FF {
+
+  package "valueobjects" {
+    class RecurrenceRule <<record>> {
+      - Frequency frequency
+      - int interval
+      - Set<DayOfWeek> byDay
+      - Integer count
+      - LocalDate until
+      + {static} int MAX_OCCURRENCES = 200
+      + {static} RecurrenceRule parse(String)
+      + String format()
+    }
+    enum "RecurrenceRule.Frequency" as Frequency {
+      DAILY
+      WEEKLY
+      MONTHLY
+    }
+    class SeriesId <<record>> {
+      - UUID id
+    }
+  }
+
+  package "services" {
+    class RecurrenceExpander {
+      + {static} List<Occurrence> expand(RecurrenceRule,LocalDateTime,LocalDateTime)
+    }
+    class "RecurrenceExpander.Occurrence" as Occurrence <<record>> {
+      - LocalDateTime startAt
+      - LocalDateTime endAt
+    }
+    enum "RecurrenceExpander.Step" as Step {
+      DAYS
+      WEEKS
+      MONTHS
+    }
+    class OccurrenceShift <<record>> {
+      - long days
+      - LocalTime timeOfDay
+      - Duration duration
+      + {static} OccurrenceShift between()
+      + LocalDateTime startFrom(LocalDateTime)
+      + LocalDateTime endFrom(LocalDateTime)
+    }
+  }
+}
+
+package "Application" #F0FFF0 {
+
+  enum ChangeScope {
+    THIS_OCCURRENCE
+    THIS_AND_FOLLOWING
+    ALL_OCCURRENCES
+  }
+
+  class RequestEventChangesUseCase <<Service>> {
+    + execute()
+  }
+}
+
+' ── Composição ─────────────────────────────────────────
+RecurrenceRule *-- Frequency
+RecurrenceExpander +-- Occurrence
+RecurrenceExpander +-- Step
+
+' ── Uso ────────────────────────────────────────────────
+RecurrenceExpander ..> RecurrenceRule
+
+RequestEventChangesUseCase ..> ChangeScope
+RequestEventChangesUseCase ..> RecurrenceRule : CREATE com regra
+RequestEventChangesUseCase ..> RecurrenceExpander : uma ocorrência por item
+RequestEventChangesUseCase ..> SeriesId : amarra as irmãs
+RequestEventChangesUseCase ..> OccurrenceShift : UPDATE em lote
+
+@enduml

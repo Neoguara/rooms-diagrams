@@ -1,5 +1,9 @@
 @startuml jwt_filter
 
+' Fonte: SecurityFilter.doFilterInternal e SecurityFilter.extractToken (rooms-backend).
+' O filtro nunca interrompe a cadeia: em qualquer caminho ele chama filterChain.doFilter.
+' Quem recusa a requisição sem autenticação é o Spring Security, mais adiante.
+
 title Requisição Autenticada: Validação do JWT (SecurityFilter)
 
 actor User
@@ -9,7 +13,7 @@ participant "JwtService" as Jwt
 participant "UserAuthPort\n(UserAuthAdapter)" as AuthPort
 participant "UserRepositoryPort" as UserRepo
 participant "SecurityContextHolder" as SecCtx
-participant "Controller" as Ctrl
+participant "FilterChain" as Chain
 database "users" as DB
 
 User -> FE: realiza requisição autenticada
@@ -17,13 +21,12 @@ activate FE
 FE -> Filter: HTTP Request\nAuthorization: Bearer <token>\nou Cookie: token=<token>
 activate Filter
 
-Filter -> Filter: extractToken(request)
-note right of Filter: Lê o header Authorization "Bearer ".\nNão havendo, cai para o cookie `token`
+Filter -> Filter: extractToken(request)\nheader Authorization "Bearer ",\nsenão cookie `token`, senão null
 
 alt token presente
   Filter -> Jwt: isTokenValid(token)
   activate Jwt
-  note right of Jwt: Verifica assinatura (secret)\ne expiração do token
+  Jwt -> Jwt: parseClaims(token)\nqualquer exceção vira false
   Jwt --> Filter: boolean
   deactivate Jwt
 
@@ -37,42 +40,40 @@ alt token presente
     activate AuthPort
     AuthPort -> UserRepo: findByEmail(email)
     activate UserRepo
-    UserRepo -> DB: SELECT * FROM users\nWHERE email=? AND status!=DELETED
+    UserRepo -> DB: SELECT * FROM users\nWHERE email=? AND status<>'DELETED'
     DB --> UserRepo: Optional<User>
-    UserRepo --> AuthPort: Optional<AuthUserData>
+    UserRepo --> AuthPort: Optional<User>
     deactivate UserRepo
     AuthPort --> Filter: Optional<AuthUserData>
     deactivate AuthPort
 
-    Filter -> SecCtx: setAuthentication(\nUsernamePasswordAuthenticationToken\n(userDetails, authorities))
-    activate SecCtx
-    SecCtx --> Filter:
-    deactivate SecCtx
-
-    Filter -> Ctrl: doFilterChain (autenticado)
-    activate Ctrl
-    Ctrl --> FE: 200 OK (resposta do endpoint)
-    deactivate Ctrl
-    deactivate Filter
-    FE --> User: exibe resposta do endpoint
-    deactivate FE
+    alt usuário encontrado e contexto ainda sem autenticação
+      Filter -> SecCtx: getContext().setAuthentication(\nUsernamePasswordAuthenticationToken(\nAuthUserDetails, null, ROLE_<role>))
+      activate SecCtx
+      SecCtx --> Filter:
+      deactivate SecCtx
+    else usuário não encontrado, ou contexto já autenticado
+      Filter -> Filter: segue sem tocar no SecurityContext
+    end
   else token inválido ou expirado
-    Filter -> Ctrl: doFilterChain (sem autenticação)
-    activate Ctrl
-    Ctrl --> FE: 401 Unauthorized
-    deactivate Ctrl
-    deactivate Filter
-    FE --> User: exibe erro de autenticação
-    deactivate FE
+    Filter -> Filter: segue sem tocar no SecurityContext
   end
 else sem token no header nem no cookie
-  Filter -> Ctrl: doFilterChain (sem autenticação)
-  activate Ctrl
-  Ctrl --> FE: 401 Unauthorized
-  deactivate Ctrl
-  deactivate Filter
-  FE --> User: exibe erro de autenticação
-  deactivate FE
+  Filter -> Filter: segue sem tocar no SecurityContext
 end
+
+Filter -> Chain: doFilter(request, response)
+deactivate Filter
+activate Chain
+
+alt requisição autenticada, ou rota pública
+  Chain --> FE: resposta do endpoint
+  FE --> User: exibe resposta
+else rota protegida sem autenticação
+  Chain --> FE: requisição recusada pelo Spring Security
+  deactivate Chain
+  FE --> User: exibe erro de autenticação
+end
+deactivate FE
 
 @enduml

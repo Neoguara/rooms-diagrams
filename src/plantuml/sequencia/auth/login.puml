@@ -1,5 +1,9 @@
 @startuml login
 
+' Fonte: AuthController, AuthService, AuthUserDetailsService, AuthUserDetails, JwtService
+' e UserAuthAdapter (rooms-backend). As checagens de senha e de conta habilitada ficam no
+' DaoAuthenticationProvider, acionado pelo AuthenticationManager.
+
 title POST /auth/login: Autenticação e Geração de JWT
 
 actor User
@@ -19,75 +23,91 @@ activate FE
 FE -> Ctrl: POST /auth/login\n{email, password}
 activate Ctrl
 
-Ctrl -> Service: login(LoginRequest)
-activate Service
+alt corpo inválido: @Valid falha
+  Ctrl --> FE: 400 Bad Request\nVALIDATION_ERROR
+  FE --> User: exibe erros de preenchimento
+else corpo válido
 
-Service -> AuthMgr: authenticate(\nUsernamePasswordAuthenticationToken\n(email, password))
-activate AuthMgr
+  Ctrl -> Service: login(LoginRequest)
+  activate Service
 
-AuthMgr -> DetailsService: loadUserByUsername(email)
-activate DetailsService
+  Service -> AuthMgr: authenticate(\nUsernamePasswordAuthenticationToken\n(email, password))
+  activate AuthMgr
 
-DetailsService -> AuthPort: findByEmail(email)
-activate AuthPort
-AuthPort -> UserRepo: findByEmail(email)
-activate UserRepo
-UserRepo -> DB: SELECT * FROM users\nWHERE email=? AND status!=DELETED
-DB --> UserRepo: Optional<User>
-UserRepo --> AuthPort: Optional<User>
-deactivate UserRepo
-AuthPort --> DetailsService: Optional<AuthUserData>
-deactivate AuthPort
+  AuthMgr -> DetailsService: loadUserByUsername(email)
+  activate DetailsService
 
-alt usuário encontrado
-  DetailsService --> AuthMgr: AuthUserDetails
-  deactivate DetailsService
+  DetailsService -> AuthPort: findByEmail(email)
+  activate AuthPort
+  AuthPort -> UserRepo: findByEmail(email)
+  activate UserRepo
+  UserRepo -> DB: SELECT * FROM users\nWHERE email=? AND status<>'DELETED'
+  DB --> UserRepo: Optional<User>
+  UserRepo --> AuthPort: Optional<User>
+  deactivate UserRepo
+  AuthPort --> DetailsService: Optional<AuthUserData>
+  deactivate AuthPort
 
-  AuthMgr -> Encoder: matches(rawPassword, encodedPassword)
-  activate Encoder
-  Encoder --> AuthMgr: boolean
-  deactivate Encoder
-
-  alt autenticado com sucesso
-    AuthMgr --> Service: Authentication
-    deactivate AuthMgr
-
-    Service -> Jwt: generateToken(email)
-    activate Jwt
-    note right of Jwt: Assina JWT com secret\nexpiration = now + expirationHours
-    Jwt --> Service: jwtToken
-    deactivate Jwt
-
-    Service --> Ctrl: TokenResponse\n{token, id, name, email, role, ...}
-    deactivate Service
-
-    note right of Ctrl: Grava o cookie httpOnly `token`\n(path=/, maxAge=7 dias)
-
-    Ctrl --> FE: 200 OK {TokenResponse}\nSet-Cookie: token=...
-    deactivate Ctrl
-    FE --> User: armazena token e redireciona
-    deactivate FE
-  else senha inválida
+  alt usuário não encontrado
+    DetailsService --> AuthMgr: UsernameNotFoundException
     AuthMgr --> Service: BadCredentialsException
     Service --> Ctrl: BadCredentialsException
+    deactivate DetailsService
     deactivate AuthMgr
     deactivate Service
     Ctrl --> FE: 401 Unauthorized
-    deactivate Ctrl
     FE --> User: exibe erro de credenciais
-    deactivate FE
+  else usuário encontrado
+    DetailsService --> AuthMgr: AuthUserDetails(AuthUserData)
+    deactivate DetailsService
+
+    AuthMgr -> AuthMgr: isEnabled()\nverdadeiro só em status ACTIVE
+
+    alt usuário INACTIVE
+      AuthMgr --> Service: DisabledException
+      Service --> Ctrl: DisabledException
+      deactivate AuthMgr
+      deactivate Service
+      Ctrl --> FE: 401 Unauthorized
+      FE --> User: exibe erro de credenciais
+    else usuário ACTIVE
+
+      AuthMgr -> Encoder: matches(password, encodedPassword)
+      activate Encoder
+      Encoder --> AuthMgr: boolean
+      deactivate Encoder
+
+      alt senha inválida
+        AuthMgr --> Service: BadCredentialsException
+        Service --> Ctrl: BadCredentialsException
+        deactivate AuthMgr
+        deactivate Service
+        Ctrl --> FE: 401 Unauthorized
+        FE --> User: exibe erro de credenciais
+      else senha correta
+        AuthMgr --> Service: Authentication\n(principal = AuthUserDetails)
+        deactivate AuthMgr
+
+        Service -> Service: getPrincipal().getData()
+
+        Service -> Jwt: generateToken(email)
+        activate Jwt
+        Jwt -> Jwt: assina HS256 com o secret\nexpiration = now + expirationHours
+        Jwt --> Service: jwtToken
+        deactivate Jwt
+
+        Service --> Ctrl: TokenResponse\n{token, id, name, email, role,\nisActive, createdAt, updatedAt, deletedAt}
+        deactivate Service
+
+        Ctrl -> Ctrl: grava cookie httpOnly `token`\npath=/, maxAge=7 dias
+
+        Ctrl --> FE: 200 OK {TokenResponse}\nSet-Cookie: token=...
+        FE --> User: armazena token e redireciona
+      end
+    end
   end
-else usuário não encontrado
-  DetailsService --> AuthMgr: UsernameNotFoundException
-  AuthMgr --> Service: BadCredentialsException
-  Service --> Ctrl: BadCredentialsException
-  deactivate DetailsService
-  deactivate AuthMgr
-  deactivate Service
-  Ctrl --> FE: 401 Unauthorized
-  deactivate Ctrl
-  FE --> User: exibe erro de credenciais
-  deactivate FE
 end
+deactivate Ctrl
+deactivate FE
 
 @enduml

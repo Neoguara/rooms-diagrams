@@ -1,0 +1,205 @@
+@startuml review_event_request
+
+' Fonte: EventRequestController.reviewEventRequest e ReviewEventRequestUseCase
+' (rooms-backend). A decisão vale para o grupo inteiro: aprovar efetiva todas as
+' alterações na ordem submetida, e basta uma não poder ser aplicada para nada ser gravado.
+
+title POST /event-requests/{id}/review: Aprovar ou Rejeitar um Grupo
+
+actor Aprovador
+boundary "Frontend" as FE
+participant "EventRequestController" as Ctrl
+participant "ReviewEventRequestUseCase" as UC
+participant "EventRequest" as ReqEntity
+participant "Event" as EventEntity
+participant "Approval" as ApprovalEntity
+participant "RoomOccupancy\n(RoomOccupancyAdapter)" as Occupancy
+participant "EventRequestRepositoryPort" as ReqRepo
+participant "EventChangeItemRepositoryPort" as ItemRepo
+participant "EventRepositoryPort" as EventRepo
+participant "ApprovalRepositoryPort" as ApprovalRepo
+participant "EventRequestMapper" as Mapper
+database "event_requests" as DBReq
+database "event_change_items" as DBItem
+database "events" as DBEvent
+database "approvals" as DBApproval
+
+Aprovador -> FE: decide o grupo
+activate FE
+FE -> Ctrl: POST /event-requests/{id}/review\n{decision, comment}\nAuthorization: Bearer <token>
+activate Ctrl
+
+Ctrl -> UC: execute(id, principal.getId(), ReviewEventRequest)
+activate UC
+
+UC -> ReqRepo: findById(EventRequestId.of(id))
+activate ReqRepo
+ReqRepo -> DBReq: SELECT * FROM event_requests WHERE id=?
+DBReq --> ReqRepo: Optional<EventRequest>
+ReqRepo --> UC: Optional<EventRequest>
+deactivate ReqRepo
+
+alt grupo não encontrado
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+  FE --> Aprovador: exibe erro
+else grupo encontrado
+
+  UC -> UC: decision é obrigatório
+
+  alt decision ausente
+    UC --> Ctrl: DomainValidationException
+    Ctrl --> FE: 422 Unprocessable Entity\nDOMAIN_VALIDATION_ERROR
+    FE --> Aprovador: exibe erro
+  else decision informada
+
+    UC -> ItemRepo: findByEventRequestId(requestId)
+    activate ItemRepo
+    ItemRepo -> DBItem: SELECT * FROM event_change_items\nWHERE event_request_id=?\nORDER BY item_position ASC
+    DBItem --> ItemRepo: List<EventChangeItem>
+    ItemRepo --> UC: List<EventChangeItem>
+    deactivate ItemRepo
+
+    alt decision = APPROVED
+
+      UC -> ReqEntity: approve()
+      activate ReqEntity
+      alt grupo já decidido
+        ReqEntity --> UC: InvalidStateException
+        UC --> Ctrl: InvalidStateException
+        Ctrl --> FE: 422 Unprocessable Entity\nINVALID_STATE
+        FE --> Aprovador: exibe erro
+      else grupo PENDING
+        ReqEntity --> UC: status = APPROVED
+        deactivate ReqEntity
+
+        loop para cada item, na ordem de item_position
+
+          alt type = CREATE
+            UC -> EventEntity: Event.create(after.roomId, title, description,\nstartAt, endAt, isAllDay, recurrenceRule,\nseriesId, roomOccupancy)
+            activate EventEntity
+            EventEntity -> Occupancy: occupying(roomId, startAt, endAt)
+            activate Occupancy
+            Occupancy -> EventRepo: findOverlapping(roomId, startAt, endAt)
+            activate EventRepo
+            EventRepo -> DBEvent: SELECT * FROM events\nWHERE room_id=? AND status IN ('ACTIVE','COMPLETED')\nAND start_at < ? AND end_at > ?
+            DBEvent --> EventRepo: List<Event>
+            EventRepo --> Occupancy: List<Event>
+            deactivate EventRepo
+            Occupancy --> EventEntity: List<Event>
+            deactivate Occupancy
+
+            alt horário ocupado
+              EventEntity --> UC: EventConflictException
+              UC --> Ctrl: EventConflictException
+              Ctrl --> FE: 409 Conflict\nCONFLICT, nada é gravado
+              FE --> Aprovador: exibe os choques
+            else horário livre
+              EventEntity --> UC: Event (ACTIVE)
+              deactivate EventEntity
+              UC -> EventRepo: save(event)
+              activate EventRepo
+              EventRepo -> DBEvent: INSERT INTO events
+              deactivate EventRepo
+              UC -> UC: item.linkCreatedEvent(created.getId())
+            end
+
+          else type = UPDATE
+            UC -> EventRepo: findById(item.eventId)
+            activate EventRepo
+            EventRepo --> UC: Event
+            deactivate EventRepo
+            UC -> EventEntity: update(after.*, roomOccupancy)
+            activate EventEntity
+            EventEntity -> Occupancy: occupying(roomId, startAt, endAt)
+            activate Occupancy
+            Occupancy --> EventEntity: List<Event>
+            deactivate Occupancy
+            EventEntity --> UC: evento atualizado\nexige status ACTIVE e horário livre
+            deactivate EventEntity
+            UC -> EventRepo: save(event)
+            activate EventRepo
+            EventRepo -> DBEvent: UPDATE events SET ...
+            deactivate EventRepo
+
+          else type = CANCEL
+            UC -> EventRepo: findById(item.eventId)
+            activate EventRepo
+            EventRepo --> UC: Event
+            deactivate EventRepo
+            UC -> EventEntity: cancel()
+            activate EventEntity
+            EventEntity --> UC: status = CANCELLED\nexige ACTIVE
+            deactivate EventEntity
+            UC -> EventRepo: save(event)
+
+          else type = REACTIVATE
+            UC -> EventRepo: findById(item.eventId)
+            activate EventRepo
+            EventRepo --> UC: Event
+            deactivate EventRepo
+            UC -> EventEntity: reactivate(roomOccupancy)
+            activate EventEntity
+            EventEntity -> Occupancy: occupying(roomId, startAt, endAt)
+            activate Occupancy
+            Occupancy --> EventEntity: List<Event>
+            deactivate Occupancy
+            EventEntity --> UC: status = ACTIVE\nexige CANCELLED e horário livre
+            deactivate EventEntity
+            UC -> EventRepo: save(event)
+
+          else type = DISCARD
+            UC -> EventRepo: findById(item.eventId)
+            activate EventRepo
+            EventRepo --> UC: Event
+            deactivate EventRepo
+            UC -> EventEntity: discard()
+            activate EventEntity
+            EventEntity --> UC: status = DISCARDED\nexige ACTIVE ou CANCELLED
+            deactivate EventEntity
+            UC -> EventRepo: save(event)
+          end
+        end
+
+        UC -> ItemRepo: saveAll(changeItems)
+        activate ItemRepo
+        ItemRepo -> DBItem: UPDATE event_change_items SET event_id=?\npara os itens CREATE
+        deactivate ItemRepo
+      end
+
+    else decision = REJECTED
+      UC -> ReqEntity: reject()
+      activate ReqEntity
+      ReqEntity --> UC: status = REJECTED\nnenhum evento é tocado
+      deactivate ReqEntity
+    end
+
+    UC -> ReqRepo: save(eventRequest)
+    activate ReqRepo
+    ReqRepo -> DBReq: UPDATE event_requests SET status=?
+    deactivate ReqRepo
+
+    UC -> ApprovalEntity: Approval.of(requestId, UserId, decision, comment)
+    activate ApprovalEntity
+    ApprovalEntity --> UC: Approval
+    deactivate ApprovalEntity
+    UC -> ApprovalRepo: save(approval)
+    activate ApprovalRepo
+    ApprovalRepo -> DBApproval: INSERT INTO approvals\n(id, event_request_id, user_id, decision, comment, decided_at)
+    deactivate ApprovalRepo
+
+    UC -> Mapper: toResponse(eventRequest, changeItems)
+    activate Mapper
+    Mapper --> UC: EventRequestResponse\nconflicts vazio em grupo decidido
+    deactivate Mapper
+
+    UC --> Ctrl: EventRequestResponse
+    deactivate UC
+    Ctrl --> FE: 200 OK {EventRequestResponse}
+    FE --> Aprovador: exibe o grupo decidido
+  end
+end
+deactivate Ctrl
+deactivate FE
+
+@enduml

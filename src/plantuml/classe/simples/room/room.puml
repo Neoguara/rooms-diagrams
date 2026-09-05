@@ -1,0 +1,187 @@
+@startuml room_room
+
+' Versão simples do recorte de sala, dentro do módulo room. A versão exaustiva do módulo
+' inteiro está em classe/room.puml, e é ela que serve de referência de sincronia.
+'
+' É o recorte que depende dos outros três: a sala aponta para prédio e tipo, e a busca por
+' salas livres consulta a agenda pela RoomAvailabilityPort, implementada pelo módulo event.
+'
+' O que esta versão corta: DTOs, mappers, validators, exceções, getters, construtores,
+' métodos privados, os tipos de fora do módulo, e as dependências de uso, exceto as que
+' ligam um serviço de domínio ao que ele opera.
+
+left to right direction
+skinparam packageStyle rectangle
+
+package "Domain" #EEF2FF {
+
+  class Room <<Entity>> {
+    - RoomId id
+    - String name
+    - String code
+    - RoomTypeId roomTypeId
+    - BuildingId buildingId
+    - Integer floor
+    - Integer capacity
+    - RoomStatus status
+    - LocalDateTime createdAt
+    - LocalDateTime updatedAt
+    + {static} create()
+    + update()
+    + activate()
+    + deactivate()
+    + putUnderMaintenance()
+    + delete()
+  }
+
+  class RoomResource <<Entity>> {
+    - RoomResourceId id
+    - RoomId roomId
+    - ResourceId resourceId
+    - LocalDateTime createdAt
+    + {static} create()
+  }
+
+  class RoomId <<record>> {
+    - UUID id
+  }
+  class RoomResourceId <<record>> {
+    - UUID id
+  }
+
+  enum RoomStatus {
+    AVAILABLE
+    MAINTENANCE
+    INACTIVE
+    DELETED
+  }
+}
+
+package "Application" #F0FFF0 {
+
+  interface RoomRepositoryPort {
+    + Room save(Room)
+    + Optional<Room> findById(RoomId)
+    + List<Room> findAll()
+  }
+
+  interface RoomResourceRepositoryPort {
+    + RoomResource save(RoomResource)
+    + List<RoomResource> findByRoomId(RoomId)
+    + void deleteByRoomId(RoomId)
+  }
+
+  interface RoomAvailabilityPort {
+    + Set<UUID> findOccupiedRoomIds(LocalDateTime,LocalDateTime)
+  }
+
+  class CreateRoomUseCase <<Service>> {
+    + execute()
+  }
+  class GetRoomUseCase <<Service>> {
+    + findById()
+    + findAll()
+  }
+  class GetAvailableRoomsUseCase <<Service>> {
+    + execute()
+  }
+  class UpdateRoomUseCase <<Service>> {
+    + execute()
+  }
+  class UpdateRoomStatusUseCase <<Service>> {
+    + execute()
+  }
+  class DeleteRoomUseCase <<Service>> {
+    + execute()
+  }
+  class ReplaceRoomResourcesUseCase <<Service>> {
+    + execute()
+  }
+}
+
+package "Infrastructure" #FFF8F0 {
+
+  class RoomController <<RestController>> {
+    + createRoom()
+    + listRooms()
+    + getRoom()
+    + getAvailableRooms()
+    + updateRoom()
+    + updateRoomStatus()
+    + deleteRoom()
+    + replaceRoomResources()
+  }
+
+  class RoomRepositoryImpl <<Repository>>
+  class RoomResourceRepositoryImpl <<Repository>>
+
+  interface RoomJpaRepository
+  interface RoomResourceJpaRepository
+
+  class RoomReportDataAdapter <<Component>>
+}
+
+package "Outros recortes do módulo" #EEEEFF {
+  class BuildingId <<record>>
+  class RoomTypeId <<record>>
+  class ResourceId <<record>>
+  interface BuildingRepositoryPort
+  interface RoomTypeRepositoryPort
+  interface ResourceRepositoryPort
+}
+
+' ── Implementação ──────────────────────────────────────
+RoomRepositoryPort <|.. RoomRepositoryImpl
+RoomResourceRepositoryPort <|.. RoomResourceRepositoryImpl
+
+' ── Campos: domínio ────────────────────────────────────
+Room *-- RoomId
+Room --> RoomTypeId
+Room --> BuildingId
+Room --> RoomStatus
+RoomResource *-- RoomResourceId
+RoomResource --> RoomId
+RoomResource --> ResourceId
+
+' ── Campos: controller ─────────────────────────────────
+RoomController --> CreateRoomUseCase
+RoomController --> GetRoomUseCase
+RoomController --> GetAvailableRoomsUseCase
+RoomController --> UpdateRoomUseCase
+RoomController --> UpdateRoomStatusUseCase
+RoomController --> DeleteRoomUseCase
+RoomController --> ReplaceRoomResourcesUseCase
+
+' ── Campos: casos de uso e portas ──────────────────────
+CreateRoomUseCase --> RoomRepositoryPort
+CreateRoomUseCase --> RoomResourceRepositoryPort
+CreateRoomUseCase --> ResourceRepositoryPort
+
+GetRoomUseCase --> RoomRepositoryPort
+GetRoomUseCase --> RoomResourceRepositoryPort
+GetRoomUseCase --> ResourceRepositoryPort
+GetRoomUseCase --> BuildingRepositoryPort
+GetRoomUseCase --> RoomTypeRepositoryPort
+
+GetAvailableRoomsUseCase --> RoomRepositoryPort
+GetAvailableRoomsUseCase --> RoomResourceRepositoryPort
+GetAvailableRoomsUseCase --> ResourceRepositoryPort
+GetAvailableRoomsUseCase --> BuildingRepositoryPort
+GetAvailableRoomsUseCase --> RoomTypeRepositoryPort
+GetAvailableRoomsUseCase --> RoomAvailabilityPort
+
+UpdateRoomUseCase --> RoomRepositoryPort
+UpdateRoomStatusUseCase --> RoomRepositoryPort
+DeleteRoomUseCase --> RoomRepositoryPort
+
+ReplaceRoomResourcesUseCase --> RoomRepositoryPort
+ReplaceRoomResourcesUseCase --> RoomResourceRepositoryPort
+ReplaceRoomResourcesUseCase --> ResourceRepositoryPort
+
+' ── Campos: infraestrutura ─────────────────────────────
+RoomRepositoryImpl --> RoomJpaRepository
+RoomResourceRepositoryImpl --> RoomResourceJpaRepository
+RoomReportDataAdapter --> RoomRepositoryPort
+RoomReportDataAdapter --> BuildingRepositoryPort
+
+@enduml

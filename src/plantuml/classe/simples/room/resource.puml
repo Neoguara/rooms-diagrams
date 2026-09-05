@@ -1,0 +1,105 @@
+@startuml room_resource
+
+' Versão simples do recorte de recurso, dentro do módulo room. A versão exaustiva do
+' módulo inteiro está em classe/room.puml, e é ela que serve de referência de sincronia.
+'
+' O que esta versão corta: DTOs, mappers, validators, exceções, getters, construtores,
+' métodos privados, os tipos de fora do módulo, e as dependências de uso, exceto as que
+' ligam um serviço de domínio ao que ele opera.
+
+left to right direction
+skinparam packageStyle rectangle
+
+package "Domain" #EEF2FF {
+
+  class Resource <<Entity>> {
+    - ResourceId id
+    - String name
+    - String description
+    - String icon
+    - ResourceStatus status
+    - LocalDateTime createdAt
+    - LocalDateTime updatedAt
+    + {static} create()
+    + update()
+    + activate()
+    + deactivate()
+    + delete()
+  }
+
+  class ResourceId <<record>> {
+    - UUID id
+  }
+
+  enum ResourceStatus {
+    ACTIVE
+    INACTIVE
+    DELETED
+  }
+}
+
+package "Application" #F0FFF0 {
+
+  interface ResourceRepositoryPort {
+    + Resource save(Resource)
+    + Optional<Resource> findById(ResourceId)
+    + List<Resource> findAllById(List<ResourceId>)
+    + List<Resource> findAll()
+  }
+
+  class CreateResourceUseCase <<Service>> {
+    + execute()
+  }
+  class GetResourceUseCase <<Service>> {
+    + findById()
+    + findAll()
+  }
+  class UpdateResourceUseCase <<Service>> {
+    + execute()
+  }
+  class UpdateResourceStatusUseCase <<Service>> {
+    + execute()
+  }
+  class DeleteResourceUseCase <<Service>> {
+    + execute()
+  }
+}
+
+package "Infrastructure" #FFF8F0 {
+
+  class ResourceController <<RestController>> {
+    + createResource()
+    + listResources()
+    + getResource()
+    + updateResource()
+    + updateResourceStatus()
+    + deleteResource()
+  }
+
+  class ResourceRepositoryImpl <<Repository>>
+
+  interface ResourceJpaRepository
+}
+
+' ── Implementação ──────────────────────────────────────
+ResourceRepositoryPort <|.. ResourceRepositoryImpl
+
+' ── Campos ─────────────────────────────────────────────
+Resource *-- ResourceId
+Resource --> ResourceStatus
+
+ResourceController --> CreateResourceUseCase
+ResourceController --> GetResourceUseCase
+ResourceController --> UpdateResourceUseCase
+ResourceController --> UpdateResourceStatusUseCase
+ResourceController --> DeleteResourceUseCase
+
+CreateResourceUseCase --> ResourceRepositoryPort
+GetResourceUseCase --> ResourceRepositoryPort
+UpdateResourceUseCase --> ResourceRepositoryPort
+UpdateResourceStatusUseCase --> ResourceRepositoryPort
+DeleteResourceUseCase --> ResourceRepositoryPort
+
+ResourceRepositoryImpl --> ResourceJpaRepository
+
+@enduml

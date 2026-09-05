@@ -1,0 +1,149 @@
+@startuml event_event
+
+' Versão simples do recorte de evento, dentro do módulo event. A versão exaustiva do
+' módulo inteiro está em classe/event.puml, e é ela que serve de referência de sincronia.
+'
+' É o recorte da agenda: o evento, seu ciclo de vida e a regra que decide se dois eventos
+' se chocam na mesma sala. Quem cria e altera evento é o recorte de solicitação.
+'
+' O que esta versão corta: DTOs, mappers, validators, exceções, getters, construtores,
+' métodos privados, os tipos de fora do módulo, e as dependências de uso, exceto as que
+' ligam um serviço de domínio ao que ele opera.
+
+left to right direction
+skinparam packageStyle rectangle
+
+package "Domain" #EEF2FF {
+
+  package "entities" {
+    class Event <<Entity>> {
+      - EventId id
+      - RoomId roomId
+      - String title
+      - String description
+      - LocalDateTime startAt
+      - LocalDateTime endAt
+      - Boolean isAllDay
+      - String recurrenceRule
+      - SeriesId seriesId
+      - EventStatus status
+      + {static} create()
+      + update()
+      + cancel()
+      + reactivate()
+      + discard()
+      + complete()
+      + archive()
+    }
+  }
+
+  package "valueobjects" {
+    class EventId <<record>> {
+      - UUID id
+    }
+    class SeriesId <<record>> {
+      - UUID id
+    }
+    class RoomId <<record>> {
+      - UUID id
+    }
+  }
+
+  package "enums" {
+    enum EventStatus {
+      ACTIVE
+      CANCELLED
+      COMPLETED
+      ARCHIVED
+      DISCARDED
+      + boolean occupiesRoom()
+    }
+  }
+
+  package "services" {
+    interface RoomOccupancy <<FunctionalInterface>> {
+      + List<Event> occupying(RoomId,LocalDateTime,LocalDateTime)
+    }
+    class LoadedOccupancy {
+      - List<Event> events
+      + {static} of()
+    }
+    class OccupiedSlot <<record>> {
+      - UUID id
+      - RoomId roomId
+      - String title
+      - LocalDateTime startAt
+      - LocalDateTime endAt
+      + {static} of()
+      + boolean competesWith(OccupiedSlot)
+    }
+    class EventConflict <<record>> {
+      - OccupiedSlot attempted
+      - OccupiedSlot occupant
+      + {static} against()
+      + String describe()
+    }
+  }
+}
+
+package "Application" #F0FFF0 {
+
+  interface EventRepositoryPort {
+    + Event save(Event)
+    + Optional<Event> findById(EventId)
+    + List<Event> findAll()
+    + List<Event> findBySeriesId(SeriesId)
+    + List<UUID> findOccupiedRoomIds()
+    + List<Event> findOverlapping()
+    + List<Event> findOccupyingBetween()
+    + List<Event> findExistingBetween()
+    + List<Event> findExistingBetweenByRoom()
+  }
+
+  class GetEventUseCase <<Service>> {
+    + findAll()
+    + findBySeries()
+  }
+}
+
+package "Infrastructure" #FFF8F0 {
+
+  class EventController <<RestController>> {
+    + listEvents()
+  }
+
+  class EventRepositoryImpl <<Repository>>
+  interface EventJpaRepository
+
+  class RoomOccupancyAdapter <<Component>>
+  class EventAvailabilityAdapter <<Component>>
+  class EventReportDataAdapter <<Component>>
+}
+
+' ── Implementação e herança ────────────────────────────
+RoomOccupancy <|.. LoadedOccupancy
+RoomOccupancy <|.. RoomOccupancyAdapter
+EventRepositoryPort <|.. EventRepositoryImpl
+
+' ── Campos ─────────────────────────────────────────────
+Event *-- EventId
+Event --> RoomId
+Event --> SeriesId
+Event --> EventStatus
+OccupiedSlot --> RoomId
+EventConflict --> OccupiedSlot
+LoadedOccupancy --> Event
+
+EventController --> GetEventUseCase
+GetEventUseCase --> EventRepositoryPort
+EventRepositoryImpl --> EventJpaRepository
+RoomOccupancyAdapter --> EventRepositoryPort
+EventAvailabilityAdapter --> EventRepositoryPort
+EventReportDataAdapter --> EventRepositoryPort
+
+' ── Uso: a regra de conflito ───────────────────────────
+Event ..> RoomOccupancy
+Event ..> EventConflict
+OccupiedSlot ..> Event
+
+@enduml

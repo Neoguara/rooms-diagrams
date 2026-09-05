@@ -1,0 +1,68 @@
+@startuml get_event_request_audit
+
+' Fonte: EventRequestController.getEventRequestAudit e GetEventRequestAuditUseCase
+' (rooms-backend). A auditoria não calcula conflitos: ela relata o que aconteceu.
+
+title GET /event-requests/{id}/audit: Auditoria de um Grupo de Alterações
+
+actor User
+boundary "Frontend" as FE
+participant "EventRequestController" as Ctrl
+participant "GetEventRequestAuditUseCase" as UC
+participant "EventRequestRepositoryPort" as ReqRepo
+participant "EventChangeItemRepositoryPort" as ItemRepo
+participant "ApprovalRepositoryPort" as ApprovalRepo
+participant "EventRequestMapper" as Mapper
+database "event_requests" as DBReq
+database "event_change_items" as DBItem
+database "approvals" as DBApproval
+
+User -> FE: abre o histórico do grupo
+activate FE
+FE -> Ctrl: GET /event-requests/{id}/audit
+activate Ctrl
+
+Ctrl -> UC: execute(id)
+activate UC
+
+UC -> ReqRepo: findById(EventRequestId.of(id))
+activate ReqRepo
+ReqRepo -> DBReq: SELECT * FROM event_requests WHERE id=?
+DBReq --> ReqRepo: Optional<EventRequest>
+ReqRepo --> UC: Optional<EventRequest>
+deactivate ReqRepo
+
+alt grupo não encontrado
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found\nNOT_FOUND
+  FE --> User: exibe erro
+else grupo encontrado
+
+  UC -> ItemRepo: findByEventRequestId(requestId)
+  activate ItemRepo
+  ItemRepo -> DBItem: SELECT * FROM event_change_items\nWHERE event_request_id=?\nORDER BY item_position ASC
+  DBItem --> ItemRepo: List<EventChangeItem>
+  ItemRepo --> UC: List<EventChangeItem>
+  deactivate ItemRepo
+
+  UC -> ApprovalRepo: findByEventRequestId(requestId)
+  activate ApprovalRepo
+  ApprovalRepo -> DBApproval: SELECT * FROM approvals\nWHERE event_request_id=?\nORDER BY decided_at ASC
+  DBApproval --> ApprovalRepo: List<Approval>
+  ApprovalRepo --> UC: List<Approval>
+  deactivate ApprovalRepo
+
+  UC -> Mapper: toAuditResponse(eventRequest, changeItems, approvals)
+  activate Mapper
+  Mapper --> UC: EventRequestAuditResponse\n{..., changes[], history[]}
+  deactivate Mapper
+
+  UC --> Ctrl: EventRequestAuditResponse
+  deactivate UC
+  Ctrl --> FE: 200 OK {EventRequestAuditResponse}
+  FE --> User: exibe as alterações e a decisão
+end
+deactivate Ctrl
+deactivate FE
+
+@enduml

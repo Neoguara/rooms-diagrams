@@ -1,0 +1,147 @@
+@startuml reverse_event_request
+
+' Fonte: EventRequestController.reverseEventRequest e ReverseEventRequestUseCase
+' (rooms-backend). A reversão não desfaz nada sozinha: ela abre um grupo novo, em PENDING,
+' que passa pela mesma aprovação de qualquer outro.
+
+title POST /event-requests/{id}/reverse: Reverter a Decisão de um Grupo
+
+actor User
+boundary "Frontend" as FE
+participant "EventRequestController" as Ctrl
+participant "ReverseEventRequestUseCase" as UC
+participant "EventRequest" as ReqEntity
+participant "EventChangeItem" as Item
+participant "EventRequestConflicts" as Conflicts
+participant "RoomOccupancy\n(RoomOccupancyAdapter)" as Occupancy
+participant "EventRequestRepositoryPort" as ReqRepo
+participant "EventChangeItemRepositoryPort" as ItemRepo
+participant "EventRepositoryPort" as EventRepo
+participant "EventRequestMapper" as Mapper
+database "event_requests" as DBReq
+database "event_change_items" as DBItem
+database "events" as DBEvent
+
+User -> FE: pede a reversão do grupo
+activate FE
+FE -> Ctrl: POST /event-requests/{id}/reverse\n{justification}\nAuthorization: Bearer <token>
+activate Ctrl
+
+Ctrl -> UC: execute(id, principal.getId(), ReverseEventRequest)
+activate UC
+
+UC -> ReqRepo: findById(EventRequestId.of(id))
+activate ReqRepo
+ReqRepo -> DBReq: SELECT * FROM event_requests WHERE id=?
+DBReq --> ReqRepo: Optional<EventRequest>
+ReqRepo --> UC: Optional<EventRequest>
+deactivate ReqRepo
+
+alt grupo não encontrado
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+  FE --> User: exibe erro
+
+else grupo ainda PENDING
+  UC --> Ctrl: InvalidStateException
+  Ctrl --> FE: 422 Unprocessable Entity\nINVALID_STATE
+
+else grupo decidido
+
+  UC -> ReqRepo: hasReversal(requestId)
+  activate ReqRepo
+  ReqRepo -> DBReq: SELECT COUNT(r)>0 FROM event_requests r\nWHERE r.reversal_of=?
+  DBReq --> ReqRepo: boolean
+  ReqRepo --> UC: boolean
+  deactivate ReqRepo
+
+  alt grupo já revertido
+    UC --> Ctrl: InvalidStateException
+    Ctrl --> FE: 422 Unprocessable Entity\nINVALID_STATE
+    FE --> User: exibe erro
+  else primeira reversão
+
+    UC -> ReqEntity: EventRequest.open(UserId, justification)
+    activate ReqEntity
+    ReqEntity --> UC: EventRequest (PENDING)
+    deactivate ReqEntity
+    UC -> ReqEntity: markAsReversalOf(requestId original)
+
+    UC -> ItemRepo: findByEventRequestId(requestId original)
+    activate ItemRepo
+    ItemRepo -> DBItem: SELECT * FROM event_change_items\nWHERE event_request_id=?\nORDER BY item_position ASC
+    DBItem --> ItemRepo: List<EventChangeItem>
+    ItemRepo --> UC: itens do grupo original
+    deactivate ItemRepo
+
+    alt grupo original foi APPROVED
+      UC -> UC: percorre os itens na ordem inversa\ndesfazer é desfazer o último primeiro
+      loop para cada item original
+        UC -> EventRepo: findById(item.eventId)
+        activate EventRepo
+        EventRepo -> DBEvent: SELECT * FROM events WHERE id=?
+        DBEvent --> EventRepo: Optional<Event>
+        EventRepo --> UC: Event
+        deactivate EventRepo
+        UC -> Item: operação contrária\nCREATE→DISCARD, UPDATE→UPDATE com o before,\nCANCEL→REACTIVATE, REACTIVATE→CANCEL
+        activate Item
+        alt item original era DISCARD
+          Item --> UC: InvalidStateException\nevento descartado não volta
+        else demais tipos
+          Item --> UC: item invertido
+        end
+        deactivate Item
+        UC -> Item: markAsReversalOf(item original)
+      end
+
+    else grupo original foi REJECTED
+      UC -> UC: percorre os itens na mesma ordem\ndesfazer uma rejeição é reenviar o pedido
+      loop para cada item original
+        UC -> Item: mesma alteração de novo,\nderivada do snapshot guardado
+        activate Item
+        Item --> UC: item reenviado
+        deactivate Item
+        UC -> Item: markAsReversalOf(item original)
+      end
+    end
+
+    UC -> ReqRepo: save(reversal)
+    activate ReqRepo
+    ReqRepo -> DBReq: INSERT INTO event_requests\n(id, user_id, status='PENDING', reversal_of, justification)
+    deactivate ReqRepo
+
+    UC -> ItemRepo: saveAll(reversalItems)
+    activate ItemRepo
+    ItemRepo -> DBItem: INSERT INTO event_change_items\n(..., reversal_of, item_position)
+    deactivate ItemRepo
+
+    UC -> Conflicts: preview(reversalItems, roomOccupancy)
+    activate Conflicts
+    Conflicts -> Occupancy: occupying(roomId, startAt, endAt)
+    activate Occupancy
+    Occupancy -> EventRepo: findOverlapping(roomId, startAt, endAt)
+    activate EventRepo
+    EventRepo -> DBEvent: SELECT * FROM events\nWHERE room_id=? AND status IN ('ACTIVE','COMPLETED')\nAND start_at < ? AND end_at > ?
+    DBEvent --> EventRepo: List<Event>
+    EventRepo --> Occupancy: List<Event>
+    deactivate EventRepo
+    Occupancy --> Conflicts: List<Event>
+    deactivate Occupancy
+    Conflicts --> UC: List<EventConflict>
+    deactivate Conflicts
+
+    UC -> Mapper: toResponse(reversal, reversalItems, conflicts)
+    activate Mapper
+    Mapper --> UC: EventRequestResponse
+    deactivate Mapper
+
+    UC --> Ctrl: EventRequestResponse
+    deactivate UC
+    Ctrl --> FE: 201 Created {EventRequestResponse}\nLocation: /event-requests/{novo id}
+    FE --> User: exibe o grupo de reversão,\nque ainda precisa ser aprovado
+  end
+end
+deactivate Ctrl
+deactivate FE
+
+@enduml

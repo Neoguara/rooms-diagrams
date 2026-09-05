@@ -58,11 +58,13 @@ Exemplos:
 
 ## Notas nos diagramas PlantUML
 
-**Não use `note` nem `legend`** em DER, deployment, estado, classe, caso de uso e
-componentes. Esses diagramas falam por si: o que não couber na notação fica de fora do
-`.puml` ou vai para o texto do `.tex`.
+**Não use `note` nem `legend` em nenhum diagrama**, seja DER, deployment, estado, classe,
+caso de uso, componentes ou sequência. Os diagramas falam por si: o que não couber na
+notação fica de fora do `.puml` ou vai para o texto do `.tex`.
 
-Notas continuam permitidas nos diagramas de sequência.
+Isso vale também para descrições de estado (`ESTADO : texto`) nos diagramas de estado.
+Quando a informação precisar aparecer, use o rótulo da transição ou da mensagem, que é
+notação, não anotação.
 
 Comentários de fonte (`' ...`) não são notas: não aparecem na imagem e podem ser usados
 à vontade para explicar o `.puml` a quem o edita.
