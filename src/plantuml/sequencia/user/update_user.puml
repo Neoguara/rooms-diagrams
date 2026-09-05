@@ -1,6 +1,6 @@
 @startuml update_user
 
-title PUT /users/{id} — Atualizar Usuário
+title PUT /users/{id}: Atualizar Usuário
 
 actor User
 boundary "Frontend" as FE
@@ -22,18 +22,21 @@ activate UC
 
 UC -> Repo: findById(UserId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM users WHERE id=?
+Repo -> DB: SELECT * FROM users\nWHERE id=? AND status!=DELETED
 DB --> Repo: Optional<User>
 Repo --> UC: Optional<User>
 deactivate Repo
 
 alt found
-  UC -> Encoder: encode(request.password)
-  activate Encoder
-  Encoder --> UC: encodedPassword
-  deactivate Encoder
+  opt request.password informado
+    UC -> Encoder: encode(request.password)
+    activate Encoder
+    Encoder --> UC: encodedPassword
+    deactivate Encoder
+  end
+  note over UC: password e role são opcionais:\nomitidos, mantêm o valor atual
 
-  UC -> Entity: update(name, email, encodedPassword, role)
+  UC -> Entity: update(name, email, newPassword, newRole)
   activate Entity
   note right of Entity: UserValidator.validate()\nupdatedAt = now()
   Entity --> UC:

@@ -1,6 +1,6 @@
 @startuml jwt_filter
 
-title Requisição Autenticada — Validação do JWT (SecurityFilter)
+title Requisição Autenticada: Validação do JWT (SecurityFilter)
 
 actor User
 boundary "Frontend" as FE
@@ -14,15 +14,13 @@ database "users" as DB
 
 User -> FE: realiza requisição autenticada
 activate FE
-FE -> Filter: HTTP Request\nAuthorization: Bearer <token>
+FE -> Filter: HTTP Request\nAuthorization: Bearer <token>\nou Cookie: token=<token>
 activate Filter
 
-alt token presente
-  Filter -> Jwt: extractUsername(token)
-  activate Jwt
-  Jwt --> Filter: email
-  deactivate Jwt
+Filter -> Filter: extractToken(request)
+note right of Filter: Lê o header Authorization "Bearer ".\nNão havendo, cai para o cookie `token`
 
+alt token presente
   Filter -> Jwt: isTokenValid(token)
   activate Jwt
   note right of Jwt: Verifica assinatura (secret)\ne expiração do token
@@ -30,6 +28,11 @@ alt token presente
   deactivate Jwt
 
   alt token válido
+    Filter -> Jwt: extractUsername(token)
+    activate Jwt
+    Jwt --> Filter: email
+    deactivate Jwt
+
     Filter -> AuthPort: findByEmail(email)
     activate AuthPort
     AuthPort -> UserRepo: findByEmail(email)
@@ -62,7 +65,7 @@ alt token presente
     FE --> User: exibe erro de autenticação
     deactivate FE
   end
-else header Authorization ausente ou sem "Bearer "
+else sem token no header nem no cookie
   Filter -> Ctrl: doFilterChain (sem autenticação)
   activate Ctrl
   Ctrl --> FE: 401 Unauthorized

@@ -1,6 +1,6 @@
 @startuml get_user
 
-title GET /users e GET /users/{id} — Buscar Usuário
+title GET /users e GET /users/{id}: Buscar Usuário
 
 actor User
 boundary "Frontend" as FE

@@ -1,6 +1,6 @@
 @startuml update_resource
 
-title PUT /resources/{id} — Atualizar Recurso
+title PUT /resources/{id}: Atualizar Recurso
 
 actor User
 boundary "Frontend" as FE
@@ -21,7 +21,7 @@ activate UC
 
 UC -> Repo: findById(ResourceId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM resources WHERE id=?
+Repo -> DB: SELECT * FROM resources\nWHERE id=? AND status!=DELETED
 DB --> Repo: Optional<Resource>
 Repo --> UC: Optional<Resource>
 deactivate Repo

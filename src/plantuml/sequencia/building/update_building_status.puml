@@ -1,6 +1,6 @@
 @startuml update_building_status
 
-title PATCH /buildings/{id}/status — Atualizar Status do Prédio
+title PATCH /buildings/{id}/status: Atualizar Status do Prédio
 
 actor User
 boundary "Frontend" as FE
@@ -13,7 +13,7 @@ database "buildings" as DB
 
 User -> FE: solicita alteração de status
 activate FE
-FE -> Ctrl: PATCH /buildings/{id}/status\n{status: ACTIVE|INACTIVE|ARCHIVED}
+FE -> Ctrl: PATCH /buildings/{id}/status\n{status: ACTIVE|INACTIVE}
 activate Ctrl
 
 Ctrl -> UC: execute(id, status)
@@ -21,7 +21,7 @@ activate UC
 
 UC -> Repo: findById(BuildingId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM buildings WHERE id=?
+Repo -> DB: SELECT * FROM buildings\nWHERE id=? AND status!=DELETED
 DB --> Repo: Optional<Building>
 Repo --> UC: Optional<Building>
 deactivate Repo
@@ -29,29 +29,15 @@ deactivate Repo
 alt found
 
   alt status == ACTIVE
-    alt currentStatus == ARCHIVED
-      UC -> Entity: restore()
-      activate Entity
-      note right of Entity: Lança InvalidStateException (422)\nse a transição for inválida
-      Entity --> UC:
-      deactivate Entity
-    else
-      UC -> Entity: activate()
-      activate Entity
-      note right of Entity: Lança InvalidStateException (422)\nse a transição for inválida
-      Entity --> UC:
-      deactivate Entity
-    end
-  else status == INACTIVE
-    UC -> Entity: deactivate()
+    UC -> Entity: activate()
     activate Entity
     note right of Entity: Lança InvalidStateException (422)\nse a transição for inválida
     Entity --> UC:
     deactivate Entity
-  else status == ARCHIVED
-    UC -> Entity: archive()
+  else status == INACTIVE
+    UC -> Entity: deactivate()
     activate Entity
-    note right of Entity: Lança InvalidStateException (422)\nse a transição for inválida\n(ex: DELETED não pode ser modificado)
+    note right of Entity: Lança InvalidStateException (422)\nse a transição for inválida
     Entity --> UC:
     deactivate Entity
   end

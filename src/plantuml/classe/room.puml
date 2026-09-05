@@ -19,8 +19,6 @@ package "Domain" #EEF2FF {
       + void update(String,String,Integer)
       + void activate()
       + void deactivate()
-      + void archive()
-      + void restore()
       + void delete()
       + boolean isAvailable()
     }
@@ -39,8 +37,6 @@ package "Domain" #EEF2FF {
       + void update(String,String,RoomTypeId,BuildingId,int,int)
       + void activate()
       + void deactivate()
-      + void archive()
-      + void restore()
       + void putUnderMaintenance()
       + void delete()
     }
@@ -58,8 +54,6 @@ package "Domain" #EEF2FF {
       + void update(String,String,String,String,String)
       + void activate()
       + void deactivate()
-      + void archive()
-      + void restore()
       + void delete()
     }
     class Resource {
@@ -74,8 +68,6 @@ package "Domain" #EEF2FF {
       + void update(String,String,String)
       + void activate()
       + void deactivate()
-      + void archive()
-      + void restore()
       + void delete()
     }
     class RoomResource {
@@ -83,28 +75,29 @@ package "Domain" #EEF2FF {
       - RoomId roomId
       - ResourceId resourceId
       - LocalDateTime createdAt
+      + RoomResource(RoomId,ResourceId)
       + {static} RoomResource create(RoomId,ResourceId)
     }
   }
 
   package "valueobjects" {
-    class BuildingId {
+    class BuildingId <<record>> {
       - UUID id
       + {static} BuildingId of(UUID)
     }
-    class RoomId {
+    class RoomId <<record>> {
       - UUID id
       + {static} RoomId of(UUID)
     }
-    class RoomTypeId {
+    class RoomTypeId <<record>> {
       - UUID id
       + {static} RoomTypeId of(UUID)
     }
-    class ResourceId {
+    class ResourceId <<record>> {
       - UUID id
       + {static} ResourceId of(UUID)
     }
-    class RoomResourceId {
+    class RoomResourceId <<record>> {
       - UUID id
       + {static} RoomResourceId of(UUID)
     }
@@ -112,29 +105,25 @@ package "Domain" #EEF2FF {
 
   package "enums" {
     enum BuildingStatus {
-      +  ACTIVE
-      +  INACTIVE
-      +  ARCHIVED
-      +  DELETED
+      ACTIVE
+      INACTIVE
+      DELETED
     }
     enum RoomStatus {
-      +  AVAILABLE
-      +  MAINTENANCE
-      +  INACTIVE
-      +  ARCHIVED
-      +  DELETED
+      AVAILABLE
+      MAINTENANCE
+      INACTIVE
+      DELETED
     }
     enum RoomTypeStatus {
-      +  ACTIVE
-      +  INACTIVE
-      +  ARCHIVED
-      +  DELETED
+      ACTIVE
+      INACTIVE
+      DELETED
     }
     enum ResourceStatus {
-      +  ACTIVE
-      +  INACTIVE
-      +  ARCHIVED
-      +  DELETED
+      ACTIVE
+      INACTIVE
+      DELETED
     }
   }
 
@@ -158,34 +147,33 @@ package "Application" #F0FFF0 {
 
   package "ports" {
     interface BuildingRepositoryPort {
-      ~ Building save(Building)
-      ~ Optional<Building> findById(BuildingId)
-      ~ List<Building> findAll()
-      ~ void delete(Building)
+      + Building save(Building)
+      + Optional<Building> findById(BuildingId)
+      + List<Building> findAll()
     }
     interface RoomRepositoryPort {
-      ~ Room save(Room)
-      ~ Optional<Room> findById(RoomId)
-      ~ List<Room> findAll()
-      ~ void delete(Room)
+      + Room save(Room)
+      + Optional<Room> findById(RoomId)
+      + List<Room> findAll()
     }
     interface RoomTypeRepositoryPort {
-      ~ RoomType save(RoomType)
-      ~ Optional<RoomType> findById(RoomTypeId)
-      ~ List<RoomType> findAll()
-      ~ void delete(RoomType)
+      + RoomType save(RoomType)
+      + Optional<RoomType> findById(RoomTypeId)
+      + List<RoomType> findAll()
     }
     interface ResourceRepositoryPort {
-      ~ Resource save(Resource)
-      ~ Optional<Resource> findById(ResourceId)
-      ~ List<Resource> findAllById(List<ResourceId>)
-      ~ List<Resource> findAll()
-      ~ void delete(Resource)
+      + Resource save(Resource)
+      + Optional<Resource> findById(ResourceId)
+      + List<Resource> findAllById(List<ResourceId>)
+      + List<Resource> findAll()
+    }
+    interface RoomAvailabilityPort {
+      + Set<UUID> findOccupiedRoomIds(LocalDateTime,LocalDateTime)
     }
     interface RoomResourceRepositoryPort {
-      ~ RoomResource save(RoomResource)
-      ~ List<RoomResource> findByRoomId(RoomId)
-      ~ void deleteByRoomId(RoomId)
+      + RoomResource save(RoomResource)
+      + List<RoomResource> findByRoomId(RoomId)
+      + void deleteByRoomId(RoomId)
     }
   }
 
@@ -268,6 +256,18 @@ package "Application" #F0FFF0 {
       + RoomDetailResponse findById(UUID,Set<RoomExpandField>)
       + List<RoomDetailResponse> findAll(Set<RoomExpandField>)
     }
+    class GetAvailableRoomsUseCase {
+      - RoomRepositoryPort roomRepository
+      - RoomResourceRepositoryPort roomResourceRepository
+      - ResourceRepositoryPort resourceRepository
+      - BuildingRepositoryPort buildingRepository
+      - RoomTypeRepositoryPort roomTypeRepository
+      - RoomAvailabilityPort roomAvailabilityPort
+      + List<RoomDetailResponse> execute(RoomAvailabilityFilter,Set<RoomExpandField>)
+      - boolean hasAllResources(RoomId,List<UUID>)
+      - boolean matchesSearch(Room,String,Map<UUID,RoomType>,Map<UUID,Building>)
+      - void validate(RoomAvailabilityFilter)
+    }
     class UpdateRoomUseCase {
       - RoomRepositoryPort repository
       + RoomResponse execute(UUID,UpdateRoomRequest)
@@ -309,20 +309,20 @@ package "Application" #F0FFF0 {
   }
 
   package "dtos" {
-    class CreateBuildingRequest {
+    class CreateBuildingRequest <<record>> {
       - String name
       - String address
       - Integer totalFloors
     }
-    class UpdateBuildingRequest {
+    class UpdateBuildingRequest <<record>> {
       - String name
       - String address
       - Integer totalFloors
     }
-    class UpdateBuildingStatusRequest {
+    class UpdateBuildingStatusRequest <<record>> {
       - Status status
     }
-    class BuildingResponse {
+    class BuildingResponse <<record>> {
       - UUID id
       - String name
       - String address
@@ -331,20 +331,20 @@ package "Application" #F0FFF0 {
       - LocalDateTime createdAt
       - LocalDateTime updatedAt
     }
-    class CreateResourceRequest {
+    class CreateResourceRequest <<record>> {
       - String name
       - String description
       - String icon
     }
-    class UpdateResourceRequest {
+    class UpdateResourceRequest <<record>> {
       - String name
       - String description
       - String icon
     }
-    class UpdateResourceStatusRequest {
+    class UpdateResourceStatusRequest <<record>> {
       - Status status
     }
-    class ResourceResponse {
+    class ResourceResponse <<record>> {
       - UUID id
       - String name
       - String description
@@ -353,24 +353,24 @@ package "Application" #F0FFF0 {
       - LocalDateTime createdAt
       - LocalDateTime updatedAt
     }
-    class CreateRoomTypeRequest {
+    class CreateRoomTypeRequest <<record>> {
       - String name
       - String description
       - String defaultCapacity
       - String color
       - String icon
     }
-    class UpdateRoomTypeRequest {
+    class UpdateRoomTypeRequest <<record>> {
       - String name
       - String description
       - String defaultCapacity
       - String color
       - String icon
     }
-    class UpdateRoomTypeStatusRequest {
+    class UpdateRoomTypeStatusRequest <<record>> {
       - Status status
     }
-    class RoomTypeResponse {
+    class RoomTypeResponse <<record>> {
       - UUID id
       - String name
       - String description
@@ -381,7 +381,7 @@ package "Application" #F0FFF0 {
       - LocalDateTime createdAt
       - LocalDateTime updatedAt
     }
-    class CreateRoomRequest {
+    class CreateRoomRequest <<record>> {
       - String name
       - String code
       - UUID roomTypeId
@@ -390,7 +390,7 @@ package "Application" #F0FFF0 {
       - int capacity
       - List<UUID> resourceIds
     }
-    class UpdateRoomRequest {
+    class UpdateRoomRequest <<record>> {
       - String name
       - String code
       - UUID roomTypeId
@@ -398,13 +398,13 @@ package "Application" #F0FFF0 {
       - int floor
       - int capacity
     }
-    class UpdateRoomStatusRequest {
+    class UpdateRoomStatusRequest <<record>> {
       - Status status
     }
-    class ReplaceRoomResourcesRequest {
+    class ReplaceRoomResourcesRequest <<record>> {
       - List<UUID> resourceIds
     }
-    class RoomResponse {
+    class RoomResponse <<record>> {
       - UUID id
       - String name
       - String code
@@ -416,7 +416,7 @@ package "Application" #F0FFF0 {
       - LocalDateTime createdAt
       - LocalDateTime updatedAt
     }
-    class RoomDetailResponse {
+    class RoomDetailResponse <<record>> {
       - UUID id
       - String name
       - String code
@@ -431,14 +431,23 @@ package "Application" #F0FFF0 {
       - RoomTypeResponse roomType
       - List<ResourceResponse> resources
     }
-    class RoomResourcesResponse {
+    class RoomAvailabilityFilter <<record>> {
+      - LocalDateTime startAt
+      - LocalDateTime endAt
+      - List<UUID> roomTypeIds
+      - List<UUID> resourceIds
+      - List<UUID> buildingIds
+      - Integer minCapacity
+      - String search
+    }
+    class RoomResourcesResponse <<record>> {
       - UUID roomId
       - List<UUID> resourceIds
     }
     enum RoomExpandField {
-      +  BUILDING
-      +  ROOM_TYPE
-      +  RESOURCES
+      BUILDING
+      ROOM_TYPE
+      RESOURCES
       + {static} RoomExpandField fromString(String)
     }
   }
@@ -489,11 +498,13 @@ package "Infrastructure" #FFF8F0 {
     class RoomController {
       - CreateRoomUseCase createRoomUseCase
       - GetRoomUseCase getRoomUseCase
+      - GetAvailableRoomsUseCase getAvailableRoomsUseCase
       - UpdateRoomUseCase updateRoomUseCase
       - UpdateRoomStatusUseCase updateRoomStatusUseCase
       - DeleteRoomUseCase deleteRoomUseCase
       - ReplaceRoomResourcesUseCase replaceRoomResourcesUseCase
       + ResponseEntity<RoomResponse> createRoom(CreateRoomRequest)
+      + ResponseEntity<List<RoomDetailResponse>> getAvailableRooms(LocalDateTime,LocalDateTime,List<UUID>,List<UUID>,List<UUID>,Integer,String,List<String>)
       + ResponseEntity<List<RoomDetailResponse>> listRooms(List<String>)
       + ResponseEntity<RoomDetailResponse> getRoom(UUID,List<String>)
       + ResponseEntity<RoomResponse> updateRoom(UUID,UpdateRoomRequest)
@@ -509,7 +520,6 @@ package "Infrastructure" #FFF8F0 {
       + Building save(Building)
       + Optional<Building> findById(BuildingId)
       + List<Building> findAll()
-      + void delete(Building)
     }
     class ResourceRepositoryImpl {
       - ResourceJpaRepository jpaRepository
@@ -517,21 +527,18 @@ package "Infrastructure" #FFF8F0 {
       + Optional<Resource> findById(ResourceId)
       + List<Resource> findAllById(List<ResourceId>)
       + List<Resource> findAll()
-      + void delete(Resource)
     }
     class RoomRepositoryImpl {
       - RoomJpaRepository jpaRepository
       + Room save(Room)
       + Optional<Room> findById(RoomId)
       + List<Room> findAll()
-      + void delete(Room)
     }
     class RoomTypeRepositoryImpl {
       - RoomTypeJpaRepository jpaRepository
       + RoomType save(RoomType)
       + Optional<RoomType> findById(RoomTypeId)
       + List<RoomType> findAll()
-      + void delete(RoomType)
     }
     class RoomResourceRepositoryImpl {
       - RoomResourceJpaRepository jpaRepository
@@ -540,25 +547,33 @@ package "Infrastructure" #FFF8F0 {
       + void deleteByRoomId(RoomId)
     }
     interface BuildingJpaRepository {
-      ~ List<Building> findAllByStatusNot(BuildingStatus)
-      ~ Optional<Building> findByIdAndStatusNot(BuildingId,BuildingStatus)
+      + List<Building> findAllByStatusNot(BuildingStatus)
+      + Optional<Building> findByIdAndStatusNot(BuildingId,BuildingStatus)
     }
     interface ResourceJpaRepository {
-      ~ List<Resource> findAllByStatusNot(ResourceStatus)
-      ~ Optional<Resource> findByIdAndStatusNot(ResourceId,ResourceStatus)
-      ~ List<Resource> findAllByIdInAndStatusNot(Collection<ResourceId>,ResourceStatus)
+      + List<Resource> findAllByStatusNot(ResourceStatus)
+      + Optional<Resource> findByIdAndStatusNot(ResourceId,ResourceStatus)
+      + List<Resource> findAllByIdInAndStatusNot(Collection<ResourceId>,ResourceStatus)
     }
     interface RoomJpaRepository {
-      ~ List<Room> findAllByStatusNot(RoomStatus)
-      ~ Optional<Room> findByIdAndStatusNot(RoomId,RoomStatus)
+      + List<Room> findAllByStatusNot(RoomStatus)
+      + Optional<Room> findByIdAndStatusNot(RoomId,RoomStatus)
     }
     interface RoomTypeJpaRepository {
-      ~ List<RoomType> findAllByStatusNot(RoomTypeStatus)
-      ~ Optional<RoomType> findByIdAndStatusNot(RoomTypeId,RoomTypeStatus)
+      + List<RoomType> findAllByStatusNot(RoomTypeStatus)
+      + Optional<RoomType> findByIdAndStatusNot(RoomTypeId,RoomTypeStatus)
     }
     interface RoomResourceJpaRepository {
-      ~ List<RoomResource> findByRoomId(RoomId)
-      ~ void deleteByRoomId(RoomId)
+      + List<RoomResource> findByRoomId(RoomId)
+      + void deleteByRoomId(RoomId)
+    }
+  }
+
+  package "adapters" {
+    class RoomReportDataAdapter {
+      - RoomRepositoryPort roomRepository
+      - BuildingRepositoryPort buildingRepository
+      + Map<UUID,String> resolveRoomLabels(Collection<UUID>)
     }
   }
 }
@@ -580,6 +595,10 @@ JpaRepository <|-- ResourceJpaRepository
 JpaRepository <|-- RoomJpaRepository
 JpaRepository <|-- RoomTypeJpaRepository
 JpaRepository <|-- RoomResourceJpaRepository
+
+' Portas implementadas por outros módulos
+event.infrastructure.adapters.EventAvailabilityAdapter ..|> RoomAvailabilityPort
+report.application.ports.RoomReportDataPort <|.. RoomReportDataAdapter
 
 ' Composição: Entidades Value Objects e Enums
 Building *-- BuildingId
@@ -716,6 +735,19 @@ ReplaceRoomResourcesUseCase --> RoomResourceRepositoryPort
 ReplaceRoomResourcesUseCase --> ResourceRepositoryPort
 ReplaceRoomResourcesUseCase ..> ReplaceRoomResourcesRequest
 ReplaceRoomResourcesUseCase ..> RoomResourcesResponse
+GetAvailableRoomsUseCase --> RoomRepositoryPort
+GetAvailableRoomsUseCase --> RoomResourceRepositoryPort
+GetAvailableRoomsUseCase --> ResourceRepositoryPort
+GetAvailableRoomsUseCase --> BuildingRepositoryPort
+GetAvailableRoomsUseCase --> RoomTypeRepositoryPort
+GetAvailableRoomsUseCase --> RoomAvailabilityPort
+GetAvailableRoomsUseCase ..> RoomAvailabilityFilter
+GetAvailableRoomsUseCase ..> RoomExpandField
+GetAvailableRoomsUseCase ..> RoomDetailResponse
+GetAvailableRoomsUseCase ..> RoomMapper
+GetAvailableRoomsUseCase ..> BuildingMapper
+GetAvailableRoomsUseCase ..> RoomTypeMapper
+GetAvailableRoomsUseCase ..> ResourceMapper
 
 'Repository Impls JPA Repositories
 BuildingRepositoryImpl --> BuildingJpaRepository
@@ -723,6 +755,8 @@ ResourceRepositoryImpl --> ResourceJpaRepository
 RoomRepositoryImpl --> RoomJpaRepository
 RoomTypeRepositoryImpl --> RoomTypeJpaRepository
 RoomResourceRepositoryImpl --> RoomResourceJpaRepository
+RoomReportDataAdapter --> RoomRepositoryPort
+RoomReportDataAdapter --> BuildingRepositoryPort
 
 'Controllers Use Cases e DTOs
 BuildingController --> CreateBuildingUseCase
@@ -754,6 +788,7 @@ RoomTypeController ..> UpdateRoomTypeRequest
 RoomTypeController ..> UpdateRoomTypeStatusRequest
 RoomController --> CreateRoomUseCase
 RoomController --> GetRoomUseCase
+RoomController --> GetAvailableRoomsUseCase
 RoomController --> UpdateRoomUseCase
 RoomController --> UpdateRoomStatusUseCase
 RoomController --> DeleteRoomUseCase
@@ -766,5 +801,16 @@ RoomController ..> UpdateRoomStatusRequest
 RoomController ..> ReplaceRoomResourcesRequest
 RoomController ..> RoomResourcesResponse
 RoomController ..> RoomExpandField
+RoomController ..> RoomAvailabilityFilter
+
+note as N1
+  Todo repositório filtra DELETED na leitura, delegando
+  para as variantes ...AndStatusNot do JPA.
+end note
+
+note as N2
+  RoomAvailabilityPort é implementada pelo módulo event, e
+  RoomReportDataPort é do módulo report, implementada aqui.
+end note
 
 @enduml

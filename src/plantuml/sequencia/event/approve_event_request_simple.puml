@@ -1,6 +1,6 @@
 @startuml approve_event_request_simple
 
-title POST /event-requests/{id}/approve — Aprovar Solicitação de Evento (Simplificado)
+title POST /event-requests/{id}/approve: Aprovar Solicitação de Evento (Simplificado)
 
 actor User
 boundary "Frontend" as FE

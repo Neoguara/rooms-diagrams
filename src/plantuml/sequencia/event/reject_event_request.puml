@@ -1,6 +1,6 @@
 @startuml reject_event_request
 
-title POST /event-requests/{id}/reject — Rejeitar Solicitação de Evento
+title POST /event-requests/{id}/reject: Rejeitar Solicitação de Evento
 
 actor User
 boundary "Frontend" as FE

@@ -1,6 +1,6 @@
 @startuml request_event_update
 
-title PATCH /events/{id}/update-request — Solicitar Atualização de Evento
+title PATCH /events/{id}/update-request: Solicitar Atualização de Evento
 
 actor User
 boundary "Frontend" as FE

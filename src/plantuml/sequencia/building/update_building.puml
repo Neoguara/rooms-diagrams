@@ -1,6 +1,6 @@
 @startuml update_building
 
-title PUT /buildings/{id} — Atualizar Prédio
+title PUT /buildings/{id}: Atualizar Prédio
 
 actor User
 boundary "Frontend" as FE
@@ -21,7 +21,7 @@ activate UC
 
 UC -> Repo: findById(BuildingId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM buildings WHERE id=?
+Repo -> DB: SELECT * FROM buildings\nWHERE id=? AND status!=DELETED
 DB --> Repo: Optional<Building>
 Repo --> UC: Optional<Building>
 deactivate Repo

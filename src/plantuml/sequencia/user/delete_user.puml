@@ -1,6 +1,6 @@
 @startuml delete_user
 
-title DELETE /users/{id} — Remover Usuário (Soft Delete)
+title DELETE /users/{id}: Remover Usuário (Soft Delete)
 
 actor User
 boundary "Frontend" as FE
@@ -20,28 +20,36 @@ activate UC
 
 UC -> Repo: findById(UserId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM users WHERE id=?
+Repo -> DB: SELECT * FROM users\nWHERE id=? AND status!=DELETED
 DB --> Repo: Optional<User>
 Repo --> UC: Optional<User>
 deactivate Repo
 
-alt found
+alt found e INACTIVE
   UC -> Entity: delete()
   activate Entity
   note right of Entity: status = DELETED
   Entity --> UC:
   deactivate Entity
 
-  UC -> Repo: delete(user)
+  UC -> Repo: save(user)
   activate Repo
-  Repo -> DB: UPDATE users SET status = DELETED
-  DB --> Repo:
-  Repo --> UC:
+  Repo -> DB: UPDATE users SET status=DELETED
+  DB --> Repo: user
+  Repo --> UC: saved
   deactivate Repo
 
   UC --> Ctrl: void
   Ctrl --> FE: 204 No Content
   FE --> User: exibe confirmação de exclusão
+else found mas não INACTIVE
+  UC -> Entity: delete()
+  activate Entity
+  note right of Entity: InvalidStateException\n"User must be inactive before deletion"
+  Entity --> UC:
+  deactivate Entity
+  Ctrl --> FE: 422 Unprocessable Entity
+  FE --> User: exibe erro
 else not found
   UC --> Ctrl: ResourceNotFoundException
   Ctrl --> FE: 404 Not Found

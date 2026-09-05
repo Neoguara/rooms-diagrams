@@ -1,6 +1,6 @@
 @startuml delete_building
 
-title DELETE /buildings/{id} — Remover Prédio (Soft Delete)
+title DELETE /buildings/{id}: Remover Prédio (Soft Delete)
 
 actor User
 boundary "Frontend" as FE
@@ -20,7 +20,7 @@ activate UC
 
 UC -> Repo: findById(BuildingId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM buildings WHERE id=?
+Repo -> DB: SELECT * FROM buildings\nWHERE id=? AND status!=DELETED
 DB --> Repo: Optional<Building>
 Repo --> UC: Optional<Building>
 deactivate Repo
@@ -28,7 +28,7 @@ deactivate Repo
 alt found
   UC -> Entity: delete()
   activate Entity
-  note right of Entity: Lança InvalidStateException (422)\nse status != ARCHIVED\nstatus = DELETED
+  note right of Entity: Lança InvalidStateException (422)\nse status != INACTIVE\nstatus = DELETED
   Entity --> UC:
   deactivate Entity
 

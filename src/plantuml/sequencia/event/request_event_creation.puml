@@ -1,6 +1,6 @@
 @startuml request_event_creation
 
-title POST /event-requests (type=CREATE) — Solicitar Criação de Evento
+title POST /event-requests (type=CREATE): Solicitar Criação de Evento
 
 actor User
 boundary "Frontend" as FE

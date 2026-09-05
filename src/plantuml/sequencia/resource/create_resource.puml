@@ -1,6 +1,6 @@
 @startuml create_resource
 
-title POST /resources — Criar Recurso
+title POST /resources: Criar Recurso
 
 actor User
 boundary "Frontend" as FE

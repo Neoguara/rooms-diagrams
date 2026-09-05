@@ -1,6 +1,6 @@
 @startuml login
 
-title POST /auth/login — Autenticação e Geração de JWT
+title POST /auth/login: Autenticação e Geração de JWT
 
 actor User
 boundary "Frontend" as FE
@@ -61,7 +61,9 @@ alt usuário encontrado
     Service --> Ctrl: TokenResponse\n{token, id, name, email, role, ...}
     deactivate Service
 
-    Ctrl --> FE: 200 OK {TokenResponse}
+    note right of Ctrl: Grava o cookie httpOnly `token`\n(path=/, maxAge=7 dias)
+
+    Ctrl --> FE: 200 OK {TokenResponse}\nSet-Cookie: token=...
     deactivate Ctrl
     FE --> User: armazena token e redireciona
     deactivate FE

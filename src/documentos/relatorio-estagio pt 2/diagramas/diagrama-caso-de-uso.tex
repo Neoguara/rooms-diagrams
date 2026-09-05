@@ -1,0 +1,43 @@
+\section{Diagrama de caso de uso}
+
+O diagrama de caso de uso é uma das partes fundamentais do projeto, pois é com ele que serão definidos os requisitos funcionais de forma clara do sistema. Na Figura~\ref{fig:caso-de-uso} são apresentados os principais atores e funcionalidades da aplicação.
+
+\begin{figure}[H]
+    \caption{Diagrama de caso de uso do sistema de reserva de salas}
+    \label{fig:caso-de-uso}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../out/src/plantuml/usecasediagram.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.
+    \textbf{Acesso:} \href{\linkUsecasediagram}{Diagrama de Caso de Uso}.}
+\end{figure}
+
+\subsection{Atores}
+
+\begin{description}
+    \item[\textbf{sa\_professor}] Representa o usuário comum do sistema. Tem acesso às funcionalidades de envio de notificações, autenticação, gerenciamento de salas e agendamentos, geração de relatórios e consulta ao histórico de ações.
+
+    \item[\textbf{sa\_coordenador}] Especialização de \textbf{sa\_professor}, herdando todas as suas permissões. Possui acesso adicional ao gerenciamento de usuários do sistema.
+\end{description}
+
+\subsection{Casos de uso}
+
+\begin{description}
+    \item[\textbf{suc\_enviar\_notificacao}] Permite ao sistema enviar notificações aos usuários sobre atualizações, lembretes e eventos importantes.
+
+    \item[\textbf{suc\_gerenciar\_autenticacao}] Permite realizar login, logout e controle de acesso dos usuários no sistema.
+
+    \item[\textbf{suc\_gerenciar\_salas}] Permite cadastrar, editar, remover e consultar as salas disponíveis.
+
+    \item[\textbf{suc\_gerenciar\_agendamentos}] Permite criar, atualizar, cancelar e visualizar agendamentos de salas.
+
+    \item[\textbf{suc\_gerar\_relatorios}] Permite emitir relatórios com informações consolidadas sobre uso, agendamentos e histórico do sistema.
+
+    \item[\textbf{suc\_gerenciar\_histórico}] Permite consultar e acompanhar o histórico de ações, reservas e alterações realizadas.
+
+    \item[\textbf{suc\_gerenciar\_usuarios}] Permite cadastrar, editar, remover e consultar usuários do sistema.
+
+    \item[\textbf{suc\_exportar\_PDF}] Permite exportar documentos, relatórios ou comprovantes em formato PDF.
+
+    \item[\textbf{suc\_montar\_grade}] Permite organizar e estruturar a grade de horários ou ocupação das salas.
+\end{description}

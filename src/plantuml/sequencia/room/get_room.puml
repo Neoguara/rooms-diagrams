@@ -1,6 +1,6 @@
 @startuml get_room
 
-title GET /rooms/{id}?expand= — Buscar Sala com Expansão
+title GET /rooms/{id}?expand=: Buscar Sala com Expansão
 
 actor User
 boundary "Frontend" as FE
@@ -24,7 +24,7 @@ activate UC
 
 UC -> RoomRepo: findById(RoomId.of(id))
 activate RoomRepo
-RoomRepo -> DB: SELECT * FROM rooms WHERE id=?
+RoomRepo -> DB: SELECT * FROM rooms\nWHERE id=? AND status!=DELETED
 DB --> RoomRepo: Optional<Room>
 RoomRepo --> UC: Optional<Room>
 deactivate RoomRepo
@@ -34,7 +34,7 @@ alt found
   opt expand contém BUILDING
     UC -> BldgRepo: findById(room.buildingId)
     activate BldgRepo
-    BldgRepo -> DB: SELECT * FROM buildings WHERE id=?
+    BldgRepo -> DB: SELECT * FROM buildings\nWHERE id=? AND status!=DELETED
     DB --> BldgRepo: Optional<Building>
     BldgRepo --> UC: Optional<Building>
     deactivate BldgRepo
@@ -43,7 +43,7 @@ alt found
   opt expand contém ROOM_TYPE
     UC -> TypeRepo: findById(room.roomTypeId)
     activate TypeRepo
-    TypeRepo -> DB: SELECT * FROM room_types WHERE id=?
+    TypeRepo -> DB: SELECT * FROM room_types\nWHERE id=? AND status!=DELETED
     DB --> TypeRepo: Optional<RoomType>
     TypeRepo --> UC: Optional<RoomType>
     deactivate TypeRepo

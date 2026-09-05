@@ -1,6 +1,6 @@
 @startuml get_room_type
 
-title GET /room-types e GET /room-types/{id} — Buscar Tipo de Sala
+title GET /room-types e GET /room-types/{id}: Buscar Tipo de Sala
 
 actor User
 boundary "Frontend" as FE

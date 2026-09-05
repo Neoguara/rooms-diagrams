@@ -1,6 +1,6 @@
 @startuml delete_resource
 
-title DELETE /resources/{id} — Remover Recurso (Soft Delete)
+title DELETE /resources/{id}: Remover Recurso (Soft Delete)
 
 actor User
 boundary "Frontend" as FE
@@ -20,7 +20,7 @@ activate UC
 
 UC -> Repo: findById(ResourceId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM resources WHERE id=?
+Repo -> DB: SELECT * FROM resources\nWHERE id=? AND status!=DELETED
 DB --> Repo: Optional<Resource>
 Repo --> UC: Optional<Resource>
 deactivate Repo
@@ -28,7 +28,7 @@ deactivate Repo
 alt found
   UC -> Entity: delete()
   activate Entity
-  note right of Entity: Lança InvalidStateException (422)\nse status != ARCHIVED\nstatus = DELETED
+  note right of Entity: Lança InvalidStateException (422)\nse status != INACTIVE\nstatus = DELETED
   Entity --> UC:
   deactivate Entity
 

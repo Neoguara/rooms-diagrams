@@ -1,6 +1,6 @@
 @startuml delete_room
 
-title DELETE /rooms/{id} — Remover Sala (Soft Delete)
+title DELETE /rooms/{id}: Remover Sala (Soft Delete)
 
 actor User
 boundary "Frontend" as FE
@@ -20,7 +20,7 @@ activate UC
 
 UC -> Repo: findById(RoomId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM rooms WHERE id=?
+Repo -> DB: SELECT * FROM rooms\nWHERE id=? AND status!=DELETED
 DB --> Repo: Optional<Room>
 Repo --> UC: Optional<Room>
 deactivate Repo
@@ -28,7 +28,7 @@ deactivate Repo
 alt found
   UC -> Entity: delete()
   activate Entity
-  note right of Entity: Lança InvalidStateException (422)\nse status != ARCHIVED\nstatus = DELETED
+  note right of Entity: Lança InvalidStateException (422)\nse status != INACTIVE\nstatus = DELETED
   Entity --> UC:
   deactivate Entity
 

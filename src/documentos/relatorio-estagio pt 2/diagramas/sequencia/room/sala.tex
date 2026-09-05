@@ -1,0 +1,72 @@
+\subsubsection{Sala}
+
+Nas figuras a seguir são apresentados os diagramas de sequência das operações sobre a entidade \texttt{Room}.
+
+\begin{itemize}
+    \item A Figura~\ref{fig:seq-create-room} representa o fluxo de criação de uma nova sala, incluindo a associação opcional de recursos.
+    \item A Figura~\ref{fig:seq-get-room-simple} representa as operações de consulta: listagem de todas as salas e busca por identificador.
+    \item A Figura~\ref{fig:seq-update-room} representa a atualização dos dados de uma sala existente.
+    \item A Figura~\ref{fig:seq-update-room-status} representa a alteração do status de uma sala, respeitando as transições de estado válidas.
+    \item A Figura~\ref{fig:seq-replace-room-resources} representa a substituição completa do conjunto de recursos associados a uma sala.
+    \item A Figura~\ref{fig:seq-delete-room} representa a exclusão lógica (\textit{soft delete}) de uma sala, que exige status \texttt{ARCHIVED} e marca o registro com status \texttt{DELETED}.
+\end{itemize}
+
+\begin{figure}[H]
+    \caption{Diagrama de sequência -- Criar Sala}
+    \label{fig:seq-create-room}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/create_room.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.
+    \textbf{Acesso:} \href{\linkCreateRoom}{Diagrama de Sequência: Criar Sala}.}
+\end{figure}
+
+\begin{figure}[H]
+    \caption{Diagrama de sequência -- Buscar Sala}
+    \label{fig:seq-get-room-simple}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/get_room_simple.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.
+    \textbf{Acesso:} \href{\linkGetRoomSimple}{Diagrama de Sequência: Buscar Sala}.}
+\end{figure}
+
+\begin{figure}[H]
+    \caption{Diagrama de sequência -- Atualizar Sala}
+    \label{fig:seq-update-room}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/update_room.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.
+    \textbf{Acesso:} \href{\linkUpdateRoom}{Diagrama de Sequência: Atualizar Sala}.}
+\end{figure}
+
+\begin{figure}[H]
+    \caption{Diagrama de sequência -- Atualizar Status da Sala}
+    \label{fig:seq-update-room-status}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/update_room_status.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.
+    \textbf{Acesso:} \href{\linkUpdateRoomStatus}{Diagrama de Sequência: Atualizar Status da Sala}.}
+\end{figure}
+
+\begin{figure}[H]
+    \caption{Diagrama de sequência -- Substituir Recursos da Sala}
+    \label{fig:seq-replace-room-resources}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/replace_room_resources.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.
+    \textbf{Acesso:} \href{\linkReplaceRoomResources}{Diagrama de Sequência: Substituir Recursos da Sala}.}
+\end{figure}
+
+\begin{figure}[H]
+    \caption{Diagrama de sequência -- Excluir Sala}
+    \label{fig:seq-delete-room}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/delete_room.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.
+    \textbf{Acesso:} \href{\linkDeleteRoom}{Diagrama de Sequência: Excluir Sala}.}
+\end{figure}

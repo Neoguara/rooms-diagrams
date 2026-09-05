@@ -1,6 +1,6 @@
 @startuml replace_room_resources
 
-title PUT /rooms/{id}/resources — Substituir Recursos da Sala
+title PUT /rooms/{id}/resources: Substituir Recursos da Sala
 
 actor User
 boundary "Frontend" as FE
@@ -21,7 +21,7 @@ activate UC
 
 UC -> RoomRepo: findById(RoomId.of(roomId))
 activate RoomRepo
-RoomRepo -> DB: SELECT * FROM rooms WHERE id=?
+RoomRepo -> DB: SELECT * FROM rooms\nWHERE id=? AND status!=DELETED
 DB --> RoomRepo: Optional<Room>
 RoomRepo --> UC: Optional<Room>
 deactivate RoomRepo
@@ -31,7 +31,7 @@ alt sala encontrada
   loop para cada resourceId na nova lista
     UC -> ResRepo: findById(ResourceId.of(resourceId))
     activate ResRepo
-    ResRepo -> DB: SELECT * FROM resources WHERE id=?
+    ResRepo -> DB: SELECT * FROM resources\nWHERE id=? AND status!=DELETED
     DB --> ResRepo: Optional<Resource>
     ResRepo --> UC: Optional
     deactivate ResRepo

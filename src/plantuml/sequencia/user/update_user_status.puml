@@ -1,6 +1,6 @@
 @startuml update_user_status
 
-title PATCH /users/{id}/status — Atualizar Status do Usuário
+title PATCH /users/{id}/status: Atualizar Status do Usuário
 
 actor User
 boundary "Frontend" as FE
@@ -21,7 +21,7 @@ activate UC
 
 UC -> Repo: findById(UserId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM users WHERE id=?
+Repo -> DB: SELECT * FROM users\nWHERE id=? AND status!=DELETED
 DB --> Repo: Optional<User>
 Repo --> UC: Optional<User>
 deactivate Repo

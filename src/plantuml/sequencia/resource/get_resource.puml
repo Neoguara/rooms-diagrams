@@ -1,6 +1,6 @@
 @startuml get_resource
 
-title GET /resources e GET /resources/{id} — Buscar Recurso
+title GET /resources e GET /resources/{id}: Buscar Recurso
 
 actor User
 boundary "Frontend" as FE

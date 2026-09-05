@@ -1,6 +1,6 @@
 @startuml get_room_simple
 
-title GET /rooms e GET /rooms/{id} — Buscar Sala
+title GET /rooms e GET /rooms/{id}: Buscar Sala
 
 actor User
 boundary "Frontend" as FE
@@ -10,6 +10,8 @@ participant "RoomMapper" as Mapper
 participant "RoomRepositoryPort" as Repo
 database "rooms" as DB
 
+note over Ctrl: Sem o parâmetro `expand`, o conjunto vem vazio\ne building, roomType e resources saem nulos
+
 == Listar todas ==
 
 User -> FE: solicita listagem de salas
@@ -17,7 +19,7 @@ activate FE
 FE -> Ctrl: GET /rooms
 activate Ctrl
 
-Ctrl -> UC: findAll()
+Ctrl -> UC: findAll(Set.of())
 activate UC
 
 UC -> Repo: findAll()
@@ -46,12 +48,12 @@ activate FE
 FE -> Ctrl: GET /rooms/{id}
 activate Ctrl
 
-Ctrl -> UC: findById(id)
+Ctrl -> UC: findById(id, Set.of())
 activate UC
 
 UC -> Repo: findById(RoomId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM rooms WHERE id=?
+Repo -> DB: SELECT * FROM rooms\nWHERE id=? AND status!=DELETED
 DB --> Repo: Optional<Room>
 Repo --> UC: Optional<Room>
 deactivate Repo

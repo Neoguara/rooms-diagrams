@@ -1,0 +1,62 @@
+\subsection{Módulo de Gerenciamento de usuários}
+
+Nas figuras a seguir são apresentados os diagramas de sequência das operações do módulo de gerenciamento de usuários,
+descrevendo o fluxo de mensagens entre os componentes para cada caso de uso.
+
+\begin{itemize}
+    \item A Figura~\ref{fig:seq-create-user} representa o fluxo de criação de um novo usuário.
+    \item A Figura~\ref{fig:seq-get-user} representa as operações de consulta: listagem de todos os usuários e busca por identificador.
+    \item A Figura~\ref{fig:seq-update-user} representa a atualização dos dados de um usuário existente.
+    \item A Figura~\ref{fig:seq-update-user-status} representa a alteração do status de um usuário, respeitando as transições de estado válidas.
+    \item A Figura~\ref{fig:seq-delete-user} representa a exclusão lógica (\textit{soft delete}) de um usuário, que marca o registro com status \texttt{DELETED}.
+\end{itemize}
+
+\begin{figure}[H]
+    \caption{Diagrama de sequência -- Criar Usuário}
+    \label{fig:seq-create-user}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/create_user.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.
+    \textbf{Acesso:} \href{\linkCreateUser}{Diagrama de Sequência: Criar Usuário}.}
+\end{figure}
+
+\begin{figure}[H]
+    \caption{Diagrama de sequência -- Buscar Usuário}
+    \label{fig:seq-get-user}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/get_user.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.
+    \textbf{Acesso:} \href{\linkGetUser}{Diagrama de Sequência: Buscar Usuário}.}
+\end{figure}
+
+\begin{figure}[H]
+    \caption{Diagrama de sequência -- Atualizar Usuário}
+    \label{fig:seq-update-user}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/update_user.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.
+    \textbf{Acesso:} \href{\linkUpdateUser}{Diagrama de Sequência: Atualizar Usuário}.}
+\end{figure}
+
+\begin{figure}[H]
+    \caption{Diagrama de sequência -- Atualizar Status do Usuário}
+    \label{fig:seq-update-user-status}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/update_user_status.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.
+    \textbf{Acesso:} \href{\linkUpdateUserStatus}{Diagrama de Sequência: Atualizar Status do Usuário}.}
+\end{figure}
+
+\begin{figure}[H]
+    \caption{Diagrama de sequência -- Excluir Usuário}
+    \label{fig:seq-delete-user}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/delete_user.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.
+    \textbf{Acesso:} \href{\linkDeleteUser}{Diagrama de Sequência: Excluir Usuário}.}
+\end{figure}

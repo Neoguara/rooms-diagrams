@@ -1,6 +1,6 @@
 @startuml update_room_status
 
-title PATCH /rooms/{id}/status — Atualizar Status da Sala
+title PATCH /rooms/{id}/status: Atualizar Status da Sala
 
 actor User
 boundary "Frontend" as FE
@@ -13,7 +13,7 @@ database "rooms" as DB
 
 User -> FE: solicita alteração de status
 activate FE
-FE -> Ctrl: PATCH /rooms/{id}/status\n{status: AVAILABLE|INACTIVE|ARCHIVED|MAINTENANCE}
+FE -> Ctrl: PATCH /rooms/{id}/status\n{status: AVAILABLE|INACTIVE|MAINTENANCE}
 activate Ctrl
 
 Ctrl -> UC: execute(id, status)
@@ -21,7 +21,7 @@ activate UC
 
 UC -> Repo: findById(RoomId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM rooms WHERE id=?
+Repo -> DB: SELECT * FROM rooms\nWHERE id=? AND status!=DELETED
 DB --> Repo: Optional<Room>
 Repo --> UC: Optional<Room>
 deactivate Repo
@@ -29,27 +29,13 @@ deactivate Repo
 alt found
 
   alt status == AVAILABLE
-    alt currentStatus == ARCHIVED
-      UC -> Entity: restore()
-      activate Entity
-      note right of Entity: Lança InvalidStateException (422)\nse a transição for inválida
-      Entity --> UC:
-      deactivate Entity
-    else
-      UC -> Entity: activate()
-      activate Entity
-      note right of Entity: Lança InvalidStateException (422)\nse a transição for inválida
-      Entity --> UC:
-      deactivate Entity
-    end
-  else status == INACTIVE
-    UC -> Entity: deactivate()
+    UC -> Entity: activate()
     activate Entity
     note right of Entity: Lança InvalidStateException (422)\nse a transição for inválida
     Entity --> UC:
     deactivate Entity
-  else status == ARCHIVED
-    UC -> Entity: archive()
+  else status == INACTIVE
+    UC -> Entity: deactivate()
     activate Entity
     note right of Entity: Lança InvalidStateException (422)\nse a transição for inválida
     Entity --> UC:
@@ -57,7 +43,7 @@ alt found
   else status == MAINTENANCE
     UC -> Entity: putUnderMaintenance()
     activate Entity
-    note right of Entity: Lança InvalidStateException (422)\nse a transição for inválida\n(ex: ARCHIVED não pode ir para INACTIVE\nou MAINTENANCE)
+    note right of Entity: Lança InvalidStateException (422)\nse a transição for inválida\n(ex: DELETED não pode ser modificado)
     Entity --> UC:
     deactivate Entity
   end

@@ -1,6 +1,6 @@
 @startuml request_event_cancellation
 
-title POST /events/{id}/cancel-request — Solicitar Cancelamento de Evento
+title POST /events/{id}/cancel-request: Solicitar Cancelamento de Evento
 
 actor User
 boundary "Frontend" as FE

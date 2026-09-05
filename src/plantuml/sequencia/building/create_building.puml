@@ -1,6 +1,6 @@
 @startuml create_building
 
-title POST /buildings — Criar Prédio
+title POST /buildings: Criar Prédio
 
 actor User
 boundary "Frontend" as FE

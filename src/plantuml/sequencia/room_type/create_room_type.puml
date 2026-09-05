@@ -1,6 +1,6 @@
 @startuml create_room_type
 
-title POST /room-types — Criar Tipo de Sala
+title POST /room-types: Criar Tipo de Sala
 
 actor User
 boundary "Frontend" as FE

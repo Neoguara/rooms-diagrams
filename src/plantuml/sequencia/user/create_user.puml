@@ -1,6 +1,6 @@
 @startuml create_user
 
-title POST /users — Criar Usuário
+title POST /users: Criar Usuário
 
 actor User
 boundary "Frontend" as FE
@@ -59,8 +59,8 @@ alt email disponível
   Ctrl --> FE: 201 Created {UserResponse}
   FE --> User: exibe confirmação de criação
 else email já cadastrado
-  UC --> Ctrl: DuplicateEmailException
-  Ctrl --> FE: 422 Unprocessable Entity
+  UC --> Ctrl: ConflictException\n"Email already in use"
+  Ctrl --> FE: 409 Conflict
   FE --> User: exibe erro
 end
 

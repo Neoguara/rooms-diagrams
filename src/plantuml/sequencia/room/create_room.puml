@@ -1,6 +1,6 @@
 @startuml create_room
 
-title POST /rooms — Criar Sala
+title POST /rooms: Criar Sala
 
 actor User
 boundary "Frontend" as FE
@@ -20,6 +20,7 @@ activate Ctrl
 
 Ctrl -> UC: execute(CreateRoomRequest)
 activate UC
+note right of UC: @Transactional: um recurso inexistente\ndesfaz também o INSERT da sala
 
 UC -> Mapper: toDomain(request)
 activate Mapper
@@ -41,7 +42,7 @@ deactivate RoomRepo
 loop para cada resourceId em request.resourceIds (se não for nulo)
   UC -> ResRepo: findById(ResourceId.of(resourceId))
   activate ResRepo
-  ResRepo -> DB: SELECT * FROM resources WHERE id=?
+  ResRepo -> DB: SELECT * FROM resources\nWHERE id=? AND status!=DELETED
   DB --> ResRepo: Optional<Resource>
   ResRepo --> UC: Optional
   deactivate ResRepo

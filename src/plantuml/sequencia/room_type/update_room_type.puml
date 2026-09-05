@@ -1,6 +1,6 @@
 @startuml update_room_type
 
-title PUT /room-types/{id} — Atualizar Tipo de Sala
+title PUT /room-types/{id}: Atualizar Tipo de Sala
 
 actor User
 boundary "Frontend" as FE
@@ -21,7 +21,7 @@ activate UC
 
 UC -> Repo: findById(RoomTypeId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM room_types WHERE id=?
+Repo -> DB: SELECT * FROM room_types\nWHERE id=? AND status!=DELETED
 DB --> Repo: Optional<RoomType>
 Repo --> UC: Optional<RoomType>
 deactivate Repo
