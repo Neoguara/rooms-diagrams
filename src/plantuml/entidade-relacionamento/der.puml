@@ -1,0 +1,7 @@
+@startuml der
+
+' Layout vertical, usado no relatório. As entidades vivem em der-body.iuml, compartilhado
+' com der-horizontal.puml.
+!include der-body.iuml
+
+@enduml

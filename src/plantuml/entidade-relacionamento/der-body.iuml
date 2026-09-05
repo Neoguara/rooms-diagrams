@@ -1,17 +1,21 @@
-@startuml der-horizontal
+' Corpo compartilhado do DER. Incluído por der.puml (vertical) e der-horizontal.puml
+' (paisagem, para os slides). As duas versões diferem só na direção do layout, então
+' entidades e relacionamentos vivem aqui e nunca saem de sincronia entre si.
+'
+' Fonte de verdade: entidades JPA de com.neoguara.rooms (rooms-backend) e o schema que o
+' Hibernate gera com ddl-auto=update no H2.
 
-left to right direction
 skinparam linetype ortho
 
 ' ── users ──────────────────────────────────────────────
 entity "users" as User {
   * id : UUID <<PK>>
   --
-  name : VARCHAR
-  email : VARCHAR <<unique>>
-  password : VARCHAR
-  role : VARCHAR
-  status : VARCHAR
+  * name : VARCHAR(255)
+  * email : VARCHAR(255) <<unique>>
+  * password : VARCHAR(255)
+  * role : ENUM <<UserRole>>
+  * status : ENUM <<UserStatus>>
   created_at : TIMESTAMP
   updated_at : TIMESTAMP
 }
@@ -20,10 +24,10 @@ entity "users" as User {
 entity "buildings" as Building {
   * id : UUID <<PK>>
   --
-  name : VARCHAR
-  address : VARCHAR
+  name : VARCHAR(255)
+  address : VARCHAR(255)
   total_floors : INTEGER
-  status : VARCHAR
+  status : ENUM <<BuildingStatus>>
   created_at : TIMESTAMP
   updated_at : TIMESTAMP
 }
@@ -32,12 +36,12 @@ entity "buildings" as Building {
 entity "room_types" as RoomType {
   * id : UUID <<PK>>
   --
-  name : VARCHAR
-  description : VARCHAR
-  default_capacity : VARCHAR
-  color : VARCHAR
-  icon : VARCHAR
-  status : VARCHAR
+  name : VARCHAR(255)
+  description : VARCHAR(255)
+  default_capacity : VARCHAR(255)
+  color : VARCHAR(255)
+  icon : VARCHAR(255)
+  status : ENUM <<RoomTypeStatus>>
   created_at : TIMESTAMP
   updated_at : TIMESTAMP
 }
@@ -48,11 +52,11 @@ entity "rooms" as Room {
   --
   * building_id : UUID <<FK>>
   * room_type_id : UUID <<FK>>
-  name : VARCHAR
-  code : VARCHAR
+  name : VARCHAR(255)
+  code : VARCHAR(255)
   floor : INTEGER
   capacity : INTEGER
-  status : VARCHAR
+  status : ENUM <<RoomStatus>>
   created_at : TIMESTAMP
   updated_at : TIMESTAMP
 }
@@ -61,10 +65,10 @@ entity "rooms" as Room {
 entity "resources" as Resource {
   * id : UUID <<PK>>
   --
-  name : VARCHAR
-  description : VARCHAR
-  icon : VARCHAR
-  status : VARCHAR
+  name : VARCHAR(255)
+  description : VARCHAR(255)
+  icon : VARCHAR(255)
+  status : ENUM <<ResourceStatus>>
   created_at : TIMESTAMP
   updated_at : TIMESTAMP
 }
@@ -83,14 +87,14 @@ entity "events" as Event {
   * id : UUID <<PK>>
   --
   * room_id : UUID <<FK>>
-  title : VARCHAR
-  description : VARCHAR
+  title : VARCHAR(255)
+  description : VARCHAR(255)
   start_at : TIMESTAMP
   end_at : TIMESTAMP
   is_all_day : BOOLEAN
-  recurrence_rule : VARCHAR
+  recurrence_rule : VARCHAR(255)
   series_id : UUID
-  status : VARCHAR
+  status : ENUM <<EventStatus>>
   created_at : TIMESTAMP
   updated_at : TIMESTAMP
 }
@@ -101,8 +105,8 @@ entity "event_requests" as EventRequest {
   --
   * user_id : UUID <<FK>>
   reversal_of : UUID <<FK>>
-  status : VARCHAR
-  justification : VARCHAR
+  status : ENUM <<EventRequestStatus>>
+  justification : VARCHAR(255)
   created_at : TIMESTAMP
 }
 
@@ -113,25 +117,25 @@ entity "event_change_items" as EventChangeItem {
   * event_request_id : UUID <<FK>>
   event_id : UUID <<FK>>
   reversal_of : UUID <<FK>>
-  type : VARCHAR
+  type : ENUM <<EventChangeType>>
   item_position : INTEGER
-  --
+  .. estado anterior ..
   old_room_id : UUID
-  old_title : VARCHAR
-  old_description : VARCHAR
+  old_title : VARCHAR(255)
+  old_description : VARCHAR(255)
   old_start_at : TIMESTAMP
   old_end_at : TIMESTAMP
   old_is_all_day : BOOLEAN
-  old_recurrence_rule : VARCHAR
+  old_recurrence_rule : VARCHAR(255)
   old_series_id : UUID
-  --
+  .. estado pretendido ..
   new_room_id : UUID
-  new_title : VARCHAR
-  new_description : VARCHAR
+  new_title : VARCHAR(255)
+  new_description : VARCHAR(255)
   new_start_at : TIMESTAMP
   new_end_at : TIMESTAMP
   new_is_all_day : BOOLEAN
-  new_recurrence_rule : VARCHAR
+  new_recurrence_rule : VARCHAR(255)
   new_series_id : UUID
 }
 
@@ -141,8 +145,8 @@ entity "approvals" as Approval {
   --
   * event_request_id : UUID <<FK>>
   * user_id : UUID <<FK>>
-  decision : VARCHAR
-  comment : VARCHAR
+  decision : ENUM <<ApprovalDecision>>
+  comment : VARCHAR(255)
   decided_at : TIMESTAMP
 }
 
@@ -151,20 +155,20 @@ entity "reports" as Report {
   * id : UUID <<PK>>
   --
   * requested_by : UUID <<FK>>
-  type : VARCHAR
-  format : VARCHAR
-  status : VARCHAR
-  --
+  type : ENUM <<ReportType>>
+  format : ENUM <<ReportFormat>>
+  status : ENUM <<ReportStatus>>
+  .. recorte apurado ..
   start_at : TIMESTAMP
   end_at : TIMESTAMP
   room_id : UUID <<FK>>
-  --
-  filename : VARCHAR
-  content_type : VARCHAR
+  .. arquivo gerado ..
+  filename : VARCHAR(255)
+  content_type : VARCHAR(255)
   size_bytes : BIGINT
-  storage_key : VARCHAR
-  --
-  failure_reason : VARCHAR
+  storage_key : VARCHAR(255)
+  .. execução ..
+  failure_reason : VARCHAR(500)
   requested_at : TIMESTAMP
   started_at : TIMESTAMP
   finished_at : TIMESTAMP
@@ -180,13 +184,11 @@ Resource     "(1,1)" ||--o{ "(0,n)" RoomResource
 Room         "(1,1)" ||--o{ "(0,n)" Event
 
 User         "(1,1)" ||--o{ "(0,n)" EventRequest
-EventRequest "(1,1)" ||--o{ "(1,n)" EventChangeItem
+EventRequest "(1,1)" ||--|{ "(1,n)" EventChangeItem
 Event        "(0,1)" |o--o{ "(0,n)" EventChangeItem
 
-EventRequest "(1,1)" ||--o{ "(0,n)" Approval
+EventRequest "(1,1)" ||--o| "(0,1)" Approval
 User         "(1,1)" ||--o{ "(0,n)" Approval
 
 User         "(1,1)" ||--o{ "(0,n)" Report
 Room         "(0,1)" |o--o{ "(0,n)" Report
-
-@enduml

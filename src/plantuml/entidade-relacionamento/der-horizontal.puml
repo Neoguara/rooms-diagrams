@@ -1,0 +1,7 @@
+@startuml der-horizontal
+
+' Mesmo DER de der.puml em paisagem, para caber no slide.
+left to right direction
+!include der-body.iuml
+
+@enduml
