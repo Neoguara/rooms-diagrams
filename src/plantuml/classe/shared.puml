@@ -1,0 +1,185 @@
+@startuml shared
+
+' Módulo shared: exceções de negócio, coleta de erros de validação e tradução de exceção
+' para resposta HTTP. Não tem entidade nem caso de uso: é o vocabulário comum dos outros
+' módulos.
+' Fonte: com.neoguara.rooms.shared (rooms-backend).
+'
+' Critério desta versão: dentro do módulo, todas as classes e todos os membros. Fora do
+' módulo, aparece o que é supertipo, campo, tipo de assinatura ou exceção lançada, mais os
+' implementadores de Validator, que são a razão de o módulo existir.
+
+left to right direction
+skinparam packageStyle rectangle
+
+package "Domain" #EEF2FF {
+
+  package "exceptions" {
+    abstract class BusinessException {
+      # BusinessException(String)
+    }
+    class ConflictException {
+      - List<String> errors
+      + ConflictException(String)
+      + ConflictException(List<String>)
+      + List<String> getErrors()
+    }
+    class DomainValidationException {
+      - Notification notification
+      + DomainValidationException(Notification)
+      + Notification getNotification()
+    }
+    class InvalidStateException {
+      + InvalidStateException(String)
+    }
+    class ResourceNotFoundException {
+      + ResourceNotFoundException(String,Object)
+    }
+  }
+
+  package "validation" {
+    class Notification <<final>> {
+      - List<String> errors
+      - Notification()
+      + {static} Notification create()
+      + Notification addError(String)
+      + Notification addErrorIf(boolean,String)
+      + boolean hasErrors()
+      + List<String> getErrors()
+      + Notification merge(Notification)
+      + void raiseIfHasErrors()
+    }
+    interface "Validator<T>" as Validator {
+      + void validate(T,Notification)
+    }
+  }
+}
+
+package "Infrastructure" #FFF8F0 {
+
+  package "web" {
+    class ErrorResponse <<record>> {
+      - int status
+      - String error
+      - String message
+      - List<String> errors
+      - Instant timestamp
+      + ErrorResponse(int,String,String)
+      + ErrorResponse(int,String,List<String>)
+    }
+    class GlobalExceptionHandler <<RestControllerAdvice>> {
+      + ErrorResponse handleNoResourceFound(NoResourceFoundException)
+      + ErrorResponse handleNoHandlerFound(NoHandlerFoundException)
+      + ErrorResponse handleMethodNotSupported(HttpRequestMethodNotSupportedException)
+      + ErrorResponse handleDomainValidation(DomainValidationException)
+      + ErrorResponse handleResourceNotFound(ResourceNotFoundException)
+      + ErrorResponse handleConflict(ConflictException)
+      + ErrorResponse handleInvalidState(InvalidStateException)
+      + ErrorResponse handleBusiness(BusinessException)
+      + ErrorResponse handleTypeMismatch(MethodArgumentTypeMismatchException)
+      + ErrorResponse handleHttpMessageNotReadable(HttpMessageNotReadableException)
+      + ErrorResponse handleValidation(MethodArgumentNotValidException)
+      - {static} ErrorResponse notFound(String,String)
+      - String at(String)
+      - String abbreviate(String)
+      - String expectationOf(Class<?>)
+      - String acceptedTypeIds(Class<?>)
+      - DatabindException firstDatabindException(Throwable)
+      - String pathOf(DatabindException)
+    }
+  }
+
+  package "config" {
+    class OpenApiConfig <<Configuration>> {
+      - {static} String SECURITY_SCHEME_NAME = "bearerAuth"
+      + OpenAPI roomsOpenAPI()
+    }
+  }
+}
+
+' Implementadores de Validator, um por agregado, espalhados pelos módulos de negócio.
+package "Implementadores de Validator" #F0FFF0 {
+  class UserValidator <<user>>
+  class BuildingValidator <<room>>
+  class RoomValidator <<room>>
+  class RoomTypeValidation <<room>>
+  class ResourceValidation <<room>>
+  class EventValidation <<event>>
+  class EventRequestValidation <<event>>
+  class EventChangeItemValidation <<event>>
+  class ApprovalValidation <<event>>
+  class ReportValidation <<report>>
+}
+
+' Tipos de fora do módulo. Declarados aqui só para as setas terem onde chegar.
+package "Dependências externas" #F5F5F5 {
+  class EventConflictException <<event>>
+  class RuntimeException <<java lang>>
+  class OpenAPI <<springdoc>>
+  class NoResourceFoundException <<spring web>>
+  class NoHandlerFoundException <<spring web>>
+  class HttpRequestMethodNotSupportedException <<spring web>>
+  class MethodArgumentTypeMismatchException <<spring web>>
+  class HttpMessageNotReadableException <<spring web>>
+  class MethodArgumentNotValidException <<spring web>>
+  class DatabindException <<jackson>>
+  class UnrecognizedPropertyException <<jackson>>
+  class InvalidTypeIdException <<jackson>>
+  class InvalidFormatException <<jackson>>
+  class MismatchedInputException <<jackson>>
+}
+
+' ── Herança ────────────────────────────────────────────
+RuntimeException <|-- BusinessException
+BusinessException <|-- ConflictException
+BusinessException <|-- DomainValidationException
+BusinessException <|-- InvalidStateException
+BusinessException <|-- ResourceNotFoundException
+ConflictException <|-- EventConflictException
+
+DatabindException <|-- MismatchedInputException
+MismatchedInputException <|-- InvalidFormatException
+MismatchedInputException <|-- InvalidTypeIdException
+MismatchedInputException <|-- UnrecognizedPropertyException
+
+' ── Implementação de Validator ─────────────────────────
+Validator <|.. UserValidator
+Validator <|.. BuildingValidator
+Validator <|.. RoomValidator
+Validator <|.. RoomTypeValidation
+Validator <|.. ResourceValidation
+Validator <|.. EventValidation
+Validator <|.. EventRequestValidation
+Validator <|.. EventChangeItemValidation
+Validator <|.. ApprovalValidation
+Validator <|.. ReportValidation
+
+' ── Campos ─────────────────────────────────────────────
+DomainValidationException --> Notification
+
+' ── Uso ────────────────────────────────────────────────
+Notification ..> DomainValidationException
+Validator ..> Notification
+
+GlobalExceptionHandler ..> ErrorResponse
+GlobalExceptionHandler ..> DomainValidationException
+GlobalExceptionHandler ..> ResourceNotFoundException
+GlobalExceptionHandler ..> ConflictException
+GlobalExceptionHandler ..> InvalidStateException
+GlobalExceptionHandler ..> BusinessException
+GlobalExceptionHandler ..> Notification
+GlobalExceptionHandler ..> NoResourceFoundException
+GlobalExceptionHandler ..> NoHandlerFoundException
+GlobalExceptionHandler ..> HttpRequestMethodNotSupportedException
+GlobalExceptionHandler ..> MethodArgumentTypeMismatchException
+GlobalExceptionHandler ..> HttpMessageNotReadableException
+GlobalExceptionHandler ..> MethodArgumentNotValidException
+GlobalExceptionHandler ..> DatabindException
+GlobalExceptionHandler ..> UnrecognizedPropertyException
+GlobalExceptionHandler ..> InvalidTypeIdException
+GlobalExceptionHandler ..> InvalidFormatException
+GlobalExceptionHandler ..> MismatchedInputException
+
+OpenApiConfig ..> OpenAPI
+
+@enduml

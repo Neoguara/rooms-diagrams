@@ -1,116 +1,182 @@
-@startuml
+@startuml auth
 
-skinparam linetype ortho
+' Módulo auth: login, emissão e validação de JWT, filtro de segurança.
+' Fonte: com.neoguara.rooms.auth (rooms-backend).
+'
+' Ao contrário dos outros módulos, auth é plano: não tem domain/application/infrastructure,
+' porque não tem entidade própria. Ele lê o usuário pela porta UserAuthPort, implementada
+' pelo módulo user.
+'
+' Critério desta versão: dentro do módulo, todas as classes e todos os membros. Fora do
+' módulo, aparece o que é supertipo, campo, tipo de assinatura ou exceção lançada.
+
+left to right direction
 skinparam packageStyle rectangle
 
-class auth.AuthController {
-  - AuthService authService
-  + ResponseEntity<TokenResponse> login(LoginRequest, HttpServletResponse)
+package "auth" #EEF2FF {
+
+  class AuthController <<RestController>> {
+    - AuthService authService
+    + AuthController(AuthService)
+    + ResponseEntity<TokenResponse> login(LoginRequest,HttpServletResponse)
+  }
+
+  class AuthService <<Service>> {
+    - AuthenticationManager authenticationManager
+    - JwtService jwtService
+    + AuthService(AuthenticationManager,JwtService)
+    + TokenResponse login(LoginRequest)
+  }
+
+  class JwtService <<Service>> {
+    - String secret
+    - int expirationHours
+    + String generateToken(String)
+    + String extractUsername(String)
+    + boolean isTokenValid(String)
+    - Claims parseClaims(String)
+    - Key signingKey()
+  }
+
+  class AuthUserDetailsService <<Service>> {
+    - UserAuthPort userAuthPort
+    + AuthUserDetailsService(UserAuthPort)
+    + UserDetails loadUserByUsername(String)
+  }
+
+  class AuthUserDetails {
+    - AuthUserData data
+    + AuthUserDetails(AuthUserData)
+    + AuthUserData getData()
+    + UUID getId()
+    + Collection<? extends GrantedAuthority> getAuthorities()
+    + String getPassword()
+    + String getUsername()
+    + boolean isEnabled()
+  }
+
+  class SecurityFilter <<Component>> {
+    - JwtService jwtService
+    - UserAuthPort userAuthPort
+    + SecurityFilter(JwtService,UserAuthPort)
+    # void doFilterInternal(HttpServletRequest,HttpServletResponse,FilterChain)
+    - String extractToken(HttpServletRequest)
+  }
+
+  class SecurityConfig <<Configuration>> {
+    - SecurityFilter securityFilter
+    + SecurityConfig(SecurityFilter)
+    + SecurityFilterChain filterChain(HttpSecurity)
+    + AuthenticationManager authenticationManager(AuthenticationConfiguration)
+    + PasswordEncoder passwordEncoder()
+    + CorsConfigurationSource corsConfigurationSource()
+  }
+
+  interface UserAuthPort {
+    + Optional<AuthUserData> findByEmail(String)
+  }
+
+  class AuthUserData <<record>> {
+    - UUID id
+    - String name
+    - String email
+    - String encodedPassword
+    - String role
+    - Boolean isActive
+    - LocalDateTime createdAt
+    - LocalDateTime updatedAt
+    - LocalDateTime deletedAt
+  }
+
+  class LoginRequest <<record>> {
+    - String email
+    - String password
+  }
+
+  class TokenResponse <<record>> {
+    - String token
+    - UUID id
+    - String name
+    - String email
+    - String role
+    - Boolean isActive
+    - LocalDateTime createdAt
+    - LocalDateTime updatedAt
+    - LocalDateTime deletedAt
+  }
 }
 
-class auth.AuthService {
-  - AuthenticationManager authenticationManager
-  - JwtService jwtService
-  + TokenResponse login(LoginRequest)
+' Tipos de fora do módulo. Declarados aqui só para as setas terem onde chegar.
+package "Dependências externas" #F5F5F5 {
+  class UserAuthAdapter <<user>> {
+    + Optional<AuthUserData> findByEmail(String)
+  }
+  interface UserDetails <<spring security>>
+  interface UserDetailsService <<spring security>>
+  interface AuthenticationManager <<spring security>>
+  interface GrantedAuthority <<spring security>>
+  interface PasswordEncoder <<spring security>>
+  interface SecurityFilterChain <<spring security>>
+  class HttpSecurity <<spring security>>
+  class AuthenticationConfiguration <<spring security>>
+  class UsernameNotFoundException <<spring security>>
+  interface CorsConfigurationSource <<spring web>>
+  class OncePerRequestFilter <<spring web>>
+  interface HttpServletRequest <<jakarta servlet>>
+  interface HttpServletResponse <<jakarta servlet>>
+  interface FilterChain <<jakarta servlet>>
+  interface Claims <<jjwt>>
+  interface Key <<java security>>
 }
 
-class auth.JwtService {
-  - String secret
-  - int expirationHours
-  + String generateToken(String)
-  + String extractUsername(String)
-  + boolean isTokenValid(String)
-  - Claims parseClaims(String)
-  - Key signingKey()
-}
+' ── Herança e implementação ────────────────────────────
+UserDetailsService <|.. AuthUserDetailsService
+UserDetails <|.. AuthUserDetails
+OncePerRequestFilter <|-- SecurityFilter
+UserAuthPort <|.. UserAuthAdapter
 
-class auth.AuthUserDetailsService {
-  - UserAuthPort userAuthPort
-  + UserDetails loadUserByUsername(String)
-}
+' ── Campos ─────────────────────────────────────────────
+AuthController --> AuthService
+AuthService --> AuthenticationManager
+AuthService --> JwtService
+AuthUserDetailsService --> UserAuthPort
+AuthUserDetails *-- AuthUserData
+SecurityFilter --> JwtService
+SecurityFilter --> UserAuthPort
+SecurityConfig --> SecurityFilter
 
-class auth.AuthUserDetails {
-  - AuthUserData data
-  + AuthUserData getData()
-  + UUID getId()
-  + Collection<? extends GrantedAuthority> getAuthorities()
-  + String getPassword()
-  + String getUsername()
-  + boolean isEnabled()
-}
+' ── Uso ────────────────────────────────────────────────
+AuthController ..> LoginRequest
+AuthController ..> TokenResponse
+AuthController ..> HttpServletResponse
 
-class auth.SecurityFilter {
-  - JwtService jwtService
-  - UserAuthPort userAuthPort
-  # void doFilterInternal(HttpServletRequest, HttpServletResponse, FilterChain)
-  - String extractToken(HttpServletRequest)
-}
+AuthService ..> LoginRequest
+AuthService ..> TokenResponse
+AuthService ..> AuthUserDetails
+AuthService ..> AuthUserData
 
-class auth.SecurityConfig {
-  - SecurityFilter securityFilter
-  + SecurityFilterChain filterChain(HttpSecurity)
-  + AuthenticationManager authenticationManager(AuthenticationConfiguration)
-  + PasswordEncoder passwordEncoder()
-  + CorsConfigurationSource corsConfigurationSource()
-}
+JwtService ..> Claims
+JwtService ..> Key
 
-interface auth.UserAuthPort {
-  + Optional<AuthUserData> findByEmail(String)
-}
+AuthUserDetailsService ..> AuthUserDetails
+AuthUserDetailsService ..> UserDetails
+AuthUserDetailsService ..> UsernameNotFoundException
 
-class auth.AuthUserData <<record>> {
-  - UUID id
-  - String name
-  - String email
-  - String encodedPassword
-  - String role
-  - Boolean isActive
-  - LocalDateTime createdAt
-  - LocalDateTime updatedAt
-  - LocalDateTime deletedAt
-}
+AuthUserDetails ..> GrantedAuthority
 
-class auth.LoginRequest <<record>> {
-  - String email
-  - String password
-}
+UserAuthPort ..> AuthUserData
 
-class auth.TokenResponse <<record>> {
-  - String token
-  - UUID id
-  - String name
-  - String email
-  - String role
-  - Boolean isActive
-  - LocalDateTime createdAt
-  - LocalDateTime updatedAt
-  - LocalDateTime deletedAt
-}
+SecurityFilter ..> HttpServletRequest
+SecurityFilter ..> HttpServletResponse
+SecurityFilter ..> FilterChain
+SecurityFilter ..> AuthUserDetails
+SecurityFilter ..> AuthUserData
 
-' Herança / Implementação
-org.springframework.security.core.userdetails.UserDetailsService <|.. auth.AuthUserDetailsService
-org.springframework.security.core.userdetails.UserDetails <|.. auth.AuthUserDetails
-org.springframework.web.filter.OncePerRequestFilter <|-- auth.SecurityFilter
-auth.UserAuthPort <|.. user.infrastructure.auth.UserAuthAdapter
-
-' Composição
-auth.AuthUserDetails *-- auth.AuthUserData
-
-' Dependências por campo (injeção)
-auth.AuthController --> auth.AuthService
-auth.AuthService --> auth.JwtService
-auth.AuthUserDetailsService --> auth.UserAuthPort
-auth.SecurityFilter --> auth.JwtService
-auth.SecurityFilter --> auth.UserAuthPort
-auth.SecurityConfig --> auth.SecurityFilter
-
-' Uso (parâmetros e retornos de métodos)
-auth.AuthController ..> auth.LoginRequest
-auth.AuthController ..> auth.TokenResponse
-auth.AuthService ..> auth.LoginRequest
-auth.AuthService ..> auth.TokenResponse
-auth.AuthService ..> auth.AuthUserDetails
-auth.AuthUserDetailsService ..> auth.AuthUserDetails
-auth.UserAuthPort ..> auth.AuthUserData
+SecurityConfig ..> SecurityFilterChain
+SecurityConfig ..> HttpSecurity
+SecurityConfig ..> AuthenticationConfiguration
+SecurityConfig ..> AuthenticationManager
+SecurityConfig ..> PasswordEncoder
+SecurityConfig ..> CorsConfigurationSource
 
 @enduml

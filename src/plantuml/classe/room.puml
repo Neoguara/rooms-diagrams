@@ -1,8 +1,13 @@
-@startuml
+@startuml room
 
-skinparam linetype ortho
-skinparam packageStyle rectangle
+' Módulo room: prédio, sala, tipo de sala e recurso.
+' Fonte: com.neoguara.rooms.room (rooms-backend).
+'
+' Critério desta versão: dentro do módulo, todas as classes e todos os membros. Fora do
+' módulo, aparece o que é supertipo, campo, tipo de assinatura ou exceção lançada.
+
 left to right direction
+skinparam packageStyle rectangle
 
 package "Domain" #EEF2FF {
 
@@ -15,12 +20,21 @@ package "Domain" #EEF2FF {
       - BuildingStatus status
       - LocalDateTime createdAt
       - LocalDateTime updatedAt
+      ~ Building()
+      - Building(String,String,Integer)
       + {static} Building create(String,String,Integer)
       + void update(String,String,Integer)
       + void activate()
       + void deactivate()
       + void delete()
       + boolean isAvailable()
+      + BuildingId getId()
+      + String getName()
+      + String getAddress()
+      + Integer getTotalFloors()
+      + BuildingStatus getStatus()
+      + LocalDateTime getCreatedAt()
+      + LocalDateTime getUpdatedAt()
     }
     class Room {
       - RoomId id
@@ -33,12 +47,24 @@ package "Domain" #EEF2FF {
       - RoomStatus status
       - LocalDateTime createdAt
       - LocalDateTime updatedAt
+      ~ Room()
+      - Room(String,String,RoomTypeId,BuildingId,int,int)
       + {static} Room create(String,String,RoomTypeId,BuildingId,int,int)
       + void update(String,String,RoomTypeId,BuildingId,int,int)
       + void activate()
       + void deactivate()
       + void putUnderMaintenance()
       + void delete()
+      + RoomId getId()
+      + String getName()
+      + String getCode()
+      + RoomTypeId getRoomTypeId()
+      + BuildingId getBuildingId()
+      + Integer getFloor()
+      + Integer getCapacity()
+      + RoomStatus getStatus()
+      + LocalDateTime getCreatedAt()
+      + LocalDateTime getUpdatedAt()
     }
     class RoomType {
       - RoomTypeId id
@@ -50,11 +76,22 @@ package "Domain" #EEF2FF {
       - RoomTypeStatus status
       - LocalDateTime createdAt
       - LocalDateTime updatedAt
+      ~ RoomType()
+      - RoomType(String,String,String,String,String)
       + {static} RoomType create(String,String,String,String,String)
       + void update(String,String,String,String,String)
       + void activate()
       + void deactivate()
       + void delete()
+      + RoomTypeId getId()
+      + String getName()
+      + String getDescription()
+      + String getDefaultCapacity()
+      + String getColor()
+      + String getIcon()
+      + RoomTypeStatus getStatus()
+      + LocalDateTime getCreatedAt()
+      + LocalDateTime getUpdatedAt()
     }
     class Resource {
       - ResourceId id
@@ -64,42 +101,71 @@ package "Domain" #EEF2FF {
       - ResourceStatus status
       - LocalDateTime createdAt
       - LocalDateTime updatedAt
+      ~ Resource()
+      - Resource(String,String,String)
       + {static} Resource create(String,String,String)
       + void update(String,String,String)
       + void activate()
       + void deactivate()
       + void delete()
+      + ResourceId getId()
+      + String getName()
+      + String getDescription()
+      + String getIcon()
+      + ResourceStatus getStatus()
+      + LocalDateTime getCreatedAt()
+      + LocalDateTime getUpdatedAt()
     }
     class RoomResource {
       - RoomResourceId id
       - RoomId roomId
       - ResourceId resourceId
       - LocalDateTime createdAt
+      ~ RoomResource()
       + RoomResource(RoomId,ResourceId)
       + {static} RoomResource create(RoomId,ResourceId)
+      + RoomResourceId getId()
+      + RoomId getRoomId()
+      + ResourceId getResourceId()
+      + LocalDateTime getCreatedAt()
     }
   }
 
   package "valueobjects" {
-    class BuildingId <<record>> {
+    class BuildingId <<record>> <<Embeddable>> {
       - UUID id
+      + BuildingId(UUID)
+      + BuildingId()
       + {static} BuildingId of(UUID)
+      + UUID id()
     }
-    class RoomId <<record>> {
+    class RoomId <<record>> <<Embeddable>> {
       - UUID id
+      + RoomId(UUID)
+      + RoomId()
       + {static} RoomId of(UUID)
+      + UUID id()
     }
-    class RoomTypeId <<record>> {
+    class RoomTypeId <<record>> <<Embeddable>> {
       - UUID id
+      + RoomTypeId(UUID)
+      + RoomTypeId()
       + {static} RoomTypeId of(UUID)
+      + UUID id()
     }
-    class ResourceId <<record>> {
+    class ResourceId <<record>> <<Embeddable>> {
       - UUID id
+      + ResourceId(UUID)
+      + ResourceId()
       + {static} ResourceId of(UUID)
+      + UUID id()
     }
-    class RoomResourceId <<record>> {
+    class RoomResourceId <<record>> <<Embeddable>> {
       - UUID id
+      + RoomResourceId(UUID)
+      + RoomResourceId()
       + {static} RoomResourceId of(UUID)
+      + UUID id()
     }
   }
 
@@ -167,148 +233,190 @@ package "Application" #F0FFF0 {
       + List<Resource> findAllById(List<ResourceId>)
       + List<Resource> findAll()
     }
-    interface RoomAvailabilityPort {
-      + Set<UUID> findOccupiedRoomIds(LocalDateTime,LocalDateTime)
-    }
     interface RoomResourceRepositoryPort {
       + RoomResource save(RoomResource)
       + List<RoomResource> findByRoomId(RoomId)
       + void deleteByRoomId(RoomId)
     }
+    interface RoomAvailabilityPort {
+      + Set<UUID> findOccupiedRoomIds(LocalDateTime,LocalDateTime)
+    }
   }
 
-  package "usecases" {
-    class CreateBuildingUseCase {
+  package "mappers" {
+    class BuildingMapper {
+      - BuildingMapper()
+      + {static} Building toDomain(CreateBuildingRequest)
+      + {static} BuildingResponse toResponse(Building)
+    }
+    class ResourceMapper {
+      - ResourceMapper()
+      + {static} Resource toDomain(CreateResourceRequest)
+      + {static} ResourceResponse toResponse(Resource)
+    }
+    class RoomMapper {
+      - RoomMapper()
+      + {static} Room toDomain(CreateRoomRequest)
+      + {static} RoomResponse toResponse(Room)
+      + {static} RoomDetailResponse toDetailResponse(Room,BuildingResponse,RoomTypeResponse,List<ResourceResponse>)
+    }
+    class RoomTypeMapper {
+      - RoomTypeMapper()
+      + {static} RoomType toDomain(CreateRoomTypeRequest)
+      + {static} RoomTypeResponse toResponse(RoomType)
+    }
+  }
+
+  package "usecases.building" {
+    class CreateBuildingUseCase <<Service>> {
       - BuildingRepositoryPort repository
+      + CreateBuildingUseCase(BuildingRepositoryPort)
       + BuildingResponse execute(CreateBuildingRequest)
     }
-    class GetBuildingUseCase {
+    class GetBuildingUseCase <<Service>> {
       - BuildingRepositoryPort repository
+      + GetBuildingUseCase(BuildingRepositoryPort)
       + BuildingResponse findById(UUID)
       + List<BuildingResponse> findAll()
     }
-    class UpdateBuildingUseCase {
+    class UpdateBuildingUseCase <<Service>> {
       - BuildingRepositoryPort repository
+      + UpdateBuildingUseCase(BuildingRepositoryPort)
       + BuildingResponse execute(UUID,UpdateBuildingRequest)
     }
-    class UpdateBuildingStatusUseCase {
+    class UpdateBuildingStatusUseCase <<Service>> {
       - BuildingRepositoryPort repository
+      + UpdateBuildingStatusUseCase(BuildingRepositoryPort)
       + BuildingResponse execute(UUID,UpdateBuildingStatusRequest.Status)
     }
-    class DeleteBuildingUseCase {
+    class DeleteBuildingUseCase <<Service>> {
       - BuildingRepositoryPort repository
+      + DeleteBuildingUseCase(BuildingRepositoryPort)
       + void execute(UUID)
     }
-    class CreateResourceUseCase {
+  }
+
+  package "usecases.resource" {
+    class CreateResourceUseCase <<Service>> {
       - ResourceRepositoryPort repository
+      + CreateResourceUseCase(ResourceRepositoryPort)
       + ResourceResponse execute(CreateResourceRequest)
     }
-    class GetResourceUseCase {
+    class GetResourceUseCase <<Service>> {
       - ResourceRepositoryPort repository
+      + GetResourceUseCase(ResourceRepositoryPort)
       + ResourceResponse findById(UUID)
       + List<ResourceResponse> findAll()
     }
-    class UpdateResourceUseCase {
+    class UpdateResourceUseCase <<Service>> {
       - ResourceRepositoryPort repository
+      + UpdateResourceUseCase(ResourceRepositoryPort)
       + ResourceResponse execute(UUID,UpdateResourceRequest)
     }
-    class UpdateResourceStatusUseCase {
+    class UpdateResourceStatusUseCase <<Service>> {
       - ResourceRepositoryPort repository
+      + UpdateResourceStatusUseCase(ResourceRepositoryPort)
       + ResourceResponse execute(UUID,UpdateResourceStatusRequest.Status)
     }
-    class DeleteResourceUseCase {
+    class DeleteResourceUseCase <<Service>> {
       - ResourceRepositoryPort repository
+      + DeleteResourceUseCase(ResourceRepositoryPort)
       + void execute(UUID)
     }
-    class CreateRoomTypeUseCase {
+  }
+
+  package "usecases.roomtype" {
+    class CreateRoomTypeUseCase <<Service>> {
       - RoomTypeRepositoryPort repository
+      + CreateRoomTypeUseCase(RoomTypeRepositoryPort)
       + RoomTypeResponse execute(CreateRoomTypeRequest)
     }
-    class GetRoomTypeUseCase {
+    class GetRoomTypeUseCase <<Service>> {
       - RoomTypeRepositoryPort repository
+      + GetRoomTypeUseCase(RoomTypeRepositoryPort)
       + RoomTypeResponse findById(UUID)
       + List<RoomTypeResponse> findAll()
     }
-    class UpdateRoomTypeUseCase {
+    class UpdateRoomTypeUseCase <<Service>> {
       - RoomTypeRepositoryPort repository
+      + UpdateRoomTypeUseCase(RoomTypeRepositoryPort)
       + RoomTypeResponse execute(UUID,UpdateRoomTypeRequest)
     }
-    class UpdateRoomTypeStatusUseCase {
+    class UpdateRoomTypeStatusUseCase <<Service>> {
       - RoomTypeRepositoryPort repository
+      + UpdateRoomTypeStatusUseCase(RoomTypeRepositoryPort)
       + RoomTypeResponse execute(UUID,UpdateRoomTypeStatusRequest.Status)
     }
-    class DeleteRoomTypeUseCase {
+    class DeleteRoomTypeUseCase <<Service>> {
       - RoomTypeRepositoryPort repository
+      + DeleteRoomTypeUseCase(RoomTypeRepositoryPort)
       + void execute(UUID)
     }
-    class CreateRoomUseCase {
+  }
+
+  package "usecases.room" {
+    class CreateRoomUseCase <<Service>> {
       - RoomRepositoryPort roomRepository
       - RoomResourceRepositoryPort roomResourceRepository
       - ResourceRepositoryPort resourceRepository
-      + RoomResponse execute(CreateRoomRequest)
+      + CreateRoomUseCase(RoomRepositoryPort,RoomResourceRepositoryPort,ResourceRepositoryPort)
+      + RoomResponse execute(CreateRoomRequest) <<Transactional>>
     }
-    class GetRoomUseCase {
+    class GetRoomUseCase <<Service>> {
       - RoomRepositoryPort roomRepository
       - BuildingRepositoryPort buildingRepository
       - RoomTypeRepositoryPort roomTypeRepository
       - RoomResourceRepositoryPort roomResourceRepository
       - ResourceRepositoryPort resourceRepository
+      + GetRoomUseCase(RoomRepositoryPort,BuildingRepositoryPort,RoomTypeRepositoryPort,RoomResourceRepositoryPort,ResourceRepositoryPort)
       + RoomDetailResponse findById(UUID,Set<RoomExpandField>)
       + List<RoomDetailResponse> findAll(Set<RoomExpandField>)
+      - RoomDetailResponse toDetailResponse(Room,Set<RoomExpandField>)
+      - List<ResourceResponse> fetchResources(Room)
     }
-    class GetAvailableRoomsUseCase {
+    class GetAvailableRoomsUseCase <<Service>> {
       - RoomRepositoryPort roomRepository
       - RoomResourceRepositoryPort roomResourceRepository
       - ResourceRepositoryPort resourceRepository
       - BuildingRepositoryPort buildingRepository
       - RoomTypeRepositoryPort roomTypeRepository
       - RoomAvailabilityPort roomAvailabilityPort
+      + GetAvailableRoomsUseCase(RoomRepositoryPort,RoomResourceRepositoryPort,ResourceRepositoryPort,BuildingRepositoryPort,RoomTypeRepositoryPort,RoomAvailabilityPort)
       + List<RoomDetailResponse> execute(RoomAvailabilityFilter,Set<RoomExpandField>)
+      - boolean hasAnyBuildings(Room,List<UUID>)
+      - boolean hasAnyRoomTypes(Room,List<UUID>)
       - boolean hasAllResources(RoomId,List<UUID>)
+      - RoomDetailResponse toDetailResponse(Room,Set<RoomExpandField>)
+      - List<ResourceResponse> fetchResources(Room)
       - boolean matchesSearch(Room,String,Map<UUID,RoomType>,Map<UUID,Building>)
+      - boolean contains(String,String)
       - void validate(RoomAvailabilityFilter)
     }
-    class UpdateRoomUseCase {
+    class UpdateRoomUseCase <<Service>> {
       - RoomRepositoryPort repository
+      + UpdateRoomUseCase(RoomRepositoryPort)
       + RoomResponse execute(UUID,UpdateRoomRequest)
     }
-    class UpdateRoomStatusUseCase {
+    class UpdateRoomStatusUseCase <<Service>> {
       - RoomRepositoryPort repository
+      + UpdateRoomStatusUseCase(RoomRepositoryPort)
       + RoomResponse execute(UUID,UpdateRoomStatusRequest.Status)
     }
-    class DeleteRoomUseCase {
+    class DeleteRoomUseCase <<Service>> {
       - RoomRepositoryPort repository
+      + DeleteRoomUseCase(RoomRepositoryPort)
       + void execute(UUID)
     }
-    class ReplaceRoomResourcesUseCase {
+    class ReplaceRoomResourcesUseCase <<Service>> {
       - RoomRepositoryPort roomRepository
       - RoomResourceRepositoryPort roomResourceRepository
       - ResourceRepositoryPort resourceRepository
-      + RoomResourcesResponse execute(UUID,ReplaceRoomResourcesRequest)
+      + ReplaceRoomResourcesUseCase(RoomRepositoryPort,RoomResourceRepositoryPort,ResourceRepositoryPort)
+      + RoomResourcesResponse execute(UUID,ReplaceRoomResourcesRequest) <<Transactional>>
     }
   }
 
-  package "mappers" {
-    class BuildingMapper {
-      + {static} Building toDomain(CreateBuildingRequest)
-      + {static} BuildingResponse toResponse(Building)
-    }
-    class ResourceMapper {
-      + {static} Resource toDomain(CreateResourceRequest)
-      + {static} ResourceResponse toResponse(Resource)
-    }
-    class RoomMapper {
-      + {static} Room toDomain(CreateRoomRequest)
-      + {static} RoomResponse toResponse(Room)
-      + {static} RoomDetailResponse toDetailResponse(Room,BuildingResponse,RoomTypeResponse,List<ResourceResponse>)
-    }
-    class RoomTypeMapper {
-      + {static} RoomType toDomain(CreateRoomTypeRequest)
-      + {static} RoomTypeResponse toResponse(RoomType)
-    }
-  }
-
-  package "dtos" {
+  package "dtos.building" {
     class CreateBuildingRequest <<record>> {
       - String name
       - String address
@@ -322,6 +430,10 @@ package "Application" #F0FFF0 {
     class UpdateBuildingStatusRequest <<record>> {
       - Status status
     }
+    enum "UpdateBuildingStatusRequest.Status" as UpdateBuildingStatusRequestStatus {
+      ACTIVE
+      INACTIVE
+    }
     class BuildingResponse <<record>> {
       - UUID id
       - String name
@@ -331,6 +443,9 @@ package "Application" #F0FFF0 {
       - LocalDateTime createdAt
       - LocalDateTime updatedAt
     }
+  }
+
+  package "dtos.resource" {
     class CreateResourceRequest <<record>> {
       - String name
       - String description
@@ -344,6 +459,10 @@ package "Application" #F0FFF0 {
     class UpdateResourceStatusRequest <<record>> {
       - Status status
     }
+    enum "UpdateResourceStatusRequest.Status" as UpdateResourceStatusRequestStatus {
+      ACTIVE
+      INACTIVE
+    }
     class ResourceResponse <<record>> {
       - UUID id
       - String name
@@ -353,6 +472,9 @@ package "Application" #F0FFF0 {
       - LocalDateTime createdAt
       - LocalDateTime updatedAt
     }
+  }
+
+  package "dtos.roomtype" {
     class CreateRoomTypeRequest <<record>> {
       - String name
       - String description
@@ -370,6 +492,10 @@ package "Application" #F0FFF0 {
     class UpdateRoomTypeStatusRequest <<record>> {
       - Status status
     }
+    enum "UpdateRoomTypeStatusRequest.Status" as UpdateRoomTypeStatusRequestStatus {
+      ACTIVE
+      INACTIVE
+    }
     class RoomTypeResponse <<record>> {
       - UUID id
       - String name
@@ -381,6 +507,9 @@ package "Application" #F0FFF0 {
       - LocalDateTime createdAt
       - LocalDateTime updatedAt
     }
+  }
+
+  package "dtos.room" {
     class CreateRoomRequest <<record>> {
       - String name
       - String code
@@ -401,8 +530,22 @@ package "Application" #F0FFF0 {
     class UpdateRoomStatusRequest <<record>> {
       - Status status
     }
+    enum "UpdateRoomStatusRequest.Status" as UpdateRoomStatusRequestStatus {
+      AVAILABLE
+      INACTIVE
+      MAINTENANCE
+    }
     class ReplaceRoomResourcesRequest <<record>> {
       - List<UUID> resourceIds
+    }
+    class RoomAvailabilityFilter <<record>> {
+      - LocalDateTime startAt
+      - LocalDateTime endAt
+      - List<UUID> roomTypeIds
+      - List<UUID> resourceIds
+      - List<UUID> buildingIds
+      - Integer minCapacity
+      - String search
     }
     class RoomResponse <<record>> {
       - UUID id
@@ -431,15 +574,6 @@ package "Application" #F0FFF0 {
       - RoomTypeResponse roomType
       - List<ResourceResponse> resources
     }
-    class RoomAvailabilityFilter <<record>> {
-      - LocalDateTime startAt
-      - LocalDateTime endAt
-      - List<UUID> roomTypeIds
-      - List<UUID> resourceIds
-      - List<UUID> buildingIds
-      - Integer minCapacity
-      - String search
-    }
     class RoomResourcesResponse <<record>> {
       - UUID roomId
       - List<UUID> resourceIds
@@ -456,12 +590,13 @@ package "Application" #F0FFF0 {
 package "Infrastructure" #FFF8F0 {
 
   package "web" {
-    class BuildingController {
+    class BuildingController <<RestController>> {
       - CreateBuildingUseCase createBuildingUseCase
       - GetBuildingUseCase getBuildingUseCase
       - UpdateBuildingUseCase updateBuildingUseCase
       - UpdateBuildingStatusUseCase updateBuildingStatusUseCase
       - DeleteBuildingUseCase deleteBuildingUseCase
+      + BuildingController(CreateBuildingUseCase,GetBuildingUseCase,UpdateBuildingUseCase,UpdateBuildingStatusUseCase,DeleteBuildingUseCase)
       + ResponseEntity<BuildingResponse> createBuilding(CreateBuildingRequest)
       + ResponseEntity<List<BuildingResponse>> listBuildings()
       + ResponseEntity<BuildingResponse> getBuilding(UUID)
@@ -469,12 +604,13 @@ package "Infrastructure" #FFF8F0 {
       + ResponseEntity<Void> deleteBuilding(UUID)
       + ResponseEntity<BuildingResponse> updateBuildingStatus(UUID,UpdateBuildingStatusRequest)
     }
-    class ResourceController {
+    class ResourceController <<RestController>> {
       - CreateResourceUseCase createResourceUseCase
       - GetResourceUseCase getResourceUseCase
       - UpdateResourceUseCase updateResourceUseCase
       - UpdateResourceStatusUseCase updateResourceStatusUseCase
       - DeleteResourceUseCase deleteResourceUseCase
+      + ResourceController(CreateResourceUseCase,GetResourceUseCase,UpdateResourceUseCase,UpdateResourceStatusUseCase,DeleteResourceUseCase)
       + ResponseEntity<ResourceResponse> createResource(CreateResourceRequest)
       + ResponseEntity<List<ResourceResponse>> listResources()
       + ResponseEntity<ResourceResponse> getResource(UUID)
@@ -482,12 +618,13 @@ package "Infrastructure" #FFF8F0 {
       + ResponseEntity<ResourceResponse> updateResourceStatus(UUID,UpdateResourceStatusRequest)
       + ResponseEntity<Void> deleteResource(UUID)
     }
-    class RoomTypeController {
+    class RoomTypeController <<RestController>> {
       - CreateRoomTypeUseCase createRoomTypeUseCase
       - GetRoomTypeUseCase getRoomTypeUseCase
       - UpdateRoomTypeUseCase updateRoomTypeUseCase
       - UpdateRoomTypeStatusUseCase updateRoomTypeStatusUseCase
       - DeleteRoomTypeUseCase deleteRoomTypeUseCase
+      + RoomTypeController(CreateRoomTypeUseCase,GetRoomTypeUseCase,UpdateRoomTypeUseCase,UpdateRoomTypeStatusUseCase,DeleteRoomTypeUseCase)
       + ResponseEntity<RoomTypeResponse> createRoomType(CreateRoomTypeRequest)
       + ResponseEntity<List<RoomTypeResponse>> listRoomTypes()
       + ResponseEntity<RoomTypeResponse> getRoomType(UUID)
@@ -495,7 +632,7 @@ package "Infrastructure" #FFF8F0 {
       + ResponseEntity<RoomTypeResponse> updateRoomTypeStatus(UUID,UpdateRoomTypeStatusRequest)
       + ResponseEntity<Void> deleteRoomType(UUID)
     }
-    class RoomController {
+    class RoomController <<RestController>> {
       - CreateRoomUseCase createRoomUseCase
       - GetRoomUseCase getRoomUseCase
       - GetAvailableRoomsUseCase getAvailableRoomsUseCase
@@ -503,6 +640,7 @@ package "Infrastructure" #FFF8F0 {
       - UpdateRoomStatusUseCase updateRoomStatusUseCase
       - DeleteRoomUseCase deleteRoomUseCase
       - ReplaceRoomResourcesUseCase replaceRoomResourcesUseCase
+      + RoomController(CreateRoomUseCase,GetRoomUseCase,GetAvailableRoomsUseCase,UpdateRoomUseCase,UpdateRoomStatusUseCase,DeleteRoomUseCase,ReplaceRoomResourcesUseCase)
       + ResponseEntity<RoomResponse> createRoom(CreateRoomRequest)
       + ResponseEntity<List<RoomDetailResponse>> getAvailableRooms(LocalDateTime,LocalDateTime,List<UUID>,List<UUID>,List<UUID>,Integer,String,List<String>)
       + ResponseEntity<List<RoomDetailResponse>> listRooms(List<String>)
@@ -511,37 +649,43 @@ package "Infrastructure" #FFF8F0 {
       + ResponseEntity<Void> deleteRoom(UUID)
       + ResponseEntity<RoomResourcesResponse> replaceRoomResources(UUID,ReplaceRoomResourcesRequest)
       + ResponseEntity<RoomResponse> updateRoomStatus(UUID,UpdateRoomStatusRequest)
+      - Set<RoomExpandField> parseExpand(List<String>)
     }
   }
 
   package "repositories" {
-    class BuildingRepositoryImpl {
+    class BuildingRepositoryImpl <<Repository>> {
       - BuildingJpaRepository jpaRepository
+      + BuildingRepositoryImpl(BuildingJpaRepository)
       + Building save(Building)
       + Optional<Building> findById(BuildingId)
       + List<Building> findAll()
     }
-    class ResourceRepositoryImpl {
+    class ResourceRepositoryImpl <<Repository>> {
       - ResourceJpaRepository jpaRepository
+      + ResourceRepositoryImpl(ResourceJpaRepository)
       + Resource save(Resource)
       + Optional<Resource> findById(ResourceId)
       + List<Resource> findAllById(List<ResourceId>)
       + List<Resource> findAll()
     }
-    class RoomRepositoryImpl {
+    class RoomRepositoryImpl <<Repository>> {
       - RoomJpaRepository jpaRepository
+      + RoomRepositoryImpl(RoomJpaRepository)
       + Room save(Room)
       + Optional<Room> findById(RoomId)
       + List<Room> findAll()
     }
-    class RoomTypeRepositoryImpl {
+    class RoomTypeRepositoryImpl <<Repository>> {
       - RoomTypeJpaRepository jpaRepository
+      + RoomTypeRepositoryImpl(RoomTypeJpaRepository)
       + RoomType save(RoomType)
       + Optional<RoomType> findById(RoomTypeId)
       + List<RoomType> findAll()
     }
-    class RoomResourceRepositoryImpl {
+    class RoomResourceRepositoryImpl <<Repository>> {
       - RoomResourceJpaRepository jpaRepository
+      + RoomResourceRepositoryImpl(RoomResourceJpaRepository)
       + RoomResource save(RoomResource)
       + List<RoomResource> findByRoomId(RoomId)
       + void deleteByRoomId(RoomId)
@@ -570,19 +714,39 @@ package "Infrastructure" #FFF8F0 {
   }
 
   package "adapters" {
-    class RoomReportDataAdapter {
+    class RoomReportDataAdapter <<Component>> {
       - RoomRepositoryPort roomRepository
       - BuildingRepositoryPort buildingRepository
+      + RoomReportDataAdapter(RoomRepositoryPort,BuildingRepositoryPort)
       + Map<UUID,String> resolveRoomLabels(Collection<UUID>)
+      - {static} String label(Room,Map<UUID,String>)
     }
   }
 }
 
-' Implementações de interfaces
-shared.domain.validation.Validator <|.. BuildingValidator
-shared.domain.validation.Validator <|.. RoomValidator
-shared.domain.validation.Validator <|.. RoomTypeValidation
-shared.domain.validation.Validator <|.. ResourceValidation
+' Tipos de fora do módulo. Declarados aqui só para as setas terem onde chegar.
+package "Dependências externas" #F5F5F5 {
+  interface "Validator<T>" as Validator <<shared>> {
+    + void validate(T,Notification)
+  }
+  class Notification <<shared>>
+  class ResourceNotFoundException <<shared>>
+  class InvalidStateException <<shared>>
+  class DomainValidationException <<shared>>
+  interface RoomReportDataPort <<report>> {
+    + Map<UUID,String> resolveRoomLabels(Collection<UUID>)
+  }
+  class EventAvailabilityAdapter <<event>> {
+    + Set<UUID> findOccupiedRoomIds(LocalDateTime,LocalDateTime)
+  }
+  interface JpaRepository <<spring data>>
+}
+
+' ── Herança e implementação ────────────────────────────
+Validator <|.. BuildingValidator
+Validator <|.. RoomValidator
+Validator <|.. RoomTypeValidation
+Validator <|.. ResourceValidation
 
 BuildingRepositoryPort <|.. BuildingRepositoryImpl
 RoomRepositoryPort <|.. RoomRepositoryImpl
@@ -596,11 +760,87 @@ JpaRepository <|-- RoomJpaRepository
 JpaRepository <|-- RoomTypeJpaRepository
 JpaRepository <|-- RoomResourceJpaRepository
 
-' Portas implementadas por outros módulos
-event.infrastructure.adapters.EventAvailabilityAdapter ..|> RoomAvailabilityPort
-report.application.ports.RoomReportDataPort <|.. RoomReportDataAdapter
+' Portas que este módulo expõe e outro implementa, e vice-versa
+RoomAvailabilityPort <|.. EventAvailabilityAdapter
+RoomReportDataPort <|.. RoomReportDataAdapter
 
-' Composição: Entidades Value Objects e Enums
+' ── Campos: controllers ────────────────────────────────
+BuildingController --> CreateBuildingUseCase
+BuildingController --> GetBuildingUseCase
+BuildingController --> UpdateBuildingUseCase
+BuildingController --> UpdateBuildingStatusUseCase
+BuildingController --> DeleteBuildingUseCase
+
+ResourceController --> CreateResourceUseCase
+ResourceController --> GetResourceUseCase
+ResourceController --> UpdateResourceUseCase
+ResourceController --> UpdateResourceStatusUseCase
+ResourceController --> DeleteResourceUseCase
+
+RoomTypeController --> CreateRoomTypeUseCase
+RoomTypeController --> GetRoomTypeUseCase
+RoomTypeController --> UpdateRoomTypeUseCase
+RoomTypeController --> UpdateRoomTypeStatusUseCase
+RoomTypeController --> DeleteRoomTypeUseCase
+
+RoomController --> CreateRoomUseCase
+RoomController --> GetRoomUseCase
+RoomController --> GetAvailableRoomsUseCase
+RoomController --> UpdateRoomUseCase
+RoomController --> UpdateRoomStatusUseCase
+RoomController --> DeleteRoomUseCase
+RoomController --> ReplaceRoomResourcesUseCase
+
+' ── Campos: casos de uso e portas ──────────────────────
+CreateBuildingUseCase --> BuildingRepositoryPort
+GetBuildingUseCase --> BuildingRepositoryPort
+UpdateBuildingUseCase --> BuildingRepositoryPort
+UpdateBuildingStatusUseCase --> BuildingRepositoryPort
+DeleteBuildingUseCase --> BuildingRepositoryPort
+
+CreateResourceUseCase --> ResourceRepositoryPort
+GetResourceUseCase --> ResourceRepositoryPort
+UpdateResourceUseCase --> ResourceRepositoryPort
+UpdateResourceStatusUseCase --> ResourceRepositoryPort
+DeleteResourceUseCase --> ResourceRepositoryPort
+
+CreateRoomTypeUseCase --> RoomTypeRepositoryPort
+GetRoomTypeUseCase --> RoomTypeRepositoryPort
+UpdateRoomTypeUseCase --> RoomTypeRepositoryPort
+UpdateRoomTypeStatusUseCase --> RoomTypeRepositoryPort
+DeleteRoomTypeUseCase --> RoomTypeRepositoryPort
+
+CreateRoomUseCase --> RoomRepositoryPort
+CreateRoomUseCase --> RoomResourceRepositoryPort
+CreateRoomUseCase --> ResourceRepositoryPort
+GetRoomUseCase --> RoomRepositoryPort
+GetRoomUseCase --> BuildingRepositoryPort
+GetRoomUseCase --> RoomTypeRepositoryPort
+GetRoomUseCase --> RoomResourceRepositoryPort
+GetRoomUseCase --> ResourceRepositoryPort
+GetAvailableRoomsUseCase --> RoomRepositoryPort
+GetAvailableRoomsUseCase --> RoomResourceRepositoryPort
+GetAvailableRoomsUseCase --> ResourceRepositoryPort
+GetAvailableRoomsUseCase --> BuildingRepositoryPort
+GetAvailableRoomsUseCase --> RoomTypeRepositoryPort
+GetAvailableRoomsUseCase --> RoomAvailabilityPort
+UpdateRoomUseCase --> RoomRepositoryPort
+UpdateRoomStatusUseCase --> RoomRepositoryPort
+DeleteRoomUseCase --> RoomRepositoryPort
+ReplaceRoomResourcesUseCase --> RoomRepositoryPort
+ReplaceRoomResourcesUseCase --> RoomResourceRepositoryPort
+ReplaceRoomResourcesUseCase --> ResourceRepositoryPort
+
+' ── Campos: infraestrutura ─────────────────────────────
+BuildingRepositoryImpl --> BuildingJpaRepository
+ResourceRepositoryImpl --> ResourceJpaRepository
+RoomRepositoryImpl --> RoomJpaRepository
+RoomTypeRepositoryImpl --> RoomTypeJpaRepository
+RoomResourceRepositoryImpl --> RoomResourceJpaRepository
+RoomReportDataAdapter --> RoomRepositoryPort
+RoomReportDataAdapter --> BuildingRepositoryPort
+
+' ── Campos: domínio ────────────────────────────────────
 Building *-- BuildingId
 Building --> BuildingStatus
 Room *-- RoomId
@@ -615,13 +855,188 @@ RoomResource *-- RoomResourceId
 RoomResource --> RoomId
 RoomResource --> ResourceId
 
-'Validators
-BuildingValidator ..> Building
-RoomValidator ..> Room
-RoomTypeValidation ..> RoomType
-ResourceValidation ..> Resource
+' ── Campos: DTOs ───────────────────────────────────────
+BuildingResponse --> BuildingStatus
+ResourceResponse --> ResourceStatus
+RoomTypeResponse --> RoomTypeStatus
+RoomResponse --> RoomStatus
+RoomDetailResponse --> RoomStatus
+RoomDetailResponse --> BuildingResponse
+RoomDetailResponse --> RoomTypeResponse
+RoomDetailResponse --> ResourceResponse
+UpdateBuildingStatusRequest *-- UpdateBuildingStatusRequestStatus
+UpdateResourceStatusRequest *-- UpdateResourceStatusRequestStatus
+UpdateRoomTypeStatusRequest *-- UpdateRoomTypeStatusRequestStatus
+UpdateRoomStatusRequest *-- UpdateRoomStatusRequestStatus
 
-' Mappers Domínio e DTOs
+' ── Uso: controllers e DTOs ────────────────────────────
+BuildingController ..> CreateBuildingRequest
+BuildingController ..> UpdateBuildingRequest
+BuildingController ..> UpdateBuildingStatusRequest
+BuildingController ..> BuildingResponse
+ResourceController ..> CreateResourceRequest
+ResourceController ..> UpdateResourceRequest
+ResourceController ..> UpdateResourceStatusRequest
+ResourceController ..> ResourceResponse
+RoomTypeController ..> CreateRoomTypeRequest
+RoomTypeController ..> UpdateRoomTypeRequest
+RoomTypeController ..> UpdateRoomTypeStatusRequest
+RoomTypeController ..> RoomTypeResponse
+RoomController ..> CreateRoomRequest
+RoomController ..> UpdateRoomRequest
+RoomController ..> UpdateRoomStatusRequest
+RoomController ..> ReplaceRoomResourcesRequest
+RoomController ..> RoomAvailabilityFilter
+RoomController ..> RoomResponse
+RoomController ..> RoomDetailResponse
+RoomController ..> RoomResourcesResponse
+RoomController ..> RoomExpandField
+
+' ── Uso: casos de uso de building ──────────────────────
+CreateBuildingUseCase ..> BuildingMapper
+CreateBuildingUseCase ..> CreateBuildingRequest
+CreateBuildingUseCase ..> BuildingResponse
+CreateBuildingUseCase ..> Building
+GetBuildingUseCase ..> BuildingMapper
+GetBuildingUseCase ..> BuildingResponse
+GetBuildingUseCase ..> BuildingId
+GetBuildingUseCase ..> ResourceNotFoundException
+UpdateBuildingUseCase ..> BuildingMapper
+UpdateBuildingUseCase ..> UpdateBuildingRequest
+UpdateBuildingUseCase ..> BuildingResponse
+UpdateBuildingUseCase ..> Building
+UpdateBuildingUseCase ..> BuildingId
+UpdateBuildingUseCase ..> ResourceNotFoundException
+UpdateBuildingStatusUseCase ..> BuildingMapper
+UpdateBuildingStatusUseCase ..> UpdateBuildingStatusRequestStatus
+UpdateBuildingStatusUseCase ..> BuildingResponse
+UpdateBuildingStatusUseCase ..> Building
+UpdateBuildingStatusUseCase ..> BuildingId
+UpdateBuildingStatusUseCase ..> ResourceNotFoundException
+DeleteBuildingUseCase ..> Building
+DeleteBuildingUseCase ..> BuildingId
+DeleteBuildingUseCase ..> ResourceNotFoundException
+
+' ── Uso: casos de uso de resource ──────────────────────
+CreateResourceUseCase ..> ResourceMapper
+CreateResourceUseCase ..> CreateResourceRequest
+CreateResourceUseCase ..> ResourceResponse
+CreateResourceUseCase ..> Resource
+GetResourceUseCase ..> ResourceMapper
+GetResourceUseCase ..> ResourceResponse
+GetResourceUseCase ..> ResourceId
+GetResourceUseCase ..> ResourceNotFoundException
+UpdateResourceUseCase ..> ResourceMapper
+UpdateResourceUseCase ..> UpdateResourceRequest
+UpdateResourceUseCase ..> ResourceResponse
+UpdateResourceUseCase ..> Resource
+UpdateResourceUseCase ..> ResourceId
+UpdateResourceUseCase ..> ResourceNotFoundException
+UpdateResourceStatusUseCase ..> ResourceMapper
+UpdateResourceStatusUseCase ..> UpdateResourceStatusRequestStatus
+UpdateResourceStatusUseCase ..> ResourceResponse
+UpdateResourceStatusUseCase ..> Resource
+UpdateResourceStatusUseCase ..> ResourceId
+UpdateResourceStatusUseCase ..> ResourceNotFoundException
+DeleteResourceUseCase ..> Resource
+DeleteResourceUseCase ..> ResourceId
+DeleteResourceUseCase ..> ResourceNotFoundException
+
+' ── Uso: casos de uso de room type ─────────────────────
+CreateRoomTypeUseCase ..> RoomTypeMapper
+CreateRoomTypeUseCase ..> CreateRoomTypeRequest
+CreateRoomTypeUseCase ..> RoomTypeResponse
+CreateRoomTypeUseCase ..> RoomType
+GetRoomTypeUseCase ..> RoomTypeMapper
+GetRoomTypeUseCase ..> RoomTypeResponse
+GetRoomTypeUseCase ..> RoomTypeId
+GetRoomTypeUseCase ..> ResourceNotFoundException
+UpdateRoomTypeUseCase ..> RoomTypeMapper
+UpdateRoomTypeUseCase ..> UpdateRoomTypeRequest
+UpdateRoomTypeUseCase ..> RoomTypeResponse
+UpdateRoomTypeUseCase ..> RoomType
+UpdateRoomTypeUseCase ..> RoomTypeId
+UpdateRoomTypeUseCase ..> ResourceNotFoundException
+UpdateRoomTypeStatusUseCase ..> RoomTypeMapper
+UpdateRoomTypeStatusUseCase ..> UpdateRoomTypeStatusRequestStatus
+UpdateRoomTypeStatusUseCase ..> RoomTypeResponse
+UpdateRoomTypeStatusUseCase ..> RoomType
+UpdateRoomTypeStatusUseCase ..> RoomTypeId
+UpdateRoomTypeStatusUseCase ..> ResourceNotFoundException
+DeleteRoomTypeUseCase ..> RoomType
+DeleteRoomTypeUseCase ..> RoomTypeId
+DeleteRoomTypeUseCase ..> ResourceNotFoundException
+
+' ── Uso: casos de uso de room ──────────────────────────
+CreateRoomUseCase ..> RoomMapper
+CreateRoomUseCase ..> CreateRoomRequest
+CreateRoomUseCase ..> RoomResponse
+CreateRoomUseCase ..> Room
+CreateRoomUseCase ..> RoomResource
+CreateRoomUseCase ..> ResourceId
+CreateRoomUseCase ..> ResourceNotFoundException
+
+GetRoomUseCase ..> RoomMapper
+GetRoomUseCase ..> BuildingMapper
+GetRoomUseCase ..> RoomTypeMapper
+GetRoomUseCase ..> ResourceMapper
+GetRoomUseCase ..> RoomDetailResponse
+GetRoomUseCase ..> BuildingResponse
+GetRoomUseCase ..> RoomTypeResponse
+GetRoomUseCase ..> ResourceResponse
+GetRoomUseCase ..> RoomExpandField
+GetRoomUseCase ..> Room
+GetRoomUseCase ..> RoomId
+GetRoomUseCase ..> ResourceId
+GetRoomUseCase ..> ResourceNotFoundException
+
+GetAvailableRoomsUseCase ..> RoomMapper
+GetAvailableRoomsUseCase ..> BuildingMapper
+GetAvailableRoomsUseCase ..> RoomTypeMapper
+GetAvailableRoomsUseCase ..> ResourceMapper
+GetAvailableRoomsUseCase ..> RoomAvailabilityFilter
+GetAvailableRoomsUseCase ..> RoomDetailResponse
+GetAvailableRoomsUseCase ..> BuildingResponse
+GetAvailableRoomsUseCase ..> RoomTypeResponse
+GetAvailableRoomsUseCase ..> ResourceResponse
+GetAvailableRoomsUseCase ..> RoomExpandField
+GetAvailableRoomsUseCase ..> Room
+GetAvailableRoomsUseCase ..> RoomType
+GetAvailableRoomsUseCase ..> Building
+GetAvailableRoomsUseCase ..> Resource
+GetAvailableRoomsUseCase ..> RoomId
+GetAvailableRoomsUseCase ..> ResourceId
+GetAvailableRoomsUseCase ..> RoomStatus
+GetAvailableRoomsUseCase ..> Notification
+
+UpdateRoomUseCase ..> RoomMapper
+UpdateRoomUseCase ..> UpdateRoomRequest
+UpdateRoomUseCase ..> RoomResponse
+UpdateRoomUseCase ..> Room
+UpdateRoomUseCase ..> RoomId
+UpdateRoomUseCase ..> RoomTypeId
+UpdateRoomUseCase ..> BuildingId
+UpdateRoomUseCase ..> ResourceNotFoundException
+
+UpdateRoomStatusUseCase ..> RoomMapper
+UpdateRoomStatusUseCase ..> UpdateRoomStatusRequestStatus
+UpdateRoomStatusUseCase ..> RoomResponse
+UpdateRoomStatusUseCase ..> Room
+UpdateRoomStatusUseCase ..> RoomId
+UpdateRoomStatusUseCase ..> ResourceNotFoundException
+
+DeleteRoomUseCase ..> Room
+DeleteRoomUseCase ..> RoomId
+DeleteRoomUseCase ..> ResourceNotFoundException
+
+ReplaceRoomResourcesUseCase ..> ReplaceRoomResourcesRequest
+ReplaceRoomResourcesUseCase ..> RoomResourcesResponse
+ReplaceRoomResourcesUseCase ..> RoomResource
+ReplaceRoomResourcesUseCase ..> RoomId
+ReplaceRoomResourcesUseCase ..> ResourceId
+ReplaceRoomResourcesUseCase ..> ResourceNotFoundException
+
+' ── Uso: mappers ───────────────────────────────────────
 BuildingMapper ..> Building
 BuildingMapper ..> CreateBuildingRequest
 BuildingMapper ..> BuildingResponse
@@ -629,6 +1044,8 @@ ResourceMapper ..> Resource
 ResourceMapper ..> CreateResourceRequest
 ResourceMapper ..> ResourceResponse
 RoomMapper ..> Room
+RoomMapper ..> RoomTypeId
+RoomMapper ..> BuildingId
 RoomMapper ..> CreateRoomRequest
 RoomMapper ..> RoomResponse
 RoomMapper ..> RoomDetailResponse
@@ -639,178 +1056,63 @@ RoomTypeMapper ..> RoomType
 RoomTypeMapper ..> CreateRoomTypeRequest
 RoomTypeMapper ..> RoomTypeResponse
 
-' DTOs compostos
-RoomDetailResponse --> BuildingResponse
-RoomDetailResponse --> RoomTypeResponse
-RoomDetailResponse --> ResourceResponse
-RoomDetailResponse --> RoomStatus
-RoomResponse --> RoomStatus
-BuildingResponse --> BuildingStatus
-ResourceResponse --> ResourceStatus
-RoomTypeResponse --> RoomTypeStatus
+' ── Uso: domínio ───────────────────────────────────────
+Building ..> BuildingValidator
+Room ..> RoomValidator
+RoomType ..> RoomTypeValidation
+Resource ..> ResourceValidation
+Building ..> Notification
+Room ..> Notification
+RoomType ..> Notification
+Resource ..> Notification
+Building ..> InvalidStateException
+Room ..> InvalidStateException
+RoomType ..> InvalidStateException
+Resource ..> InvalidStateException
 
-'Use Cases Building Ports e DTOs
-CreateBuildingUseCase --> BuildingRepositoryPort
-CreateBuildingUseCase ..> CreateBuildingRequest
-CreateBuildingUseCase ..> BuildingResponse
-CreateBuildingUseCase ..> BuildingMapper
-DeleteBuildingUseCase --> BuildingRepositoryPort
-GetBuildingUseCase --> BuildingRepositoryPort
-GetBuildingUseCase ..> BuildingResponse
-GetBuildingUseCase ..> BuildingMapper
-UpdateBuildingUseCase --> BuildingRepositoryPort
-UpdateBuildingUseCase ..> UpdateBuildingRequest
-UpdateBuildingUseCase ..> BuildingResponse
-UpdateBuildingUseCase ..> BuildingMapper
-UpdateBuildingStatusUseCase --> BuildingRepositoryPort
-UpdateBuildingStatusUseCase ..> UpdateBuildingStatusRequest
-UpdateBuildingStatusUseCase ..> BuildingResponse
-UpdateBuildingStatusUseCase ..> BuildingMapper
+BuildingValidator ..> Building
+BuildingValidator ..> Notification
+RoomValidator ..> Room
+RoomValidator ..> Notification
+RoomTypeValidation ..> RoomType
+RoomTypeValidation ..> Notification
+ResourceValidation ..> Resource
+ResourceValidation ..> Notification
 
-'Use Cases Resource Ports e DTOs
-CreateResourceUseCase --> ResourceRepositoryPort
-CreateResourceUseCase ..> CreateResourceRequest
-CreateResourceUseCase ..> ResourceResponse
-CreateResourceUseCase ..> ResourceMapper
-DeleteResourceUseCase --> ResourceRepositoryPort
-GetResourceUseCase --> ResourceRepositoryPort
-GetResourceUseCase ..> ResourceResponse
-GetResourceUseCase ..> ResourceMapper
-UpdateResourceUseCase --> ResourceRepositoryPort
-UpdateResourceUseCase ..> UpdateResourceRequest
-UpdateResourceUseCase ..> ResourceResponse
-UpdateResourceUseCase ..> ResourceMapper
-UpdateResourceStatusUseCase --> ResourceRepositoryPort
-UpdateResourceStatusUseCase ..> UpdateResourceStatusRequest
-UpdateResourceStatusUseCase ..> ResourceResponse
-UpdateResourceStatusUseCase ..> ResourceMapper
+BuildingId ..> DomainValidationException
+RoomId ..> DomainValidationException
+RoomTypeId ..> DomainValidationException
+ResourceId ..> DomainValidationException
+RoomResourceId ..> DomainValidationException
+BuildingId ..> Notification
+RoomId ..> Notification
+RoomTypeId ..> Notification
+ResourceId ..> Notification
+RoomResourceId ..> Notification
 
-'Use Cases RoomType Ports e DTOs
-CreateRoomTypeUseCase --> RoomTypeRepositoryPort
-CreateRoomTypeUseCase ..> CreateRoomTypeRequest
-CreateRoomTypeUseCase ..> RoomTypeResponse
-CreateRoomTypeUseCase ..> RoomTypeMapper
-DeleteRoomTypeUseCase --> RoomTypeRepositoryPort
-GetRoomTypeUseCase --> RoomTypeRepositoryPort
-GetRoomTypeUseCase ..> RoomTypeResponse
-GetRoomTypeUseCase ..> RoomTypeMapper
-UpdateRoomTypeUseCase --> RoomTypeRepositoryPort
-UpdateRoomTypeUseCase ..> UpdateRoomTypeRequest
-UpdateRoomTypeUseCase ..> RoomTypeResponse
-UpdateRoomTypeUseCase ..> RoomTypeMapper
-UpdateRoomTypeStatusUseCase --> RoomTypeRepositoryPort
-UpdateRoomTypeStatusUseCase ..> UpdateRoomTypeStatusRequest
-UpdateRoomTypeStatusUseCase ..> RoomTypeResponse
-UpdateRoomTypeStatusUseCase ..> RoomTypeMapper
+' ── Uso: infraestrutura ────────────────────────────────
+BuildingRepositoryImpl ..> BuildingStatus
+ResourceRepositoryImpl ..> ResourceStatus
+RoomRepositoryImpl ..> RoomStatus
+RoomTypeRepositoryImpl ..> RoomTypeStatus
 
-'Use Cases Room → Ports e DTOs
-CreateRoomUseCase --> RoomRepositoryPort
-CreateRoomUseCase --> RoomResourceRepositoryPort
-CreateRoomUseCase --> ResourceRepositoryPort
-CreateRoomUseCase ..> CreateRoomRequest
-CreateRoomUseCase ..> RoomResponse
-CreateRoomUseCase ..> RoomMapper
-DeleteRoomUseCase --> RoomRepositoryPort
-GetRoomUseCase --> RoomRepositoryPort
-GetRoomUseCase --> BuildingRepositoryPort
-GetRoomUseCase --> RoomTypeRepositoryPort
-GetRoomUseCase --> RoomResourceRepositoryPort
-GetRoomUseCase --> ResourceRepositoryPort
-GetRoomUseCase ..> RoomDetailResponse
-GetRoomUseCase ..> RoomExpandField
-GetRoomUseCase ..> RoomMapper
-GetRoomUseCase ..> BuildingMapper
-GetRoomUseCase ..> RoomTypeMapper
-GetRoomUseCase ..> ResourceMapper
-UpdateRoomUseCase --> RoomRepositoryPort
-UpdateRoomUseCase ..> UpdateRoomRequest
-UpdateRoomUseCase ..> RoomResponse
-UpdateRoomUseCase ..> RoomMapper
-UpdateRoomStatusUseCase --> RoomRepositoryPort
-UpdateRoomStatusUseCase ..> UpdateRoomStatusRequest
-UpdateRoomStatusUseCase ..> RoomResponse
-UpdateRoomStatusUseCase ..> RoomMapper
-ReplaceRoomResourcesUseCase --> RoomRepositoryPort
-ReplaceRoomResourcesUseCase --> RoomResourceRepositoryPort
-ReplaceRoomResourcesUseCase --> ResourceRepositoryPort
-ReplaceRoomResourcesUseCase ..> ReplaceRoomResourcesRequest
-ReplaceRoomResourcesUseCase ..> RoomResourcesResponse
-GetAvailableRoomsUseCase --> RoomRepositoryPort
-GetAvailableRoomsUseCase --> RoomResourceRepositoryPort
-GetAvailableRoomsUseCase --> ResourceRepositoryPort
-GetAvailableRoomsUseCase --> BuildingRepositoryPort
-GetAvailableRoomsUseCase --> RoomTypeRepositoryPort
-GetAvailableRoomsUseCase --> RoomAvailabilityPort
-GetAvailableRoomsUseCase ..> RoomAvailabilityFilter
-GetAvailableRoomsUseCase ..> RoomExpandField
-GetAvailableRoomsUseCase ..> RoomDetailResponse
-GetAvailableRoomsUseCase ..> RoomMapper
-GetAvailableRoomsUseCase ..> BuildingMapper
-GetAvailableRoomsUseCase ..> RoomTypeMapper
-GetAvailableRoomsUseCase ..> ResourceMapper
+BuildingJpaRepository ..> Building
+BuildingJpaRepository ..> BuildingId
+BuildingJpaRepository ..> BuildingStatus
+ResourceJpaRepository ..> Resource
+ResourceJpaRepository ..> ResourceId
+ResourceJpaRepository ..> ResourceStatus
+RoomJpaRepository ..> Room
+RoomJpaRepository ..> RoomId
+RoomJpaRepository ..> RoomStatus
+RoomTypeJpaRepository ..> RoomType
+RoomTypeJpaRepository ..> RoomTypeId
+RoomTypeJpaRepository ..> RoomTypeStatus
+RoomResourceJpaRepository ..> RoomResource
+RoomResourceJpaRepository ..> RoomResourceId
+RoomResourceJpaRepository ..> RoomId
 
-'Repository Impls JPA Repositories
-BuildingRepositoryImpl --> BuildingJpaRepository
-ResourceRepositoryImpl --> ResourceJpaRepository
-RoomRepositoryImpl --> RoomJpaRepository
-RoomTypeRepositoryImpl --> RoomTypeJpaRepository
-RoomResourceRepositoryImpl --> RoomResourceJpaRepository
-RoomReportDataAdapter --> RoomRepositoryPort
-RoomReportDataAdapter --> BuildingRepositoryPort
-
-'Controllers Use Cases e DTOs
-BuildingController --> CreateBuildingUseCase
-BuildingController --> GetBuildingUseCase
-BuildingController --> UpdateBuildingUseCase
-BuildingController --> UpdateBuildingStatusUseCase
-BuildingController --> DeleteBuildingUseCase
-BuildingController ..> CreateBuildingRequest
-BuildingController ..> BuildingResponse
-BuildingController ..> UpdateBuildingRequest
-BuildingController ..> UpdateBuildingStatusRequest
-ResourceController --> CreateResourceUseCase
-ResourceController --> GetResourceUseCase
-ResourceController --> UpdateResourceUseCase
-ResourceController --> UpdateResourceStatusUseCase
-ResourceController --> DeleteResourceUseCase
-ResourceController ..> CreateResourceRequest
-ResourceController ..> ResourceResponse
-ResourceController ..> UpdateResourceRequest
-ResourceController ..> UpdateResourceStatusRequest
-RoomTypeController --> CreateRoomTypeUseCase
-RoomTypeController --> GetRoomTypeUseCase
-RoomTypeController --> UpdateRoomTypeUseCase
-RoomTypeController --> UpdateRoomTypeStatusUseCase
-RoomTypeController --> DeleteRoomTypeUseCase
-RoomTypeController ..> CreateRoomTypeRequest
-RoomTypeController ..> RoomTypeResponse
-RoomTypeController ..> UpdateRoomTypeRequest
-RoomTypeController ..> UpdateRoomTypeStatusRequest
-RoomController --> CreateRoomUseCase
-RoomController --> GetRoomUseCase
-RoomController --> GetAvailableRoomsUseCase
-RoomController --> UpdateRoomUseCase
-RoomController --> UpdateRoomStatusUseCase
-RoomController --> DeleteRoomUseCase
-RoomController --> ReplaceRoomResourcesUseCase
-RoomController ..> CreateRoomRequest
-RoomController ..> RoomDetailResponse
-RoomController ..> RoomResponse
-RoomController ..> UpdateRoomRequest
-RoomController ..> UpdateRoomStatusRequest
-RoomController ..> ReplaceRoomResourcesRequest
-RoomController ..> RoomResourcesResponse
-RoomController ..> RoomExpandField
-RoomController ..> RoomAvailabilityFilter
-
-note as N1
-  Todo repositório filtra DELETED na leitura, delegando
-  para as variantes ...AndStatusNot do JPA.
-end note
-
-note as N2
-  RoomAvailabilityPort é implementada pelo módulo event, e
-  RoomReportDataPort é do módulo report, implementada aqui.
-end note
+RoomReportDataAdapter ..> Room
+RoomReportDataAdapter ..> Building
 
 @enduml

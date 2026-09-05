@@ -1,0 +1,527 @@
+@startuml report
+
+' Módulo report: relatórios pedidos por um usuário e produzidos fora da requisição HTTP.
+' Fonte: com.neoguara.rooms.report (rooms-backend).
+'
+' Critério desta versão: dentro do módulo, todas as classes e todos os membros. Fora do
+' módulo, aparece o que é supertipo, campo, tipo de assinatura ou exceção lançada.
+
+left to right direction
+skinparam packageStyle rectangle
+
+package "Domain" #EEF2FF {
+
+  package "entities" {
+    class Report <<Entity>> {
+      - {static} int MAX_FAILURE_REASON_LENGTH = 500
+      - ReportId id
+      - UserId requestedBy
+      - ReportType type
+      - ReportFormat format
+      - ReportParameters parameters
+      - ReportStatus status
+      - ReportArtifact artifact
+      - String failureReason
+      - LocalDateTime requestedAt
+      - LocalDateTime startedAt
+      - LocalDateTime finishedAt
+      ~ Report()
+      - Report(UserId,ReportType,ReportFormat,ReportParameters)
+      + {static} Report request(UserId,ReportType,ReportFormat,ReportParameters)
+      + void start()
+      + void complete(ReportArtifact)
+      + void fail(String)
+      + void expire()
+      + ReportArtifact requireArtifact()
+      + boolean isOwnedBy(UserId)
+      - void requireProcessing(String)
+      - {static} String truncate(String)
+      + ReportId getId()
+      + UserId getRequestedBy()
+      + ReportType getType()
+      + ReportFormat getFormat()
+      + ReportParameters getParameters()
+      + ReportStatus getStatus()
+      + ReportArtifact getArtifact()
+      + String getFailureReason()
+      + LocalDateTime getRequestedAt()
+      + LocalDateTime getStartedAt()
+      + LocalDateTime getFinishedAt()
+    }
+  }
+
+  package "valueobjects" {
+    class ReportId <<record>> <<Embeddable>> {
+      - UUID id
+      + ReportId(UUID)
+      + ReportId()
+      + {static} ReportId of(UUID)
+      + UUID id()
+    }
+    class UserId <<record>> <<Embeddable>> {
+      - UUID id
+      + UserId(UUID)
+      + {static} UserId of(UUID)
+      + UUID id()
+    }
+    class ReportParameters <<record>> <<Embeddable>> {
+      - LocalDateTime startAt
+      - LocalDateTime endAt
+      - UUID roomId
+      + {static} ReportParameters of(LocalDateTime,LocalDateTime,UUID)
+      + boolean isRoomScoped()
+    }
+    class ReportArtifact <<record>> <<Embeddable>> {
+      - String filename
+      - String contentType
+      - Long sizeBytes
+      - String storageKey
+      + {static} ReportArtifact of(String,String,long,String)
+    }
+  }
+
+  package "enums" {
+    enum ReportType {
+      EVENTS_BY_PERIOD
+      - String filenamePrefix
+      + String filenamePrefix()
+    }
+    enum ReportFormat {
+      CSV
+      PDF
+      - String contentType
+      - String extension
+      + String contentType()
+      + String extension()
+    }
+    enum ReportStatus {
+      PENDING
+      PROCESSING
+      COMPLETED
+      FAILED
+      EXPIRED
+    }
+  }
+
+  package "validation" {
+    class ReportValidation {
+      + void validate(Report,Notification)
+    }
+  }
+}
+
+package "Application" #F0FFF0 {
+
+  package "ports" {
+    interface ReportRepositoryPort {
+      + Report save(Report)
+      + Optional<Report> findById(ReportId)
+      + List<Report> findAll()
+      + List<Report> findByStatus(ReportStatus)
+    }
+    interface ReportStoragePort {
+      + String store(ReportId,String,byte[])
+      + InputStream load(String)
+      + void delete(String)
+    }
+    interface ReportGenerator {
+      + boolean supports(ReportType,ReportFormat)
+      + byte[] generate(ReportParameters)
+    }
+    interface EventReportDataPort {
+      + List<EventReportRow> findForReport(LocalDateTime,LocalDateTime)
+      + List<EventReportRow> findForReportByRoom(UUID,LocalDateTime,LocalDateTime)
+    }
+    interface RoomReportDataPort {
+      + Map<UUID,String> resolveRoomLabels(Collection<UUID>)
+    }
+  }
+
+  package "services" {
+    class ReportGeneratorRegistry <<Service>> {
+      - List<ReportGenerator> generators
+      + ReportGeneratorRegistry(List<ReportGenerator>)
+      + ReportGenerator require(ReportType,ReportFormat)
+    }
+  }
+
+  package "mappers" {
+    class ReportMapper {
+      - ReportMapper()
+      + {static} ReportResponse toResponse(Report)
+      - {static} String downloadUrl(Report)
+    }
+  }
+
+  package "usecases" {
+    class SubmitReportUseCase <<Service>> {
+      - ReportRepositoryPort repository
+      - ReportGeneratorRegistry generators
+      - ApplicationEventPublisher publisher
+      ~ SubmitReportUseCase(ReportRepositoryPort,ReportGeneratorRegistry,ApplicationEventPublisher)
+      + ReportResponse execute(UUID,SubmitReportRequest) <<Transactional>>
+    }
+    class GetReportUseCase <<Service>> {
+      - ReportRepositoryPort repository
+      ~ GetReportUseCase(ReportRepositoryPort)
+      + List<ReportResponse> findAll()
+      + ReportResponse execute(UUID,UUID)
+    }
+    class DownloadReportUseCase <<Service>> {
+      - ReportRepositoryPort repository
+      - ReportStoragePort storage
+      ~ DownloadReportUseCase(ReportRepositoryPort,ReportStoragePort)
+      + ReportDownload execute(UUID,UUID)
+    }
+    class GenerateReportUseCase <<Service>> {
+      - {static} Logger log
+      - ReportStateWriter stateWriter
+      - ReportGeneratorRegistry generators
+      - ReportStoragePort storage
+      ~ GenerateReportUseCase(ReportStateWriter,ReportGeneratorRegistry,ReportStoragePort)
+      + void execute(UUID)
+      - {static} String filenameFor(Report)
+      - {static} String describe(RuntimeException)
+    }
+    class ReportStateWriter <<Service>> {
+      - ReportRepositoryPort repository
+      ~ ReportStateWriter(ReportRepositoryPort)
+      + Report markProcessing(ReportId) <<Transactional REQUIRES_NEW>>
+      + void markCompleted(ReportId,ReportArtifact) <<Transactional REQUIRES_NEW>>
+      + void markFailed(ReportId,String) <<Transactional REQUIRES_NEW>>
+      - Report load(ReportId)
+    }
+    class ReconcileOrphanedReportsUseCase <<Service>> {
+      - {static} String REASON
+      - ReportRepositoryPort repository
+      ~ ReconcileOrphanedReportsUseCase(ReportRepositoryPort)
+      + int execute(LocalDateTime) <<Transactional>>
+    }
+  }
+
+  package "dtos" {
+    class SubmitReportRequest <<record>> {
+      - ReportType type
+      - ReportFormat format
+      - LocalDateTime startAt
+      - LocalDateTime endAt
+      - UUID roomId
+    }
+    class ReportResponse <<record>> {
+      - UUID id
+      - UUID requestedBy
+      - String type
+      - String format
+      - String status
+      - LocalDateTime startAt
+      - LocalDateTime endAt
+      - UUID roomId
+      - LocalDateTime requestedAt
+      - LocalDateTime startedAt
+      - LocalDateTime finishedAt
+      - String failureReason
+      - String filename
+      - Long sizeBytes
+      - String downloadUrl
+    }
+    class ReportDownload <<record>> {
+      - InputStream content
+      - String filename
+      - String contentType
+      - long sizeBytes
+    }
+    class EventReportRow <<record>> {
+      - UUID eventId
+      - UUID roomId
+      - String title
+      - LocalDateTime startAt
+      - LocalDateTime endAt
+      - Boolean allDay
+      - String status
+      - UUID seriesId
+    }
+  }
+
+  package "events" {
+    class ReportRequested <<record>> {
+      - UUID reportId
+    }
+  }
+}
+
+package "Infrastructure" #FFF8F0 {
+
+  package "web" {
+    class ReportController <<RestController>> {
+      - SubmitReportUseCase submitReportUseCase
+      - GetReportUseCase getReportUseCase
+      - DownloadReportUseCase downloadReportUseCase
+      ~ ReportController(SubmitReportUseCase,GetReportUseCase,DownloadReportUseCase)
+      + ResponseEntity<List<ReportResponse>> listReports()
+      + ResponseEntity<ReportResponse> submitReport(AuthUserDetails,SubmitReportRequest)
+      + ResponseEntity<ReportResponse> getReport(AuthUserDetails,UUID)
+      + ResponseEntity<Resource> downloadReport(AuthUserDetails,UUID)
+    }
+  }
+
+  package "repositories" {
+    class ReportRepositoryImpl <<Repository>> {
+      - ReportJpaRepository jpaRepository
+      + ReportRepositoryImpl(ReportJpaRepository)
+      + Report save(Report)
+      + Optional<Report> findById(ReportId)
+      + List<Report> findByStatus(ReportStatus)
+      + List<Report> findAll()
+    }
+    interface ReportJpaRepository {
+      + List<Report> findByStatus(ReportStatus)
+      + List<Report> findAllByOrderByRequestedAtDesc()
+    }
+  }
+
+  package "adapters" {
+    class FileSystemReportStorageAdapter <<Component>> {
+      - Path root
+      ~ FileSystemReportStorageAdapter(String)
+      + String store(ReportId,String,byte[])
+      + InputStream load(String)
+      + void delete(String)
+      - Path resolve(String)
+      - {static} String extensionOf(String)
+    }
+  }
+
+  package "generators" {
+    class CsvEventsByPeriodGenerator <<Component>> {
+      - EventReportDataPort eventData
+      - RoomReportDataPort roomData
+      - char separator
+      - boolean withBom
+      ~ CsvEventsByPeriodGenerator(EventReportDataPort,RoomReportDataPort,char,boolean)
+      + boolean supports(ReportType,ReportFormat)
+      + byte[] generate(ReportParameters)
+    }
+    class PdfEventsByPeriodGenerator <<Component>> {
+      - {static} Font TITLE_FONT
+      - {static} Font SUBTITLE_FONT
+      - {static} Font HEADER_FONT
+      - {static} Font BODY_FONT
+      - {static} Font FOOTER_FONT
+      - {static} Color HEADER_BACKGROUND
+      - {static} float[] COLUMN_WIDTHS
+      - {static} DateTimeFormatter TIMESTAMP
+      - EventReportDataPort eventData
+      - RoomReportDataPort roomData
+      ~ PdfEventsByPeriodGenerator(EventReportDataPort,RoomReportDataPort)
+      + boolean supports(ReportType,ReportFormat)
+      + byte[] generate(ReportParameters)
+      - {static} Element heading(ReportParameters,List<List<String>>)
+      - {static} String scope(ReportParameters,List<List<String>>)
+      - {static} Element table(List<List<String>>)
+      - {static} PdfPCell cell(String,Font,Color)
+    }
+    class "PdfEventsByPeriodGenerator.PageFooter" as PageFooter {
+      + void onEndPage(PdfWriter,Document)
+    }
+    class CsvWriter {
+      - {static} byte[] UTF8_BOM
+      - {static} String LINE_BREAK
+      - CsvWriter()
+      + {static} byte[] write(List<String>,List<List<String>>,char,boolean)
+      - {static} void appendLine(StringBuilder,List<String>,char)
+      - {static} String escape(String,char)
+    }
+    class EventsByPeriodTable {
+      ~ {static} List<String> HEADERS
+      - {static} DateTimeFormatter TIMESTAMP
+      - EventsByPeriodTable()
+      ~ {static} List<List<String>> rows(EventReportDataPort,RoomReportDataPort,ReportParameters)
+      - {static} List<String> toLine(EventReportRow,Map<UUID,String>)
+      - {static} String timestamp(LocalDateTime)
+      - {static} String text(String)
+    }
+  }
+
+  package "listeners" {
+    class ReportRequestedListener <<Component>> {
+      - GenerateReportUseCase generateReportUseCase
+      ~ ReportRequestedListener(GenerateReportUseCase)
+      + void on(ReportRequested) <<ApplicationModuleListener>>
+    }
+    class OrphanedReportListener <<Component>> {
+      - ReconcileOrphanedReportsUseCase reconcileOrphanedReportsUseCase
+      - LocalDateTime bootedAt
+      ~ OrphanedReportListener(ReconcileOrphanedReportsUseCase)
+      + void failReportsInterruptedByShutdown() <<EventListener ApplicationReadyEvent>>
+    }
+  }
+
+  package "config" {
+    class ReportAsyncConfig <<Configuration>> {
+      + Executor getAsyncExecutor()
+    }
+  }
+}
+
+' Tipos de fora do módulo. Declarados aqui só para as setas terem onde chegar.
+package "Dependências externas" #F5F5F5 {
+  interface "Validator<T>" as Validator <<shared>> {
+    + void validate(T,Notification)
+  }
+  class Notification <<shared>>
+  class ResourceNotFoundException <<shared>>
+  class InvalidStateException <<shared>>
+  class DomainValidationException <<shared>>
+  class EventReportDataAdapter <<event>>
+  class RoomReportDataAdapter <<room>>
+  class AuthUserDetails <<auth>>
+  interface JpaRepository <<spring data>>
+  interface ApplicationEventPublisher <<spring context>>
+  interface AsyncConfigurer <<spring context>>
+  interface Executor <<java util concurrent>>
+  interface Resource <<spring core>>
+  class PdfPageEventHelper <<openpdf>>
+}
+
+' ── Herança e implementação ────────────────────────────
+Validator <|.. ReportValidation
+ReportRepositoryPort <|.. ReportRepositoryImpl
+ReportStoragePort <|.. FileSystemReportStorageAdapter
+ReportGenerator <|.. CsvEventsByPeriodGenerator
+ReportGenerator <|.. PdfEventsByPeriodGenerator
+JpaRepository <|-- ReportJpaRepository
+AsyncConfigurer <|.. ReportAsyncConfig
+PdfPageEventHelper <|-- PageFooter
+
+' Portas deste módulo implementadas por outros
+EventReportDataPort <|.. EventReportDataAdapter
+RoomReportDataPort <|.. RoomReportDataAdapter
+
+' ── Campos: domínio ────────────────────────────────────
+Report *-- ReportId
+Report --> UserId
+Report *-- ReportParameters
+Report *-- ReportArtifact
+Report --> ReportType
+Report --> ReportFormat
+Report --> ReportStatus
+
+' ── Campos: aplicação ──────────────────────────────────
+ReportGeneratorRegistry --> ReportGenerator
+SubmitReportUseCase --> ReportRepositoryPort
+SubmitReportUseCase --> ReportGeneratorRegistry
+SubmitReportUseCase --> ApplicationEventPublisher
+GetReportUseCase --> ReportRepositoryPort
+DownloadReportUseCase --> ReportRepositoryPort
+DownloadReportUseCase --> ReportStoragePort
+GenerateReportUseCase --> ReportStateWriter
+GenerateReportUseCase --> ReportGeneratorRegistry
+GenerateReportUseCase --> ReportStoragePort
+ReportStateWriter --> ReportRepositoryPort
+ReconcileOrphanedReportsUseCase --> ReportRepositoryPort
+
+' ── Campos: DTOs ───────────────────────────────────────
+SubmitReportRequest --> ReportType
+SubmitReportRequest --> ReportFormat
+
+' ── Campos: infraestrutura ─────────────────────────────
+ReportController --> SubmitReportUseCase
+ReportController --> GetReportUseCase
+ReportController --> DownloadReportUseCase
+ReportRepositoryImpl --> ReportJpaRepository
+CsvEventsByPeriodGenerator --> EventReportDataPort
+CsvEventsByPeriodGenerator --> RoomReportDataPort
+PdfEventsByPeriodGenerator --> EventReportDataPort
+PdfEventsByPeriodGenerator --> RoomReportDataPort
+PdfEventsByPeriodGenerator +-- PageFooter
+ReportRequestedListener --> GenerateReportUseCase
+OrphanedReportListener --> ReconcileOrphanedReportsUseCase
+
+' ── Uso: domínio ───────────────────────────────────────
+Report ..> ReportValidation
+Report ..> Notification
+Report ..> InvalidStateException
+ReportValidation ..> Report
+ReportValidation ..> ReportParameters
+ReportValidation ..> Notification
+ReportId ..> DomainValidationException
+UserId ..> DomainValidationException
+
+' ── Uso: aplicação ─────────────────────────────────────
+ReportGeneratorRegistry ..> ReportType
+ReportGeneratorRegistry ..> ReportFormat
+ReportGeneratorRegistry ..> ResourceNotFoundException
+
+SubmitReportUseCase ..> SubmitReportRequest
+SubmitReportUseCase ..> ReportResponse
+SubmitReportUseCase ..> ReportMapper
+SubmitReportUseCase ..> Report
+SubmitReportUseCase ..> ReportParameters
+SubmitReportUseCase ..> UserId
+SubmitReportUseCase ..> ReportRequested
+
+GetReportUseCase ..> ReportResponse
+GetReportUseCase ..> ReportMapper
+GetReportUseCase ..> Report
+GetReportUseCase ..> ReportId
+GetReportUseCase ..> UserId
+GetReportUseCase ..> ResourceNotFoundException
+
+DownloadReportUseCase ..> ReportDownload
+DownloadReportUseCase ..> Report
+DownloadReportUseCase ..> ReportId
+DownloadReportUseCase ..> UserId
+DownloadReportUseCase ..> ReportArtifact
+DownloadReportUseCase ..> ResourceNotFoundException
+
+GenerateReportUseCase ..> Report
+GenerateReportUseCase ..> ReportId
+GenerateReportUseCase ..> ReportArtifact
+
+ReportStateWriter ..> Report
+ReportStateWriter ..> ReportId
+ReportStateWriter ..> ReportArtifact
+ReportStateWriter ..> ResourceNotFoundException
+
+ReconcileOrphanedReportsUseCase ..> Report
+ReconcileOrphanedReportsUseCase ..> ReportStatus
+
+ReportMapper ..> Report
+ReportMapper ..> ReportParameters
+ReportMapper ..> ReportArtifact
+ReportMapper ..> ReportStatus
+ReportMapper ..> ReportResponse
+
+' ── Uso: infraestrutura ────────────────────────────────
+ReportController ..> AuthUserDetails
+ReportController ..> SubmitReportRequest
+ReportController ..> ReportResponse
+ReportController ..> ReportDownload
+ReportController ..> Resource
+
+ReportJpaRepository ..> Report
+ReportJpaRepository ..> ReportId
+ReportJpaRepository ..> ReportStatus
+
+FileSystemReportStorageAdapter ..> ReportId
+
+CsvEventsByPeriodGenerator ..> EventsByPeriodTable
+CsvEventsByPeriodGenerator ..> CsvWriter
+CsvEventsByPeriodGenerator ..> ReportParameters
+CsvEventsByPeriodGenerator ..> ReportType
+CsvEventsByPeriodGenerator ..> ReportFormat
+
+PdfEventsByPeriodGenerator ..> EventsByPeriodTable
+PdfEventsByPeriodGenerator ..> ReportParameters
+PdfEventsByPeriodGenerator ..> ReportType
+PdfEventsByPeriodGenerator ..> ReportFormat
+
+EventsByPeriodTable ..> EventReportDataPort
+EventsByPeriodTable ..> RoomReportDataPort
+EventsByPeriodTable ..> ReportParameters
+EventsByPeriodTable ..> EventReportRow
+
+ReportRequestedListener ..> ReportRequested
+ReportAsyncConfig ..> Executor
+
+@enduml

@@ -1,6 +1,12 @@
-@startuml
+@startuml user
 
-skinparam linetype ortho
+' Módulo user: cadastro e ciclo de vida do usuário.
+' Fonte: com.neoguara.rooms.user (rooms-backend).
+'
+' Esta versão é exaustiva: toda classe do módulo, todos os membros e toda dependência que
+' existe no código. Legibilidade não é o critério aqui.
+
+left to right direction
 skinparam packageStyle rectangle
 
 package "Domain" #EEF2FF {
@@ -15,17 +21,28 @@ package "Domain" #EEF2FF {
       - UserStatus status
       - LocalDateTime createdAt
       - LocalDateTime updatedAt
+      # User()
+      - User(String,String,String,UserRole)
       + {static} User create(String,String,String,UserRole)
       + void update(String,String,String,UserRole)
       + void activate()
       + void deactivate()
       + void delete()
+      + UserId getId()
+      + String getName()
+      + String getEmail()
+      + String getPassword()
+      + UserRole getRole()
+      + UserStatus getStatus()
+      + LocalDateTime getCreatedAt()
+      + LocalDateTime getUpdatedAt()
     }
   }
 
   package "valueobjects" {
     class UserId <<record>> {
       - UUID id
+      + UserId(UUID)
       + UserId()
       + {static} UserId of(UUID)
       + UUID id()
@@ -65,33 +82,39 @@ package "Application" #F0FFF0 {
 
   package "mappers" {
     class UserMapper {
+      - UserMapper()
       + {static} User toDomain(CreateUserRequest,String)
       + {static} UserResponse toResponse(User)
     }
   }
 
   package "usecases" {
-    class CreateUserUseCase {
+    class CreateUserUseCase <<Service>> {
       - UserRepositoryPort repository
       - PasswordEncoder passwordEncoder
+      + CreateUserUseCase(UserRepositoryPort,PasswordEncoder)
       + UserResponse execute(CreateUserRequest)
     }
-    class GetUserUseCase {
+    class GetUserUseCase <<Service>> {
       - UserRepositoryPort repository
+      + GetUserUseCase(UserRepositoryPort)
       + UserResponse findById(UUID)
       + List<UserResponse> findAll()
     }
-    class UpdateUserUseCase {
+    class UpdateUserUseCase <<Service>> {
       - UserRepositoryPort repository
       - PasswordEncoder passwordEncoder
+      + UpdateUserUseCase(UserRepositoryPort,PasswordEncoder)
       + UserResponse execute(UUID,UpdateUserRequest)
     }
-    class UpdateUserStatusUseCase {
+    class UpdateUserStatusUseCase <<Service>> {
       - UserRepositoryPort repository
+      + UpdateUserStatusUseCase(UserRepositoryPort)
       + UserResponse execute(UUID,UpdateUserStatusRequest.Status)
     }
-    class DeleteUserUseCase {
+    class DeleteUserUseCase <<Service>> {
       - UserRepositoryPort repository
+      + DeleteUserUseCase(UserRepositoryPort)
       + void execute(UUID)
     }
   }
@@ -112,6 +135,10 @@ package "Application" #F0FFF0 {
     class UpdateUserStatusRequest <<record>> {
       - Status status
     }
+    enum "UpdateUserStatusRequest.Status" as UpdateUserStatusRequestStatus {
+      ACTIVE
+      INACTIVE
+    }
     class UserResponse <<record>> {
       - UUID id
       - String name
@@ -121,22 +148,19 @@ package "Application" #F0FFF0 {
       - LocalDateTime createdAt
       - LocalDateTime updatedAt
     }
-    enum Status {
-      ACTIVE
-      INACTIVE
-    }
   }
 }
 
 package "Infrastructure" #FFF8F0 {
 
   package "web" {
-    class UserController {
+    class UserController <<RestController>> {
       - CreateUserUseCase createUserUseCase
       - GetUserUseCase getUserUseCase
       - UpdateUserUseCase updateUserUseCase
       - UpdateUserStatusUseCase updateUserStatusUseCase
       - DeleteUserUseCase deleteUserUseCase
+      + UserController(CreateUserUseCase,GetUserUseCase,UpdateUserUseCase,UpdateUserStatusUseCase,DeleteUserUseCase)
       + ResponseEntity<UserResponse> create(CreateUserRequest)
       + ResponseEntity<List<UserResponse>> findAll()
       + ResponseEntity<UserResponse> findById(UUID)
@@ -147,8 +171,9 @@ package "Infrastructure" #FFF8F0 {
   }
 
   package "repositories" {
-    class UserRepositoryImpl {
+    class UserRepositoryImpl <<Repository>> {
       - UserJpaRepository jpaRepository
+      + UserRepositoryImpl(UserJpaRepository)
       + User save(User)
       + Optional<User> findById(UserId)
       + List<User> findAll()
@@ -166,73 +191,119 @@ package "Infrastructure" #FFF8F0 {
   }
 
   package "auth" {
-    class UserAuthAdapter {
+    class UserAuthAdapter <<Component>> {
       - UserRepositoryPort userRepository
+      + UserAuthAdapter(UserRepositoryPort)
       + Optional<AuthUserData> findByEmail(String)
     }
   }
 }
 
-' Herança / Implementação
-rooms.shared.domain.validation.Validator <|.. UserValidator
+' Tipos de fora do módulo. Declarados aqui só para as setas terem onde chegar.
+package "Dependências externas" #F5F5F5 {
+  interface "Validator<T>" as Validator <<shared>> {
+    + void validate(T,Notification)
+  }
+  class Notification <<shared>> {
+    + {static} Notification create()
+    + Notification addError(String)
+    + Notification addErrorIf(boolean,String)
+    + boolean hasErrors()
+    + List<String> getErrors()
+    + Notification merge(Notification)
+    + void raiseIfHasErrors()
+  }
+  class ResourceNotFoundException <<shared>>
+  class ConflictException <<shared>>
+  class InvalidStateException <<shared>>
+  interface UserAuthPort <<auth>> {
+    + Optional<AuthUserData> findByEmail(String)
+  }
+  class AuthUserData <<auth>> <<record>>
+  interface JpaRepository <<spring data>>
+  interface PasswordEncoder <<spring security>>
+}
+
+' ── Herança e implementação ────────────────────────────
+Validator <|.. UserValidator
 UserRepositoryPort <|.. UserRepositoryImpl
-rooms.auth.UserAuthPort <|.. UserAuthAdapter
+UserAuthPort <|.. UserAuthAdapter
 JpaRepository <|-- UserJpaRepository
 
-' Controller -> UseCases
+' ── Campos ─────────────────────────────────────────────
 UserController --> CreateUserUseCase
 UserController --> GetUserUseCase
 UserController --> UpdateUserUseCase
 UserController --> UpdateUserStatusUseCase
 UserController --> DeleteUserUseCase
 
-' Controller -> DTOs
-UserController ..> CreateUserRequest
-UserController ..> UpdateUserRequest
-UserController ..> UpdateUserStatusRequest
-UserController ..> UserResponse
-
-' UseCases -> UserRepositoryPort
 CreateUserUseCase --> UserRepositoryPort
 GetUserUseCase --> UserRepositoryPort
 UpdateUserUseCase --> UserRepositoryPort
 UpdateUserStatusUseCase --> UserRepositoryPort
 DeleteUserUseCase --> UserRepositoryPort
 
-' UseCases -> UserMapper
-CreateUserUseCase ..> UserMapper
-GetUserUseCase ..> UserMapper
-UpdateUserUseCase ..> UserMapper
-UpdateUserStatusUseCase ..> UserMapper
+CreateUserUseCase --> PasswordEncoder
+UpdateUserUseCase --> PasswordEncoder
 
-' UserMapper -> DTOs e domínio
-UserMapper ..> CreateUserRequest
-UserMapper ..> UserResponse
-UserMapper ..> User
-
-' Infrastructure
 UserRepositoryImpl --> UserJpaRepository
 UserAuthAdapter --> UserRepositoryPort
-UserAuthAdapter ..> rooms.auth.AuthUserData
 
-' Domínio: User -> composição e enums
 User *-- UserId
 User --> UserRole
 User --> UserStatus
 
-' Validator -> User
-UserValidator ..> User
+CreateUserRequest --> UserRole
+UpdateUserRequest --> UserRole
+UserResponse --> UserRole
+UserResponse --> UserStatus
+UpdateUserStatusRequest *-- UpdateUserStatusRequestStatus
 
-' DTOs -> Enums
-CreateUserRequest ..> UserRole
-UpdateUserRequest ..> UserRole
-UserResponse ..> UserRole
-UserResponse ..> UserStatus
-UpdateUserStatusRequest *-- Status
+' ── Uso: controller e DTOs ─────────────────────────────
+UserController ..> CreateUserRequest
+UserController ..> UpdateUserRequest
+UserController ..> UpdateUserStatusRequest
+UserController ..> UserResponse
 
-' JpaRepository -> domínio
+' ── Uso: casos de uso ──────────────────────────────────
+CreateUserUseCase ..> CreateUserRequest
+CreateUserUseCase ..> UserResponse
+CreateUserUseCase ..> UserMapper
+CreateUserUseCase ..> ConflictException
+GetUserUseCase ..> UserResponse
+GetUserUseCase ..> UserMapper
+GetUserUseCase ..> UserId
+GetUserUseCase ..> ResourceNotFoundException
+UpdateUserUseCase ..> UpdateUserRequest
+UpdateUserUseCase ..> UserResponse
+UpdateUserUseCase ..> UserMapper
+UpdateUserUseCase ..> UserId
+UpdateUserUseCase ..> ResourceNotFoundException
+UpdateUserStatusUseCase ..> UpdateUserStatusRequestStatus
+UpdateUserStatusUseCase ..> UserResponse
+UpdateUserStatusUseCase ..> UserMapper
+UpdateUserStatusUseCase ..> UserId
+UpdateUserStatusUseCase ..> ResourceNotFoundException
+DeleteUserUseCase ..> UserId
+DeleteUserUseCase ..> ResourceNotFoundException
+
+' ── Uso: mapper ────────────────────────────────────────
+UserMapper ..> User
+UserMapper ..> CreateUserRequest
+UserMapper ..> UserResponse
+
+' ── Uso: domínio ───────────────────────────────────────
+User ..> UserValidator
+User ..> Notification
+User ..> InvalidStateException
+UserValidator ..> Notification
+
+' ── Uso: infraestrutura ────────────────────────────────
+UserRepositoryImpl ..> UserStatus
 UserJpaRepository ..> User
 UserJpaRepository ..> UserId
 UserJpaRepository ..> UserStatus
+UserAuthAdapter ..> AuthUserData
+UserAuthAdapter ..> UserStatus
 
 @enduml

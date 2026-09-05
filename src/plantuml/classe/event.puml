@@ -1,13 +1,18 @@
-@startuml
+@startuml event
 
-skinparam linetype ortho
-skinparam packageStyle rectangle
+' Módulo event: evento, solicitação de alteração, aprovação, recorrência e reversão.
+' Fonte: com.neoguara.rooms.event (rooms-backend).
+'
+' Critério desta versão: dentro do módulo, todas as classes e todos os membros. Fora do
+' módulo, aparece o que é supertipo, campo, tipo de assinatura ou exceção lançada.
+
 left to right direction
+skinparam packageStyle rectangle
 
 package "Domain" #EEF2FF {
 
   package "entities" {
-    class Event {
+    class Event <<Entity>> {
       - EventId id
       - RoomId roomId
       - String title
@@ -16,35 +21,56 @@ package "Domain" #EEF2FF {
       - LocalDateTime endAt
       - Boolean isAllDay
       - String recurrenceRule
-      - SeriesId seriesId
       - EventStatus status
+      - SeriesId seriesId
       - LocalDateTime createdAt
       - LocalDateTime updatedAt
+      ~ Event()
+      - Event(RoomId,String,String,LocalDateTime,LocalDateTime,Boolean,String,SeriesId)
       + {static} Event create(RoomId,String,String,LocalDateTime,LocalDateTime,Boolean,String,SeriesId,RoomOccupancy)
       + void update(RoomId,String,String,LocalDateTime,LocalDateTime,Boolean,String,RoomOccupancy)
       + void cancel()
-      + void reactivate(RoomOccupancy)
       + void discard()
+      + void reactivate(RoomOccupancy)
       + void complete()
       + void archive()
       - void requireFreeSlot(RoomOccupancy)
+      + EventId getId()
+      + RoomId getRoomId()
+      + String getTitle()
+      + String getDescription()
+      + LocalDateTime getStartAt()
+      + LocalDateTime getEndAt()
+      + Boolean isAllDay()
+      + Boolean getAllDay()
+      + String getRecurrenceRule()
+      + SeriesId getSeriesId()
+      + EventStatus getStatus()
+      + LocalDateTime getCreatedAt()
+      + LocalDateTime getUpdatedAt()
     }
-
-    class EventRequest {
+    class EventRequest <<Entity>> {
       - EventRequestId id
       - UserId createdBy
       - EventRequestStatus status
       - EventRequestId reversalOf
       - String justification
       - LocalDateTime createdAt
+      ~ EventRequest()
+      - EventRequest(UserId,String)
       + {static} EventRequest open(UserId,String)
       + void markAsReversalOf(EventRequestId)
       + void approve()
       + void reject()
       - void requirePending()
+      + EventRequestId getId()
+      + UserId getCreatedBy()
+      + EventRequestStatus getStatus()
+      + EventRequestId getReversalOf()
+      + String getJustification()
+      + LocalDateTime getCreatedAt()
     }
-
-    class EventChangeItem {
+    class EventChangeItem <<Entity>> {
       - EventChangeItemId id
       - EventRequestId eventRequestId
       - EventId eventId
@@ -53,6 +79,9 @@ package "Domain" #EEF2FF {
       - EventChangeItemId reversalOf
       - EventSnapshot before
       - EventSnapshot after
+      ~ EventChangeItem()
+      - EventChangeItem(EventRequestId,int,EventChangeType,EventId,EventSnapshot,EventSnapshot)
+      - {static} EventChangeItem validated(EventRequestId,int,EventChangeType,EventId,EventSnapshot,EventSnapshot)
       + {static} EventChangeItem create(EventRequestId,int,EventSnapshot)
       + {static} EventChangeItem update(EventRequestId,int,Event,EventSnapshot)
       + {static} EventChangeItem cancel(EventRequestId,int,Event)
@@ -60,51 +89,84 @@ package "Domain" #EEF2FF {
       + {static} EventChangeItem discard(EventRequestId,int,Event)
       + void markAsReversalOf(EventChangeItemId)
       + void linkCreatedEvent(EventId)
-      - {static} EventChangeItem validated(EventRequestId,int,EventChangeType,EventId,EventSnapshot,EventSnapshot)
       - {static} EventSnapshot snapshotOf(Event)
+      + EventChangeItemId getId()
+      + EventRequestId getEventRequestId()
+      + Integer getPosition()
+      + EventChangeItemId getReversalOf()
+      + EventId getEventId()
+      + EventChangeType getType()
+      + EventSnapshot getBefore()
+      + EventSnapshot getAfter()
     }
-
-    class Approval {
+    class Approval <<Entity>> {
       - ApprovalId id
       - EventRequestId eventRequestId
       - UserId decidedBy
       - ApprovalDecision decision
       - String comment
       - LocalDateTime decidedAt
+      ~ Approval()
+      - Approval(EventRequestId,UserId,ApprovalDecision,String)
       + {static} Approval of(EventRequestId,UserId,ApprovalDecision,String)
+      + ApprovalId getId()
+      + EventRequestId getEventRequestId()
+      + UserId getDecidedBy()
+      + ApprovalDecision getDecision()
+      + String getComment()
+      + LocalDateTime getDecidedAt()
     }
   }
 
   package "valueobjects" {
-    class EventId <<record>> {
+    class EventId <<record>> <<Embeddable>> {
       - UUID id
+      + EventId(UUID)
+      + EventId()
       + {static} EventId of(UUID)
+      + UUID id()
+    }
+    class SeriesId <<record>> <<Embeddable>> {
+      - UUID id
+      + SeriesId(UUID)
+      + SeriesId()
+      + {static} SeriesId of(UUID)
+      + UUID id()
     }
     class EventRequestId <<record>> {
       - UUID id
+      + EventRequestId(UUID)
+      + EventRequestId()
       + {static} EventRequestId of(UUID)
+      + UUID id()
     }
     class EventChangeItemId <<record>> {
       - UUID id
+      + EventChangeItemId(UUID)
+      + EventChangeItemId()
       + {static} EventChangeItemId of(UUID)
+      + UUID id()
     }
     class ApprovalId <<record>> {
       - UUID id
+      + ApprovalId(UUID)
+      + ApprovalId()
       + {static} ApprovalId of(UUID)
+      + UUID id()
     }
     class RoomId <<record>> {
       - UUID id
+      + RoomId(UUID)
       + {static} RoomId of(UUID)
+      + UUID id()
     }
     class UserId <<record>> {
       - UUID id
+      + UserId(UUID)
       + {static} UserId of(UUID)
+      + UUID id()
     }
-    class SeriesId <<record>> {
-      - UUID id
-      + {static} SeriesId of(UUID)
-    }
-    class EventSnapshot {
+    class EventSnapshot <<Embeddable>> {
       - RoomId roomId
       - String title
       - String description
@@ -113,7 +175,17 @@ package "Domain" #EEF2FF {
       - Boolean isAllDay
       - String recurrenceRule
       - SeriesId seriesId
+      ~ EventSnapshot()
+      - EventSnapshot(RoomId,String,String,LocalDateTime,LocalDateTime,Boolean,String,SeriesId)
       + {static} EventSnapshot of(RoomId,String,String,LocalDateTime,LocalDateTime,Boolean,String,SeriesId)
+      + RoomId getRoomId()
+      + String getTitle()
+      + String getDescription()
+      + LocalDateTime getStartAt()
+      + LocalDateTime getEndAt()
+      + Boolean isAllDay()
+      + String getRecurrenceRule()
+      + SeriesId getSeriesId()
     }
     class RecurrenceRule <<record>> {
       - Frequency frequency
@@ -121,11 +193,21 @@ package "Domain" #EEF2FF {
       - Set<DayOfWeek> byDay
       - Integer count
       - LocalDate until
-      + {static} int MAX_OCCURRENCES
+      + {static} int MAX_OCCURRENCES = 200
+      - {static} Set<String> SUPPORTED_PARTS
+      - {static} Map<String,DayOfWeek> DAY_BY_CODE
+      - {static} Map<DayOfWeek,String> CODE_BY_DAY
+      + RecurrenceRule(Frequency,int,Set<DayOfWeek>,Integer,LocalDate)
       + {static} RecurrenceRule parse(String)
+      - {static} Map<String,String> split(String,Notification)
+      - {static} Frequency parseFrequency(String,Notification)
+      - {static} int parseInterval(String,Notification)
+      - {static} Set<DayOfWeek> parseByDay(String,Notification)
+      - {static} Integer parseNumber(String,String,Notification)
+      - {static} LocalDate parseUntil(String,Notification)
       + String format()
     }
-    enum Frequency {
+    enum "RecurrenceRule.Frequency" as RecurrenceRuleFrequency {
       DAILY
       WEEKLY
       MONTHLY
@@ -139,6 +221,7 @@ package "Domain" #EEF2FF {
       COMPLETED
       ARCHIVED
       DISCARDED
+      - {static} Set<EventStatus> OCCUPYING
       + boolean occupiesRoom()
       + {static} Set<EventStatus> occupying()
     }
@@ -166,6 +249,7 @@ package "Domain" #EEF2FF {
     }
     class LoadedOccupancy {
       - List<Event> events
+      - LoadedOccupancy(List<Event>)
       + {static} RoomOccupancy of(List<Event>)
       + List<Event> occupying(RoomId,LocalDateTime,LocalDateTime)
     }
@@ -185,23 +269,49 @@ package "Domain" #EEF2FF {
       + String describe()
     }
     class EventRequestConflicts {
+      - EventRequestConflicts()
       + {static} List<OccupiedSlot> claims(List<EventChangeItem>)
       + {static} List<EventConflict> preview(List<EventChangeItem>,RoomOccupancy)
+      - {static} List<OccupiedSlot> occupantsAround(OccupiedSlot,RoomOccupancy,Set<UUID>,List<OccupiedSlot>)
+      - {static} Optional<UUID> releasedBy(EventChangeItem)
+      - {static} OccupiedSlot claimedBy(EventChangeItem)
+      - {static} UUID identityOf(EventChangeItem)
+      - {static} OccupiedSlot slot(UUID,EventSnapshot)
+    }
+    class RecurrenceExpander {
+      - RecurrenceExpander()
+      + {static} List<Occurrence> expand(RecurrenceRule,LocalDateTime,LocalDateTime)
+      - {static} List<LocalDateTime> everyNth(RecurrenceRule,LocalDateTime,Step)
+      - {static} List<LocalDateTime> weeklyByDay(RecurrenceRule,LocalDateTime)
+      - {static} int limitOf(RecurrenceRule)
+      - {static} boolean isAfterUntil(RecurrenceRule,LocalDateTime)
+      - {static} void raiseIfTooMany(List<LocalDateTime>)
+    }
+    class "RecurrenceExpander.Occurrence" as RecurrenceExpanderOccurrence <<record>> {
+      - LocalDateTime startAt
+      - LocalDateTime endAt
+    }
+    enum "RecurrenceExpander.Step" as RecurrenceExpanderStep {
+      DAYS
+      WEEKS
+      MONTHS
+      ~ LocalDateTime from(LocalDateTime,int)
     }
     class OccurrenceShift <<record>> {
       - long days
       - LocalTime timeOfDay
       - Duration duration
-      + {static} OccurrenceShift between(...)
+      + {static} OccurrenceShift between(LocalDateTime,LocalDateTime,LocalDateTime)
       + LocalDateTime startFrom(LocalDateTime)
       + LocalDateTime endFrom(LocalDateTime)
     }
-    class RecurrenceExpander {
-      + {static} List<Occurrence> expand(RecurrenceRule,LocalDateTime,LocalDateTime)
-    }
-    class Occurrence <<record>> {
-      - LocalDateTime startAt
-      - LocalDateTime endAt
+  }
+
+  package "exceptions" {
+    class EventConflictException {
+      - List<EventConflict> conflicts
+      + EventConflictException(List<EventConflict>)
+      + List<EventConflict> getConflicts()
     }
   }
 
@@ -218,13 +328,6 @@ package "Domain" #EEF2FF {
     }
     class ApprovalValidation {
       + void validate(Approval,Notification)
-    }
-  }
-
-  package "exceptions" {
-    class EventConflictException {
-      - List<EventConflict> conflicts
-      + List<EventConflict> getConflicts()
     }
   }
 }
@@ -261,75 +364,100 @@ package "Application" #F0FFF0 {
     }
   }
 
-  package "usecases" {
-    class GetEventUseCase {
-      - EventRepositoryPort repository
-      + List<EventResponse> findAll()
-      + List<EventResponse> findBySeries(UUID)
-    }
-    class GetEventRequestUseCase {
-      - EventRequestRepositoryPort repository
-      - EventChangeItemRepositoryPort changeItemRepository
-      - EventRepositoryPort eventRepository
-      + List<EventRequestResponse> findAll()
-    }
-    class GetEventRequestAuditUseCase {
-      - EventRequestRepositoryPort repository
-      - EventChangeItemRepositoryPort changeItemRepository
-      - ApprovalRepositoryPort approvalRepository
-      + EventRequestAuditResponse execute(UUID)
-    }
-    class RequestEventChangesUseCase {
-      - EventRepositoryPort eventRepository
-      - EventRequestRepositoryPort eventRequestRepository
-      - EventChangeItemRepositoryPort changeItemRepository
-      - RoomOccupancy roomOccupancy
-      + EventRequestResponse execute(UUID,SubmitEventRequest)
-      - List<EventChangeItem> toChangeItems(...)
-      - List<EventChangeItem> createItems(...)
-      - List<EventChangeItem> updateItems(...)
-      - List<EventChangeItem> scopedItems(...)
-      - SeriesTargets targetsOf(Event,ChangeScope,EventStatus)
-    }
-    class ReviewEventRequestUseCase {
-      - EventRepositoryPort eventRepository
-      - EventRequestRepositoryPort eventRequestRepository
-      - EventChangeItemRepositoryPort changeItemRepository
-      - ApprovalRepositoryPort approvalRepository
-      - RoomOccupancy roomOccupancy
-      + EventRequestResponse execute(UUID,UUID,ReviewEventRequest)
-      - void apply(EventChangeItem)
-    }
-    class ReverseEventRequestUseCase {
-      - EventRepositoryPort eventRepository
-      - EventRequestRepositoryPort eventRequestRepository
-      - EventChangeItemRepositoryPort changeItemRepository
-      - RoomOccupancy roomOccupancy
-      + EventRequestResponse execute(UUID,UUID,ReverseEventRequest)
-      - List<EventChangeItem> inverseOf(EventRequest,List<EventChangeItem>,EventRequestId)
-      - EventChangeItem undo(EventChangeItem,EventRequestId,int)
-      - EventChangeItem resubmit(EventChangeItem,EventRequestId,int)
-    }
-  }
-
   package "mappers" {
     class EventMapper {
+      - EventMapper()
       + {static} EventResponse toResponse(Event)
     }
     class EventRequestMapper {
+      - EventRequestMapper()
       + {static} EventRequestResponse toResponse(EventRequest,List<EventChangeItem>)
       + {static} EventRequestResponse toResponse(EventRequest,List<EventChangeItem>,List<EventConflict>)
-      + {static} EventRequestAuditResponse toAuditResponse(...)
+      + {static} EventRequestAuditResponse toAuditResponse(EventRequest,List<EventChangeItem>,List<Approval>)
       - {static} EventChangeItemResponse toItemResponse(EventChangeItem)
       - {static} ApprovalResponse toApprovalResponse(Approval)
     }
   }
 
-  package "dtos" {
-    class SubmitEventRequest <<record>> {
-      - String justification
-      - List<EventChangeRequest> changes
+  package "usecases" {
+    class GetEventUseCase <<Service>> {
+      - EventRepositoryPort repository
+      ~ GetEventUseCase(EventRepositoryPort)
+      + List<EventResponse> findAll()
+      + List<EventResponse> findBySeries(UUID)
     }
+    class GetEventRequestUseCase <<Service>> {
+      - EventRequestRepositoryPort repository
+      - EventChangeItemRepositoryPort changeItemRepository
+      - EventRepositoryPort eventRepository
+      ~ GetEventRequestUseCase(EventRequestRepositoryPort,EventChangeItemRepositoryPort,EventRepositoryPort)
+      + List<EventRequestResponse> findAll()
+      - List<EventConflict> conflictsOf(EventRequest,List<EventChangeItem>,RoomOccupancy)
+      - List<EventChangeItem> pendingItems(List<EventRequest>,Map<EventRequestId,List<EventChangeItem>>)
+      - RoomOccupancy agendaFor(List<EventChangeItem>)
+    }
+    class GetEventRequestAuditUseCase <<Service>> {
+      - EventRequestRepositoryPort repository
+      - EventChangeItemRepositoryPort changeItemRepository
+      - ApprovalRepositoryPort approvalRepository
+      ~ GetEventRequestAuditUseCase(EventRequestRepositoryPort,EventChangeItemRepositoryPort,ApprovalRepositoryPort)
+      + EventRequestAuditResponse execute(UUID)
+    }
+    class RequestEventChangesUseCase <<Service>> {
+      - EventRepositoryPort eventRepository
+      - EventRequestRepositoryPort eventRequestRepository
+      - EventChangeItemRepositoryPort changeItemRepository
+      - RoomOccupancy roomOccupancy
+      + RequestEventChangesUseCase(EventRepositoryPort,EventRequestRepositoryPort,EventChangeItemRepositoryPort,RoomOccupancy)
+      + EventRequestResponse execute(UUID,SubmitEventRequest) <<Transactional>>
+      - List<EventChangeItem> toChangeItems(EventRequestId,int,EventChangeRequest)
+      - List<EventChangeItem> createItems(EventRequestId,int,CreateEventChange)
+      - List<EventChangeItem> updateItems(EventRequestId,int,UpdateEventChange)
+      - void requireUnchangedRecurrenceRule(Event,String)
+      - String ruleAfter(Event,SeriesTargets,OccurrenceShift)
+      - List<EventChangeItem> scopedItems(EventRequestId,int,UUID,ChangeScope,EventStatus,ItemFactory)
+      - SeriesTargets targetsOf(Event,ChangeScope,EventStatus)
+      - Event loadEvent(UUID)
+      - {static} EventSnapshot snapshotOf(UUID,String,String,LocalDateTime,LocalDateTime,Boolean,String,SeriesId)
+    }
+    class "RequestEventChangesUseCase.SeriesTargets" as SeriesTargets <<record>> {
+      - ChangeScope scope
+      - List<Event> series
+      - List<Event> applicable
+      ~ {static} SeriesTargets single(Event)
+      ~ boolean isSingleOccurrence()
+      ~ boolean coversWholeSeries()
+    }
+    interface "RequestEventChangesUseCase.ItemFactory" as ItemFactory {
+      ~ EventChangeItem of(EventRequestId,int,Event)
+    }
+    class ReviewEventRequestUseCase <<Service>> {
+      - EventRepositoryPort eventRepository
+      - EventRequestRepositoryPort eventRequestRepository
+      - EventChangeItemRepositoryPort changeItemRepository
+      - ApprovalRepositoryPort approvalRepository
+      - RoomOccupancy roomOccupancy
+      + ReviewEventRequestUseCase(EventRepositoryPort,EventRequestRepositoryPort,EventChangeItemRepositoryPort,ApprovalRepositoryPort,RoomOccupancy)
+      + EventRequestResponse execute(UUID,UUID,ReviewEventRequest) <<Transactional>>
+      - void apply(EventChangeItem)
+      - Event loadEvent(EventId)
+      - void validate(ReviewEventRequest)
+    }
+    class ReverseEventRequestUseCase <<Service>> {
+      - EventRepositoryPort eventRepository
+      - EventRequestRepositoryPort eventRequestRepository
+      - EventChangeItemRepositoryPort changeItemRepository
+      - RoomOccupancy roomOccupancy
+      ~ ReverseEventRequestUseCase(EventRepositoryPort,EventRequestRepositoryPort,EventChangeItemRepositoryPort,RoomOccupancy)
+      + EventRequestResponse execute(UUID,UUID,ReverseEventRequest) <<Transactional>>
+      - List<EventChangeItem> inverseOf(EventRequest,List<EventChangeItem>,EventRequestId)
+      - EventChangeItem undo(EventChangeItem,EventRequestId,int)
+      - EventChangeItem resubmit(EventChangeItem,EventRequestId,int)
+      - Event loadEvent(EventId)
+    }
+  }
+
+  package "dtos" {
     interface EventChangeRequest <<sealed>>
     class CreateEventChange <<record>> {
       - String title
@@ -363,6 +491,10 @@ package "Application" #F0FFF0 {
       THIS_OCCURRENCE
       THIS_AND_FOLLOWING
       ALL_OCCURRENCES
+    }
+    class SubmitEventRequest <<record>> {
+      - String justification
+      - List<EventChangeRequest> changes
     }
     class ReviewEventRequest <<record>> {
       - ApprovalDecision decision
@@ -450,16 +582,18 @@ package "Application" #F0FFF0 {
 package "Infrastructure" #FFF8F0 {
 
   package "web" {
-    class EventController {
+    class EventController <<RestController>> {
       - GetEventUseCase getEventUseCase
+      ~ EventController(GetEventUseCase)
       + ResponseEntity<List<EventResponse>> listEvents(UUID)
     }
-    class EventRequestController {
+    class EventRequestController <<RestController>> {
       - GetEventRequestUseCase getEventRequestUseCase
       - GetEventRequestAuditUseCase getEventRequestAuditUseCase
       - RequestEventChangesUseCase requestEventChangesUseCase
       - ReviewEventRequestUseCase reviewEventRequestUseCase
       - ReverseEventRequestUseCase reverseEventRequestUseCase
+      ~ EventRequestController(GetEventRequestUseCase,GetEventRequestAuditUseCase,RequestEventChangesUseCase,ReviewEventRequestUseCase,ReverseEventRequestUseCase)
       + ResponseEntity<List<EventRequestResponse>> listEventRequests()
       + ResponseEntity<EventRequestResponse> requestEventChanges(AuthUserDetails,SubmitEventRequest)
       + ResponseEntity<EventRequestResponse> reviewEventRequest(AuthUserDetails,UUID,ReviewEventRequest)
@@ -469,51 +603,120 @@ package "Infrastructure" #FFF8F0 {
   }
 
   package "repositories" {
-    class EventRepositoryImpl {
+    class EventRepositoryImpl <<Repository>> {
       - EventJpaRepository jpaRepository
+      + EventRepositoryImpl(EventJpaRepository)
+      + List<Event> findAll()
+      + Optional<Event> findById(EventId)
+      + Event save(Event)
+      + List<UUID> findOccupiedRoomIds(LocalDateTime,LocalDateTime)
+      + List<Event> findOverlapping(RoomId,LocalDateTime,LocalDateTime)
+      + List<Event> findOccupyingBetween(LocalDateTime,LocalDateTime)
+      + List<Event> findBySeriesId(SeriesId)
+      + List<Event> findExistingBetween(LocalDateTime,LocalDateTime)
+      + List<Event> findExistingBetweenByRoom(RoomId,LocalDateTime,LocalDateTime)
     }
-    class EventRequestRepositoryImpl {
+    interface EventJpaRepository {
+      + List<UUID> findOccupiedRoomIds(Collection<EventStatus>,LocalDateTime,LocalDateTime)
+      + List<Event> findOverlapping(UUID,Collection<EventStatus>,LocalDateTime,LocalDateTime)
+      + List<Event> findOccupyingBetween(Collection<EventStatus>,LocalDateTime,LocalDateTime)
+      + List<Event> findBySeriesId(UUID)
+      + List<Event> findExistingBetween(EventStatus,LocalDateTime,LocalDateTime)
+      + List<Event> findExistingBetweenByRoom(UUID,EventStatus,LocalDateTime,LocalDateTime)
+    }
+    class EventRequestRepositoryImpl <<Repository>> {
       - EventRequestJpaRepository repository
+      + EventRequestRepositoryImpl(EventRequestJpaRepository)
+      + EventRequest save(EventRequest)
+      + Optional<EventRequest> findById(EventRequestId)
+      + List<EventRequest> findAll()
+      + boolean hasReversal(EventRequestId)
     }
-    class EventChangeItemRepositoryImpl {
+    interface EventRequestJpaRepository {
+      + boolean existsByReversalOf(UUID)
+    }
+    class EventChangeItemRepositoryImpl <<Repository>> {
       - EventChangeItemJpaRepository jpaRepository
+      + EventChangeItemRepositoryImpl(EventChangeItemJpaRepository)
+      + EventChangeItem save(EventChangeItem)
+      + List<EventChangeItem> saveAll(List<EventChangeItem>)
+      + List<EventChangeItem> findByEventRequestId(EventRequestId)
+      + List<EventChangeItem> findByEventRequestIdIn(Collection<EventRequestId>)
     }
-    class ApprovalRepositoryImpl {
+    interface EventChangeItemJpaRepository {
+      + List<EventChangeItem> findByEventRequestIdOrderByPositionAsc(EventRequestId)
+      + List<EventChangeItem> findByEventRequestIdIn(Collection<UUID>)
+    }
+    class ApprovalRepositoryImpl <<Repository>> {
       - ApprovalJpaRepository jpaRepository
+      + ApprovalRepositoryImpl(ApprovalJpaRepository)
+      + Approval save(Approval)
+      + List<Approval> findByEventRequestId(EventRequestId)
     }
-    interface EventJpaRepository
-    interface EventRequestJpaRepository
-    interface EventChangeItemJpaRepository
-    interface ApprovalJpaRepository
+    interface ApprovalJpaRepository {
+      + List<Approval> findByEventRequestId(UUID)
+    }
   }
 
   package "adapters" {
-    class RoomOccupancyAdapter {
+    class EventAvailabilityAdapter <<Component>> {
       - EventRepositoryPort eventRepository
-      + List<Event> occupying(RoomId,LocalDateTime,LocalDateTime)
-    }
-    class EventAvailabilityAdapter {
-      - EventRepositoryPort eventRepository
+      + EventAvailabilityAdapter(EventRepositoryPort)
       + Set<UUID> findOccupiedRoomIds(LocalDateTime,LocalDateTime)
     }
-    class EventReportDataAdapter {
+    class EventReportDataAdapter <<Component>> {
       - EventRepositoryPort eventRepository
+      + EventReportDataAdapter(EventRepositoryPort)
       + List<EventReportRow> findForReport(LocalDateTime,LocalDateTime)
       + List<EventReportRow> findForReportByRoom(UUID,LocalDateTime,LocalDateTime)
+      - {static} List<EventReportRow> toRows(List<Event>)
+      - {static} EventReportRow toRow(Event)
+    }
+    class RoomOccupancyAdapter <<Component>> {
+      - EventRepositoryPort eventRepository
+      + RoomOccupancyAdapter(EventRepositoryPort)
+      + List<Event> occupying(RoomId,LocalDateTime,LocalDateTime)
     }
   }
 }
 
-' ── Implementações de interfaces ──────────────────────────────────────────
-shared.domain.validation.Validator <|.. EventValidation
-shared.domain.validation.Validator <|.. EventRequestValidation
-shared.domain.validation.Validator <|.. EventChangeItemValidation
-shared.domain.validation.Validator <|.. ApprovalValidation
+' Tipos de fora do módulo. Declarados aqui só para as setas terem onde chegar.
+package "Dependências externas" #F5F5F5 {
+  interface "Validator<T>" as Validator <<shared>> {
+    + void validate(T,Notification)
+  }
+  class Notification <<shared>>
+  class ConflictException <<shared>>
+  class InvalidStateException <<shared>>
+  class ResourceNotFoundException <<shared>>
+  class DomainValidationException <<shared>>
+  interface RoomAvailabilityPort <<room>> {
+    + Set<UUID> findOccupiedRoomIds(LocalDateTime,LocalDateTime)
+  }
+  interface EventReportDataPort <<report>> {
+    + List<EventReportRow> findForReport(LocalDateTime,LocalDateTime)
+    + List<EventReportRow> findForReportByRoom(UUID,LocalDateTime,LocalDateTime)
+  }
+  class EventReportRow <<report>> <<record>>
+  class AuthUserDetails <<auth>>
+  interface JpaRepository <<spring data>>
+}
 
-shared.domain.exceptions.ConflictException <|-- EventConflictException
+' ── Herança e implementação ────────────────────────────
+Validator <|.. EventValidation
+Validator <|.. EventRequestValidation
+Validator <|.. EventChangeItemValidation
+Validator <|.. ApprovalValidation
+
+ConflictException <|-- EventConflictException
 
 RoomOccupancy <|.. LoadedOccupancy
 RoomOccupancy <|.. RoomOccupancyAdapter
+
+EventChangeRequest <|.. CreateEventChange
+EventChangeRequest <|.. UpdateEventChange
+EventChangeRequest <|.. CancelEventChange
+EventChangeRequest <|.. ReactivateEventChange
 
 EventRepositoryPort <|.. EventRepositoryImpl
 EventRequestRepositoryPort <|.. EventRequestRepositoryImpl
@@ -525,145 +728,242 @@ JpaRepository <|-- EventRequestJpaRepository
 JpaRepository <|-- EventChangeItemJpaRepository
 JpaRepository <|-- ApprovalJpaRepository
 
-room.application.ports.RoomAvailabilityPort <|.. EventAvailabilityAdapter
-report.application.ports.EventReportDataPort <|.. EventReportDataAdapter
+' Portas de outros módulos implementadas aqui
+RoomAvailabilityPort <|.. EventAvailabilityAdapter
+EventReportDataPort <|.. EventReportDataAdapter
 
-EventChangeRequest <|.. CreateEventChange
-EventChangeRequest <|.. UpdateEventChange
-EventChangeRequest <|.. CancelEventChange
-EventChangeRequest <|.. ReactivateEventChange
-
-' ── Entidades → Value Objects e enums ─────────────────────────────────────
+' ── Campos: domínio ────────────────────────────────────
 Event *-- EventId
-Event *-- RoomId
-Event *-- SeriesId
+Event --> RoomId
+Event --> SeriesId
 Event --> EventStatus
-
 EventRequest *-- EventRequestId
 EventRequest --> UserId
 EventRequest --> EventRequestStatus
-
 EventChangeItem *-- EventChangeItemId
 EventChangeItem --> EventRequestId
 EventChangeItem --> EventId
 EventChangeItem --> EventChangeType
 EventChangeItem *-- EventSnapshot
-
 Approval *-- ApprovalId
 Approval --> EventRequestId
 Approval --> UserId
 Approval --> ApprovalDecision
-
 EventSnapshot --> RoomId
 EventSnapshot --> SeriesId
-RecurrenceRule *-- Frequency
-
-' ── Entidades → Validação ─────────────────────────────────────────────────
-Event ..> EventValidation
-EventRequest ..> EventRequestValidation
-EventChangeItem ..> EventChangeItemValidation
-Approval ..> ApprovalValidation
-
-' ── Regra de conflito de sala ─────────────────────────────────────────────
-Event ..> RoomOccupancy
-Event ..> EventConflictException
-EventConflict *-- OccupiedSlot
-EventConflictException --> EventConflict
-OccupiedSlot ..> Event
+RecurrenceRule *-- RecurrenceRuleFrequency
+OccupiedSlot --> RoomId
+EventConflict --> OccupiedSlot
 LoadedOccupancy --> Event
-EventRequestConflicts ..> EventChangeItem
-EventRequestConflicts ..> EventConflict
-EventRequestConflicts ..> RoomOccupancy
-RecurrenceExpander ..> RecurrenceRule
-RecurrenceExpander *-- Occurrence
+EventConflictException --> EventConflict
+RecurrenceExpander +-- RecurrenceExpanderOccurrence
+RecurrenceExpander +-- RecurrenceExpanderStep
 
-' ── Controllers → Use Cases e DTOs ────────────────────────────────────────
+' ── Campos: casos de uso e portas ──────────────────────
+GetEventUseCase --> EventRepositoryPort
+GetEventRequestUseCase --> EventRequestRepositoryPort
+GetEventRequestUseCase --> EventChangeItemRepositoryPort
+GetEventRequestUseCase --> EventRepositoryPort
+GetEventRequestAuditUseCase --> EventRequestRepositoryPort
+GetEventRequestAuditUseCase --> EventChangeItemRepositoryPort
+GetEventRequestAuditUseCase --> ApprovalRepositoryPort
+RequestEventChangesUseCase --> EventRepositoryPort
+RequestEventChangesUseCase --> EventRequestRepositoryPort
+RequestEventChangesUseCase --> EventChangeItemRepositoryPort
+RequestEventChangesUseCase --> RoomOccupancy
+RequestEventChangesUseCase +-- SeriesTargets
+RequestEventChangesUseCase +-- ItemFactory
+ReviewEventRequestUseCase --> EventRepositoryPort
+ReviewEventRequestUseCase --> EventRequestRepositoryPort
+ReviewEventRequestUseCase --> EventChangeItemRepositoryPort
+ReviewEventRequestUseCase --> ApprovalRepositoryPort
+ReviewEventRequestUseCase --> RoomOccupancy
+ReverseEventRequestUseCase --> EventRepositoryPort
+ReverseEventRequestUseCase --> EventRequestRepositoryPort
+ReverseEventRequestUseCase --> EventChangeItemRepositoryPort
+ReverseEventRequestUseCase --> RoomOccupancy
+
+' ── Campos: infraestrutura ─────────────────────────────
 EventController --> GetEventUseCase
-EventController ..> EventResponse
-
 EventRequestController --> GetEventRequestUseCase
 EventRequestController --> GetEventRequestAuditUseCase
 EventRequestController --> RequestEventChangesUseCase
 EventRequestController --> ReviewEventRequestUseCase
 EventRequestController --> ReverseEventRequestUseCase
+EventRepositoryImpl --> EventJpaRepository
+EventRequestRepositoryImpl --> EventRequestJpaRepository
+EventChangeItemRepositoryImpl --> EventChangeItemJpaRepository
+ApprovalRepositoryImpl --> ApprovalJpaRepository
+EventAvailabilityAdapter --> EventRepositoryPort
+EventReportDataAdapter --> EventRepositoryPort
+RoomOccupancyAdapter --> EventRepositoryPort
+
+' ── Campos: DTOs ───────────────────────────────────────
+UpdateEventChange --> ChangeScope
+CancelEventChange --> ChangeScope
+ReactivateEventChange --> ChangeScope
+SubmitEventRequest --> EventChangeRequest
+ReviewEventRequest --> ApprovalDecision
+EventRequestResponse --> EventChangeItemResponse
+EventRequestResponse --> EventConflictResponse
+EventRequestAuditResponse --> EventChangeItemResponse
+EventRequestAuditResponse --> ApprovalResponse
+
+' ── Uso: domínio ───────────────────────────────────────
+Event ..> EventValidation
+Event ..> Notification
+Event ..> InvalidStateException
+Event ..> RoomOccupancy
+Event ..> OccupiedSlot
+Event ..> EventConflict
+Event ..> EventConflictException
+EventRequest ..> EventRequestValidation
+EventRequest ..> Notification
+EventRequest ..> InvalidStateException
+EventChangeItem ..> EventChangeItemValidation
+EventChangeItem ..> Notification
+EventChangeItem ..> InvalidStateException
+EventChangeItem ..> Event
+Approval ..> ApprovalValidation
+Approval ..> Notification
+
+EventValidation ..> Event
+EventValidation ..> Notification
+EventRequestValidation ..> EventRequest
+EventRequestValidation ..> Notification
+EventChangeItemValidation ..> EventChangeItem
+EventChangeItemValidation ..> EventSnapshot
+EventChangeItemValidation ..> Notification
+ApprovalValidation ..> Approval
+ApprovalValidation ..> Notification
+
+EventId ..> DomainValidationException
+SeriesId ..> DomainValidationException
+EventRequestId ..> DomainValidationException
+EventChangeItemId ..> DomainValidationException
+ApprovalId ..> DomainValidationException
+RoomId ..> DomainValidationException
+UserId ..> DomainValidationException
+RecurrenceRule ..> Notification
+
+' ── Uso: serviços de domínio ───────────────────────────
+OccupiedSlot ..> Event
+EventRequestConflicts ..> EventChangeItem
+EventRequestConflicts ..> EventSnapshot
+EventRequestConflicts ..> OccupiedSlot
+EventRequestConflicts ..> EventConflict
+EventRequestConflicts ..> RoomOccupancy
+EventRequestConflicts ..> EventStatus
+RecurrenceExpander ..> RecurrenceRule
+RecurrenceExpander ..> Notification
+
+' ── Uso: mappers ───────────────────────────────────────
+EventMapper ..> Event
+EventMapper ..> EventResponse
+EventRequestMapper ..> EventRequest
+EventRequestMapper ..> EventChangeItem
+EventRequestMapper ..> Approval
+EventRequestMapper ..> EventConflict
+EventRequestMapper ..> EventRequestResponse
+EventRequestMapper ..> EventRequestAuditResponse
+EventRequestMapper ..> EventChangeItemResponse
+EventRequestMapper ..> ApprovalResponse
+EventRequestMapper ..> EventConflictResponse
+EventConflictResponse ..> EventConflict
+
+' ── Uso: casos de uso ──────────────────────────────────
+GetEventUseCase ..> EventMapper
+GetEventUseCase ..> EventResponse
+GetEventUseCase ..> SeriesId
+
+GetEventRequestUseCase ..> EventRequestMapper
+GetEventRequestUseCase ..> EventRequestResponse
+GetEventRequestUseCase ..> EventRequestConflicts
+GetEventRequestUseCase ..> EventConflict
+GetEventRequestUseCase ..> LoadedOccupancy
+GetEventRequestUseCase ..> RoomOccupancy
+GetEventRequestUseCase ..> OccupiedSlot
+GetEventRequestUseCase ..> EventRequestStatus
+
+GetEventRequestAuditUseCase ..> EventRequestMapper
+GetEventRequestAuditUseCase ..> EventRequestAuditResponse
+GetEventRequestAuditUseCase ..> EventRequestId
+GetEventRequestAuditUseCase ..> ResourceNotFoundException
+
+RequestEventChangesUseCase ..> EventRequestMapper
+RequestEventChangesUseCase ..> SubmitEventRequest
+RequestEventChangesUseCase ..> EventChangeRequest
+RequestEventChangesUseCase ..> CreateEventChange
+RequestEventChangesUseCase ..> UpdateEventChange
+RequestEventChangesUseCase ..> CancelEventChange
+RequestEventChangesUseCase ..> ReactivateEventChange
+RequestEventChangesUseCase ..> ChangeScope
+RequestEventChangesUseCase ..> EventRequestResponse
+RequestEventChangesUseCase ..> EventRequest
+RequestEventChangesUseCase ..> EventChangeItem
+RequestEventChangesUseCase ..> EventSnapshot
+RequestEventChangesUseCase ..> RecurrenceRule
+RequestEventChangesUseCase ..> RecurrenceExpander
+RequestEventChangesUseCase ..> OccurrenceShift
+RequestEventChangesUseCase ..> EventRequestConflicts
+RequestEventChangesUseCase ..> EventStatus
+RequestEventChangesUseCase ..> UserId
+RequestEventChangesUseCase ..> RoomId
+RequestEventChangesUseCase ..> SeriesId
+RequestEventChangesUseCase ..> EventId
+RequestEventChangesUseCase ..> InvalidStateException
+RequestEventChangesUseCase ..> ResourceNotFoundException
+
+ReviewEventRequestUseCase ..> EventRequestMapper
+ReviewEventRequestUseCase ..> ReviewEventRequest
+ReviewEventRequestUseCase ..> EventRequestResponse
+ReviewEventRequestUseCase ..> EventRequest
+ReviewEventRequestUseCase ..> EventChangeItem
+ReviewEventRequestUseCase ..> Approval
+ReviewEventRequestUseCase ..> Event
+ReviewEventRequestUseCase ..> EventRequestId
+ReviewEventRequestUseCase ..> EventId
+ReviewEventRequestUseCase ..> UserId
+ReviewEventRequestUseCase ..> Notification
+ReviewEventRequestUseCase ..> ResourceNotFoundException
+
+ReverseEventRequestUseCase ..> EventRequestMapper
+ReverseEventRequestUseCase ..> ReverseEventRequest
+ReverseEventRequestUseCase ..> EventRequestResponse
+ReverseEventRequestUseCase ..> EventRequest
+ReverseEventRequestUseCase ..> EventChangeItem
+ReverseEventRequestUseCase ..> Event
+ReverseEventRequestUseCase ..> EventRequestConflicts
+ReverseEventRequestUseCase ..> EventRequestStatus
+ReverseEventRequestUseCase ..> EventRequestId
+ReverseEventRequestUseCase ..> EventId
+ReverseEventRequestUseCase ..> UserId
+ReverseEventRequestUseCase ..> InvalidStateException
+ReverseEventRequestUseCase ..> ResourceNotFoundException
+
+' ── Uso: infraestrutura ────────────────────────────────
+EventController ..> EventResponse
+EventRequestController ..> AuthUserDetails
 EventRequestController ..> SubmitEventRequest
 EventRequestController ..> ReviewEventRequest
 EventRequestController ..> ReverseEventRequest
 EventRequestController ..> EventRequestResponse
 EventRequestController ..> EventRequestAuditResponse
 
-' ── Use Cases → Ports ─────────────────────────────────────────────────────
-GetEventUseCase --> EventRepositoryPort
+EventRepositoryImpl ..> EventStatus
+EventJpaRepository ..> Event
+EventJpaRepository ..> EventId
+EventJpaRepository ..> EventStatus
+EventRequestJpaRepository ..> EventRequest
+EventRequestJpaRepository ..> EventRequestId
+EventChangeItemJpaRepository ..> EventChangeItem
+EventChangeItemJpaRepository ..> EventChangeItemId
+EventChangeItemJpaRepository ..> EventRequestId
+ApprovalJpaRepository ..> Approval
+ApprovalJpaRepository ..> ApprovalId
 
-GetEventRequestUseCase --> EventRequestRepositoryPort
-GetEventRequestUseCase --> EventChangeItemRepositoryPort
-GetEventRequestUseCase --> EventRepositoryPort
-GetEventRequestUseCase ..> EventRequestConflicts
-GetEventRequestUseCase ..> LoadedOccupancy
-
-GetEventRequestAuditUseCase --> EventRequestRepositoryPort
-GetEventRequestAuditUseCase --> EventChangeItemRepositoryPort
-GetEventRequestAuditUseCase --> ApprovalRepositoryPort
-
-RequestEventChangesUseCase --> EventRepositoryPort
-RequestEventChangesUseCase --> EventRequestRepositoryPort
-RequestEventChangesUseCase --> EventChangeItemRepositoryPort
-RequestEventChangesUseCase --> RoomOccupancy
-RequestEventChangesUseCase ..> SubmitEventRequest
-RequestEventChangesUseCase ..> EventChangeRequest
-RequestEventChangesUseCase ..> ChangeScope
-RequestEventChangesUseCase ..> EventChangeItem
-RequestEventChangesUseCase ..> RecurrenceExpander
-RequestEventChangesUseCase ..> OccurrenceShift
-
-ReviewEventRequestUseCase --> EventRepositoryPort
-ReviewEventRequestUseCase --> EventRequestRepositoryPort
-ReviewEventRequestUseCase --> EventChangeItemRepositoryPort
-ReviewEventRequestUseCase --> ApprovalRepositoryPort
-ReviewEventRequestUseCase --> RoomOccupancy
-ReviewEventRequestUseCase ..> ReviewEventRequest
-ReviewEventRequestUseCase ..> Approval
-ReviewEventRequestUseCase ..> Event
-
-ReverseEventRequestUseCase --> EventRepositoryPort
-ReverseEventRequestUseCase --> EventRequestRepositoryPort
-ReverseEventRequestUseCase --> EventChangeItemRepositoryPort
-ReverseEventRequestUseCase --> RoomOccupancy
-ReverseEventRequestUseCase ..> ReverseEventRequest
-ReverseEventRequestUseCase ..> EventRequestConflicts
-
-' ── Use Cases → Mappers ───────────────────────────────────────────────────
-GetEventUseCase ..> EventMapper
-GetEventRequestUseCase ..> EventRequestMapper
-GetEventRequestAuditUseCase ..> EventRequestMapper
-RequestEventChangesUseCase ..> EventRequestMapper
-ReviewEventRequestUseCase ..> EventRequestMapper
-ReverseEventRequestUseCase ..> EventRequestMapper
-
-' ── Mappers → Domínio e DTOs ──────────────────────────────────────────────
-EventMapper ..> Event
-EventMapper ..> EventResponse
-
-EventRequestMapper ..> EventRequest
-EventRequestMapper ..> EventChangeItem
-EventRequestMapper ..> Approval
-EventRequestMapper ..> EventRequestResponse
-EventRequestMapper ..> EventRequestAuditResponse
-EventRequestMapper ..> EventChangeItemResponse
-EventRequestMapper ..> ApprovalResponse
-EventRequestMapper ..> EventConflictResponse
-
-EventConflictResponse ..> EventConflict
-
-' ── Repository Impls → JPA ────────────────────────────────────────────────
-EventRepositoryImpl --> EventJpaRepository
-EventRequestRepositoryImpl --> EventRequestJpaRepository
-EventChangeItemRepositoryImpl --> EventChangeItemJpaRepository
-ApprovalRepositoryImpl --> ApprovalJpaRepository
-
-' ── Adapters → Ports ──────────────────────────────────────────────────────
-RoomOccupancyAdapter --> EventRepositoryPort
-EventAvailabilityAdapter --> EventRepositoryPort
-EventReportDataAdapter --> EventRepositoryPort
+EventReportDataAdapter ..> EventReportRow
+EventReportDataAdapter ..> Event
+EventReportDataAdapter ..> RoomId
 
 @enduml
