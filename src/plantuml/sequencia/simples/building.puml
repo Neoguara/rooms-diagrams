@@ -22,7 +22,7 @@ actor "Administrador" as Ator
 boundary "Frontend" as FE
 participant "BuildingController" as Ctrl
 
-participant "<<subsystem>>\nusecases" as UC #F0FFF0
+participant "<<subsystem>>\nusecases" as UC
 
 participant "Building" as Entity
 participant "<<subsystem>>\nrepositories" as Repo

@@ -1,0 +1,95 @@
+@startuml report_generation_simples
+
+' A geração do arquivo, que acontece fora da requisição HTTP. Os quatro endpoints estão em
+' report.puml. Os diagramas completos continuam em sequencia/report/.
+'
+' É o único fluxo do sistema que não começa numa requisição: começa numa publicação. O
+' ReportRequestedListener recebe o evento pelo Spring Modulith, que o guardou na tabela
+' event_publication ao ser publicado no POST /reports.
+'
+' O ReportStateWriter aparece separado do caso de uso porque cada método dele abre
+' transação própria. É isso que permite marcar PROCESSING, gerar o arquivo fora de
+' transação, e só então marcar COMPLETED ou FAILED.
+'
+' Quatro cortes em relação aos completos:
+'   1. Porta e implementação viram um participante só, tipado como «subsystem».
+'   2. Só o caminho de sucesso. O ramo de falha, que grava FAILED com o motivo truncado
+'      em 500 caracteres, está no diagrama completo e em estado/report_status.puml.
+'   3. Nenhum loop, nenhuma mensagem para si mesmo.
+'   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
+
+title Módulo report: geração assíncrona do arquivo
+
+participant "ReportRequestedListener" as Listener
+participant "GenerateReportUseCase" as UC
+participant "ReportStateWriter" as Writer
+participant "ReportGeneratorRegistry" as Registry
+participant "<<subsystem>>\ngenerators" as Gen
+participant "EventReportDataPort\n(módulo event)" as EventData
+participant "RoomReportDataPort\n(módulo room)" as RoomData
+participant "ReportStoragePort" as Storage
+participant "<<subsystem>>\nrepositories" as Repo
+database "reports" as DB
+database "data/reports" as FS
+
+[-> Listener: ReportRequested(reportId)\nentregue pelo Spring Modulith
+activate Listener
+
+Listener -> UC: execute(reportId)
+activate UC
+
+UC -> Writer: markProcessing(id)
+activate Writer
+Writer -> Repo: findById e save
+activate Repo
+Repo -> DB: UPDATE reports SET\nstatus='PROCESSING', started_at=?
+DB --> Repo: Report
+Repo --> Writer: Report
+deactivate Repo
+Writer --> UC: Report em PROCESSING
+deactivate Writer
+
+UC -> Registry: require(type, format)
+activate Registry
+Registry --> UC: ReportGenerator que atende o par
+deactivate Registry
+
+UC -> Gen: generate(parameters)
+activate Gen
+
+Gen -> EventData: findForReport ou findForReportByRoom
+activate EventData
+EventData --> Gen: List<EventReportRow>
+deactivate EventData
+
+Gen -> RoomData: resolveRoomLabels(roomIds)
+activate RoomData
+RoomData --> Gen: Map<UUID,String>\nnome e código da sala, mais o prédio
+deactivate RoomData
+
+Gen --> UC: byte[] do CSV ou do PDF
+deactivate Gen
+
+UC -> Storage: store(id, filename, content)
+activate Storage
+Storage -> FS: grava o arquivo
+FS --> Storage: chave de armazenamento
+Storage --> UC: storageKey
+deactivate Storage
+
+UC -> Writer: markCompleted(id, artifact)
+activate Writer
+Writer -> Repo: findById e save
+activate Repo
+Repo -> DB: UPDATE reports SET status='COMPLETED',\nfilename=?, content_type=?, size_bytes=?,\nstorage_key=?, finished_at=?
+DB --> Repo: Report
+Repo --> Writer: Report
+deactivate Repo
+Writer --> UC: Report em COMPLETED
+deactivate Writer
+
+UC --> Listener: void
+deactivate UC
+deactivate Listener
+
+@enduml

@@ -20,7 +20,7 @@ actor "Administrador" as Ator
 boundary "Frontend" as FE
 participant "RoomController" as Ctrl
 
-participant "<<subsystem>>\nusecases" as UC #F0FFF0
+participant "<<subsystem>>\nusecases" as UC
 
 participant "RoomResource" as RR
 

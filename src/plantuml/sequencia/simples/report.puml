@@ -1,0 +1,141 @@
+@startuml report_simples
+
+' Os quatro endpoints HTTP do módulo report, no estilo simplista. A geração do arquivo,
+' que acontece fora da requisição, está em report_generation.puml. Os diagramas completos
+' continuam em sequencia/report/, e é lá que estão os desvios.
+'
+' Quatro cortes em relação aos completos:
+'   1. Porta e implementação viram um participante só, tipado como «subsystem».
+'   2. Só o caminho de sucesso. Nenhum alt: os erros (404, 422) estão nos completos, e as
+'      transições de estado estão em estado/report_status.puml.
+'   3. Nenhum loop, nenhuma mensagem para si mesmo.
+'   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
+'
+' O POST responde 202, e não 201, porque o arquivo ainda não existe: o que existe é o
+' acompanhamento.
+
+title Módulo report: pedir, acompanhar, baixar e listar
+
+actor "Usuário" as Ator
+boundary "Frontend" as FE
+participant "ReportController" as Ctrl
+
+participant "<<subsystem>>\nusecases" as UC
+
+participant "Report" as Entity
+
+participant "<<subsystem>>\nrepositories" as Repo
+participant "ReportStoragePort" as Storage
+database "reports" as DB
+database "data/reports" as FS
+
+== POST /reports: pedir um relatório ==
+
+Ator -> FE: escolhe tipo, formato e período
+activate FE
+FE -> Ctrl: POST /reports\n{type, format, startAt, endAt, roomId?}
+activate Ctrl
+Ctrl -> UC: execute(principal.getId(), SubmitReportRequest)
+activate UC
+
+UC -> Entity: Report.request(requestedBy, type,\nformat, parameters)
+activate Entity
+Entity --> UC: Report com id novo e status PENDING
+deactivate Entity
+
+UC -> Repo: save(report)
+activate Repo
+Repo -> DB: INSERT INTO reports
+DB --> Repo: Report
+Repo --> UC: Report
+deactivate Repo
+
+UC --> Ctrl: ReportResponse\ne publica ReportRequested
+deactivate UC
+Ctrl --> FE: 202 Accepted {ReportResponse}\nLocation: /reports/{id}
+deactivate Ctrl
+FE --> Ator: exibe o pedido em andamento
+deactivate FE
+
+== GET /reports/{id}: acompanhar ==
+
+Ator -> FE: consulta o andamento
+activate FE
+FE -> Ctrl: GET /reports/{id}
+activate Ctrl
+Ctrl -> UC: execute(id, principal.getId())
+activate UC
+
+UC -> Repo: findById(ReportId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM reports WHERE id=?
+DB --> Repo: Optional<Report>
+Repo --> UC: Optional<Report>
+deactivate Repo
+
+UC --> Ctrl: ReportResponse\ndownloadUrl só vem preenchido em COMPLETED
+deactivate UC
+Ctrl --> FE: 200 OK {ReportResponse}
+deactivate Ctrl
+FE --> Ator: exibe o status
+deactivate FE
+
+== GET /reports/{id}/download: baixar ==
+
+Ator -> FE: pede o arquivo
+activate FE
+FE -> Ctrl: GET /reports/{id}/download
+activate Ctrl
+Ctrl -> UC: execute(id, principal.getId())
+activate UC
+
+UC -> Repo: findById(ReportId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM reports WHERE id=?
+DB --> Repo: Optional<Report>
+Repo --> UC: Optional<Report>
+deactivate Repo
+
+UC -> Entity: requireArtifact()
+activate Entity
+Entity --> UC: ReportArtifact\n{filename, contentType, sizeBytes, storageKey}
+deactivate Entity
+
+UC -> Storage: load(storageKey)
+activate Storage
+Storage -> FS: lê o arquivo pela chave
+FS --> Storage: bytes
+Storage --> UC: InputStream
+deactivate Storage
+
+UC --> Ctrl: ReportDownload
+deactivate UC
+Ctrl --> FE: 200 OK, Content-Disposition: attachment
+deactivate Ctrl
+FE --> Ator: baixa o arquivo
+deactivate FE
+
+== GET /reports: listar ==
+
+Ator -> FE: abre a lista de relatórios
+activate FE
+FE -> Ctrl: GET /reports
+activate Ctrl
+Ctrl -> UC: findAll()
+activate UC
+
+UC -> Repo: findAll()
+activate Repo
+Repo -> DB: SELECT * FROM reports\nORDER BY requested_at DESC
+DB --> Repo: List<Report>
+Repo --> UC: List<Report>
+deactivate Repo
+
+UC --> Ctrl: List<ReportResponse>\nlista de todos os usuários, só metadados
+deactivate UC
+Ctrl --> FE: 200 OK [ReportResponse]
+deactivate Ctrl
+FE --> Ator: exibe a lista
+deactivate FE
+
+@enduml

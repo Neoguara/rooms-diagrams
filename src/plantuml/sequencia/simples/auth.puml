@@ -1,0 +1,104 @@
+@startuml auth_simples
+
+' Módulo auth inteiro em um arquivo, no estilo simplista. Os diagramas completos continuam
+' em sequencia/auth/, e é lá que estão os desvios.
+'
+' O módulo é plano: não tem camada de caso de uso nem repositório próprio, então não há
+' raia de subsistema aqui. Ele lê o usuário pela UserAuthPort, do módulo user.
+'
+' Quatro cortes em relação aos completos:
+'   1. Só o caminho de sucesso. Nenhum alt: as recusas (credencial inválida, conta
+'      inativa, token ausente ou expirado) estão nos diagramas completos.
+'   2. Nenhum loop.
+'   3. Nenhuma mensagem para si mesmo: fluxo interno não é troca entre participantes.
+'   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
+'
+' O AuthenticationManager fica, apesar de ser tipo de fora do módulo: é ele que confere a
+' senha e a conta habilitada, e omitir a chamada mostraria um login que não acontece.
+
+title Módulo auth: login e requisição autenticada
+
+actor "Usuário" as Ator
+boundary "Frontend" as FE
+participant "SecurityFilter" as Filter
+participant "AuthController" as Ctrl
+participant "AuthService" as Service
+participant "AuthenticationManager\n(spring security)" as AuthMgr
+participant "AuthUserDetailsService" as Details
+participant "JwtService" as Jwt
+participant "UserAuthPort\n(módulo user)" as Port
+database "users" as DB
+
+== POST /auth/login: autenticar ==
+
+Ator -> FE: informa email e senha
+activate FE
+FE -> Ctrl: POST /auth/login\n{email, password}
+activate Ctrl
+Ctrl -> Service: login(LoginRequest)
+activate Service
+
+Service -> AuthMgr: authenticate(email, password)
+activate AuthMgr
+
+AuthMgr -> Details: loadUserByUsername(email)
+activate Details
+Details -> Port: findByEmail(email)
+activate Port
+Port -> DB: SELECT * FROM users\nWHERE email=? AND status<>'DELETED'
+DB --> Port: Optional<User>
+Port --> Details: Optional<AuthUserData>
+deactivate Port
+Details --> AuthMgr: AuthUserDetails
+deactivate Details
+
+AuthMgr --> Service: Authentication\nsenha conferida e conta habilitada
+deactivate AuthMgr
+
+Service -> Jwt: generateToken(email)
+activate Jwt
+Jwt --> Service: jwtToken\nassinado em HS256, expira em expirationHours
+deactivate Jwt
+
+Service --> Ctrl: TokenResponse\n{token, id, name, email, role, isActive, datas}
+deactivate Service
+Ctrl --> FE: 200 OK {TokenResponse}\nSet-Cookie: token httpOnly, 7 dias
+deactivate Ctrl
+FE --> Ator: guarda o token e segue
+deactivate FE
+
+== Requisição autenticada: validar o token ==
+
+Ator -> FE: aciona uma tela protegida
+activate FE
+FE -> Filter: requisição com o token\nno header Authorization ou no cookie
+activate Filter
+
+Filter -> Jwt: isTokenValid(token)
+activate Jwt
+Jwt --> Filter: true
+deactivate Jwt
+
+Filter -> Jwt: extractUsername(token)
+activate Jwt
+Jwt --> Filter: email
+deactivate Jwt
+
+Filter -> Port: findByEmail(email)
+activate Port
+Port -> DB: SELECT * FROM users\nWHERE email=? AND status<>'DELETED'
+DB --> Port: Optional<User>
+Port --> Filter: Optional<AuthUserData>
+deactivate Port
+
+Filter -> Ctrl: doFilter, com o SecurityContext preenchido\ncom AuthUserDetails e ROLE_<role>
+activate Ctrl
+Ctrl --> Filter: resposta do endpoint
+deactivate Ctrl
+
+Filter --> FE: resposta do endpoint
+deactivate Filter
+FE --> Ator: exibe a tela
+deactivate FE
+
+@enduml

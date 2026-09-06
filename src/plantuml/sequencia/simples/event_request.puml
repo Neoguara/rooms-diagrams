@@ -1,0 +1,172 @@
+@startuml event_request_simples
+
+' As três escritas do módulo event, no estilo simplista. As três leituras estão em
+' event.puml. Os diagramas completos continuam em sequencia/event/, e é lá que estão os
+' desvios.
+'
+' Nenhuma delas toca o evento na submissão: o que se pretende fazer fica guardado nos
+' itens do grupo, e só a aprovação efetiva. As três são transacionais.
+'
+' Quatro cortes em relação aos completos:
+'   1. Porta e implementação viram um participante só, tipado como «subsystem».
+'   2. Só o caminho de sucesso. Nenhum alt: os erros (404, 409 de choque de sala, 422 de
+'      grupo já decidido ou já revertido) estão nos completos.
+'   3. Nenhum loop. Onde o código repete por item, a repetição fica dita na mensagem.
+'   4. Nenhuma mensagem para si mesmo, e ativação só em trecho reto.
+
+title Módulo event: submeter, revisar e reverter
+
+actor "Solicitante" as Ator
+actor "Aprovador" as Aprov
+boundary "Frontend" as FE
+participant "EventRequestController" as Ctrl
+
+participant "<<subsystem>>\nusecases" as UC
+
+participant "EventRequest" as Req
+participant "EventChangeItem" as Item
+participant "Event" as Event
+participant "Approval" as Appr
+participant "RoomOccupancy" as Occ
+participant "EventRequestConflicts" as Conflicts
+
+participant "<<subsystem>>\nrepositories" as Repo
+database "events\nevent_requests\nevent_change_items\napprovals" as DB
+
+== POST /event-requests: submeter um grupo ==
+
+Ator -> FE: monta as alterações e submete
+activate FE
+FE -> Ctrl: POST /event-requests\n{justification, changes: [{type, ...}]}
+activate Ctrl
+Ctrl -> UC: execute(principal.getId(), SubmitEventRequest)
+activate UC
+
+UC -> Req: EventRequest.open(UserId, justification)
+activate Req
+Req --> UC: EventRequest em PENDING
+deactivate Req
+
+UC -> Item: create, update, cancel ou reactivate,\num item por alteração e por ocorrência atingida
+activate Item
+Item --> UC: List<EventChangeItem>\ncom o snapshot do antes e do depois
+deactivate Item
+
+UC -> Repo: eventRequestRepository.save\ne changeItemRepository.saveAll
+activate Repo
+Repo -> DB: INSERT INTO event_requests\nINSERT INTO event_change_items
+DB --> Repo: grupo e itens gravados
+Repo --> UC: grupo e itens gravados
+deactivate Repo
+
+UC -> Conflicts: preview(changeItems, roomOccupancy)
+activate Conflicts
+Conflicts -> Occ: occupying(roomId, startAt, endAt)
+activate Occ
+Occ --> Conflicts: List<Event>
+deactivate Occ
+Conflicts --> UC: List<EventConflict>\naviso, não recusa
+deactivate Conflicts
+
+UC --> Ctrl: EventRequestResponse
+deactivate UC
+Ctrl --> FE: 201 Created {EventRequestResponse}\nLocation: /event-requests/{id}
+deactivate Ctrl
+FE --> Ator: exibe o grupo pendente e os choques previstos
+deactivate FE
+
+== POST /event-requests/{id}/review: aprovar ou rejeitar ==
+
+Aprov -> FE: decide o grupo
+activate FE
+FE -> Ctrl: POST /event-requests/{id}/review\n{decision, comment}
+activate Ctrl
+Ctrl -> UC: execute(id, principal.getId(), ReviewEventRequest)
+activate UC
+
+UC -> Repo: eventRequestRepository.findById\ne changeItemRepository.findByEventRequestId
+activate Repo
+Repo -> DB: SELECT nas duas tabelas,\nitens por item_position
+DB --> Repo: EventRequest e itens
+Repo --> UC: EventRequest e itens
+deactivate Repo
+
+UC -> Req: approve() ou reject()
+activate Req
+Req --> UC: EventRequest em APPROVED ou REJECTED
+deactivate Req
+
+UC -> Event: na aprovação, cada item vira uma chamada:\ncreate, update, cancel, reactivate ou discard
+activate Event
+Event -> Occ: occupying(roomId, startAt, endAt)
+activate Occ
+Occ --> Event: List<Event>
+deactivate Occ
+Event --> UC: eventos efetivados, com o horário livre conferido
+deactivate Event
+
+UC -> Appr: Approval.of(requestId, UserId, decision, comment)
+activate Appr
+Appr --> UC: Approval
+deactivate Appr
+
+UC -> Repo: eventRepository.save de cada evento,\neventRequestRepository.save,\nchangeItemRepository.saveAll\ne approvalRepository.save
+activate Repo
+Repo -> DB: INSERT ou UPDATE em events,\nUPDATE event_requests,\nUPDATE event_change_items,\nINSERT INTO approvals
+DB --> Repo: tudo gravado na mesma transação
+Repo --> UC: tudo gravado
+deactivate Repo
+
+UC --> Ctrl: EventRequestResponse
+deactivate UC
+Ctrl --> FE: 200 OK {EventRequestResponse}
+deactivate Ctrl
+FE --> Aprov: exibe o grupo decidido
+deactivate FE
+
+== POST /event-requests/{id}/reverse: reverter a decisão ==
+
+Ator -> FE: pede a reversão do grupo
+activate FE
+FE -> Ctrl: POST /event-requests/{id}/reverse\n{justification}
+activate Ctrl
+Ctrl -> UC: execute(id, principal.getId(), ReverseEventRequest)
+activate UC
+
+UC -> Repo: eventRequestRepository.findById e hasReversal,\nchangeItemRepository.findByEventRequestId
+activate Repo
+Repo -> DB: SELECT nas duas tabelas\ne COUNT em reversal_of
+DB --> Repo: grupo original, itens e se já foi revertido
+Repo --> UC: grupo original e itens
+deactivate Repo
+
+UC -> Req: EventRequest.open e markAsReversalOf(original)
+activate Req
+Req --> UC: grupo novo em PENDING, apontando para o original
+deactivate Req
+
+UC -> Item: grupo aprovado vira a operação contrária de cada item,\nna ordem inversa; grupo rejeitado vira o mesmo pedido,\nna mesma ordem
+activate Item
+Item --> UC: List<EventChangeItem>\ncada um apontando para o item que desfaz
+deactivate Item
+
+UC -> Repo: eventRequestRepository.save\ne changeItemRepository.saveAll
+activate Repo
+Repo -> DB: INSERT INTO event_requests\nINSERT INTO event_change_items
+DB --> Repo: grupo e itens gravados
+Repo --> UC: grupo e itens gravados
+deactivate Repo
+
+UC -> Conflicts: preview(reversalItems, roomOccupancy)
+activate Conflicts
+Conflicts --> UC: List<EventConflict>
+deactivate Conflicts
+
+UC --> Ctrl: EventRequestResponse
+deactivate UC
+Ctrl --> FE: 201 Created {EventRequestResponse}\nLocation: /event-requests/{novo id}
+deactivate Ctrl
+FE --> Ator: exibe o grupo de reversão,\nque ainda precisa ser aprovado
+deactivate FE
+
+@enduml
