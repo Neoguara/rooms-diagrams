@@ -1,0 +1,176 @@
+@startuml room_simples
+
+' Recorte de sala do módulo room: os quatro endpoints de CRUD, no estilo simplista. Os
+' outros dois, disponibilidade e recursos, estão em room_availability_and_resources.puml.
+' Os diagramas completos continuam em sequencia/room/, e é lá que estão os desvios.
+'
+' Cinco cortes em relação a eles:
+'   1. Porta e implementação viram um participante só. Como este recorte fala com dois
+'      repositórios, a raia é a camada inteira, tipada como «subsystem».
+'   2. Só o caminho de sucesso. Nenhum alt: os erros (404, 422) estão nos diagramas
+'      completos, e as guardas de status estão em estado/room_status.puml.
+'   3. Nenhum loop. Onde o código repete por item, a repetição fica dita no texto da
+'      mensagem, que é o que interessa aqui.
+'   4. Colaborador sem regra própria vira mensagem para si mesmo.
+'   5. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
+'
+' A camada de caso de uso é uma raia só, tipada como «subsystem». Ela não representa uma
+' classe: representa a camada. As sete classes estão em classe/simples/room/room.puml.
+'
+' O PATCH /rooms/{id}/status fica de fora: as transições estão em estado/room_status.puml.
+
+title Sala: criar, buscar, atualizar e remover
+
+actor "Administrador" as Ator
+boundary "Frontend" as FE
+participant "RoomController" as Ctrl
+
+participant "<<subsystem>>\nusecases" as UC #F0FFF0
+
+participant "Room" as Room
+participant "RoomResource" as RR
+
+participant "<<subsystem>>\nrepositories" as Repo
+database "rooms" as DBRoom
+database "room_resources" as DBRR
+
+== POST /rooms: criar ==
+
+Ator -> FE: preenche o formulário e confirma
+activate FE
+FE -> Ctrl: POST /rooms\n{name, code, roomTypeId, buildingId,\nfloor, capacity, resourceIds?}
+activate Ctrl
+Ctrl -> UC: execute(CreateRoomRequest)
+activate UC
+
+UC -> Room: Room.create(name, code, roomTypeId,\nbuildingId, floor, capacity)
+activate Room
+Room -> Room: valida os campos\nid = UUID aleatório\nstatus = AVAILABLE
+Room --> UC: Room
+deactivate Room
+
+UC -> Repo: roomRepository.save(room)
+activate Repo
+Repo -> DBRoom: INSERT INTO rooms
+Repo --> UC: Room
+deactivate Repo
+
+UC -> Repo: resourceRepository.findById\nde cada resourceId informado
+activate Repo
+Repo --> UC: Resource de cada um
+deactivate Repo
+
+UC -> RR: RoomResource.create(roomId, resourceId)\num por recurso
+activate RR
+RR --> UC: RoomResource de cada um
+deactivate RR
+
+UC -> Repo: roomResourceRepository.save\nde cada RoomResource
+activate Repo
+Repo -> DBRR: INSERT INTO room_resources
+deactivate Repo
+
+UC --> Ctrl: RoomResponse
+deactivate UC
+Ctrl --> FE: 201 Created {RoomResponse}
+deactivate Ctrl
+FE --> Ator: exibe o resultado
+deactivate FE
+
+== GET /rooms e GET /rooms/{id}: buscar ==
+
+Ator -> FE: abre a lista, ou uma sala
+activate FE
+FE -> Ctrl: GET /rooms[?expand=...]\nou GET /rooms/{id}[?expand=...]
+activate Ctrl
+Ctrl -> Ctrl: parseExpand(expand)\nBUILDING, ROOM_TYPE, RESOURCES
+Ctrl -> UC: findAll(expand) ou findById(id, expand)
+activate UC
+
+UC -> Repo: roomRepository.findAll()\nou findById(RoomId.of(id))
+activate Repo
+Repo -> DBRoom: SELECT * FROM rooms\nWHERE status<>'DELETED'\n[AND id=?]
+Repo --> UC: List<Room> ou Optional<Room>
+deactivate Repo
+
+UC -> Repo: uma consulta por campo pedido em expand:\nbuildingRepository.findById,\nroomTypeRepository.findById,\nroomResourceRepository.findByRoomId +\nresourceRepository.findAllById
+activate Repo
+Repo --> UC: dados dos campos expandidos
+deactivate Repo
+
+UC --> Ctrl: RoomDetailResponse\ncampos não pedidos vêm nulos e são omitidos
+deactivate UC
+Ctrl --> FE: 200 OK
+deactivate Ctrl
+FE --> Ator: exibe o resultado
+deactivate FE
+
+== PUT /rooms/{id}: atualizar ==
+
+Ator -> FE: edita os dados e confirma
+activate FE
+FE -> Ctrl: PUT /rooms/{id}\n{name, code, roomTypeId, buildingId,\nfloor, capacity}
+activate Ctrl
+Ctrl -> UC: execute(id, UpdateRoomRequest)
+activate UC
+
+UC -> Repo: roomRepository.findById(RoomId.of(id))
+activate Repo
+Repo -> DBRoom: SELECT * FROM rooms\nWHERE id=? AND status<>'DELETED'
+Repo --> UC: Optional<Room>
+deactivate Repo
+
+UC -> Room: update(name, code, roomTypeId,\nbuildingId, floor, capacity)
+activate Room
+Room -> Room: valida os campos\nupdatedAt = now()
+Room --> UC: Room
+deactivate Room
+
+UC -> Repo: roomRepository.save(room)
+activate Repo
+Repo -> DBRoom: UPDATE rooms SET ...
+Repo --> UC: Room
+deactivate Repo
+
+UC --> Ctrl: RoomResponse
+deactivate UC
+Ctrl --> FE: 200 OK {RoomResponse}
+deactivate Ctrl
+FE --> Ator: exibe o resultado
+deactivate FE
+
+== DELETE /rooms/{id}: remover ==
+
+Ator -> FE: confirma a remoção
+activate FE
+FE -> Ctrl: DELETE /rooms/{id}
+activate Ctrl
+Ctrl -> UC: execute(id)
+activate UC
+
+UC -> Repo: roomRepository.findById(RoomId.of(id))
+activate Repo
+Repo -> DBRoom: SELECT * FROM rooms\nWHERE id=? AND status<>'DELETED'
+Repo --> UC: Optional<Room>
+deactivate Repo
+
+UC -> Room: delete()
+activate Room
+Room -> Room: exige status INACTIVE\nstatus = DELETED
+Room --> UC: Room
+deactivate Room
+
+UC -> Repo: roomRepository.save(room)
+activate Repo
+Repo -> DBRoom: UPDATE rooms SET status='DELETED'
+Repo --> UC: Room
+deactivate Repo
+
+UC --> Ctrl: void
+deactivate UC
+Ctrl --> FE: 204 No Content
+deactivate Ctrl
+FE --> Ator: exibe o resultado
+deactivate FE
+
+@enduml

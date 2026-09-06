@@ -1,0 +1,105 @@
+@startuml room_availability_and_resources_simples
+
+' Os dois endpoints do recorte de sala que não são CRUD, no estilo simplista. O CRUD está
+' em room.puml. Os diagramas completos continuam em sequencia/room/, e é lá que estão os
+' desvios.
+'
+' São os dois que fogem do padrão do módulo: um consulta outro módulo pela porta de
+' disponibilidade, o outro escreve em duas tabelas dentro da mesma transação.
+'
+' Cinco cortes em relação aos completos:
+'   1. Porta e implementação viram um participante só, tipado como «subsystem».
+'   2. Só o caminho de sucesso. Nenhum alt: os erros (404, 422) estão nos completos.
+'   3. Nenhum loop. Onde o código repete por item, a repetição fica dita na mensagem.
+'   4. Colaborador sem regra própria vira mensagem para si mesmo.
+'   5. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
+
+title Sala: disponibilidade e recursos
+
+actor "Administrador" as Ator
+boundary "Frontend" as FE
+participant "RoomController" as Ctrl
+
+participant "<<subsystem>>\nusecases" as UC #F0FFF0
+
+participant "RoomResource" as RR
+
+participant "<<subsystem>>\nrepositories" as Repo
+participant "RoomAvailabilityPort\n(módulo event)" as Avail
+database "rooms" as DBRoom
+database "room_resources" as DBRR
+
+== GET /rooms/available: buscar salas livres ==
+
+Ator -> FE: informa o período e os filtros
+activate FE
+FE -> Ctrl: GET /rooms/available\n?startAt&endAt&roomTypeIds&resourceIds\n&buildingIds&minCapacity&search&expand
+activate Ctrl
+Ctrl -> UC: execute(RoomAvailabilityFilter, expand)
+activate UC
+
+UC -> UC: exige startAt e endAt,\ncom startAt antes de endAt
+
+UC -> Avail: findOccupiedRoomIds(startAt, endAt)
+activate Avail
+Avail --> UC: Set<UUID>\nsalas com evento ACTIVE ou COMPLETED no período
+deactivate Avail
+
+UC -> Repo: roomRepository.findAll()
+activate Repo
+Repo -> DBRoom: SELECT * FROM rooms\nWHERE status<>'DELETED'
+Repo --> UC: List<Room>
+deactivate Repo
+
+UC -> UC: filtra por status AVAILABLE, capacidade,\ntipo, prédio, ocupação, recursos e busca textual
+
+UC --> Ctrl: List<RoomDetailResponse>
+deactivate UC
+Ctrl --> FE: 200 OK
+deactivate Ctrl
+FE --> Ator: exibe as salas livres
+deactivate FE
+
+== PUT /rooms/{id}/resources: substituir recursos ==
+
+Ator -> FE: escolhe os recursos da sala
+activate FE
+FE -> Ctrl: PUT /rooms/{id}/resources\n{resourceIds}
+activate Ctrl
+Ctrl -> UC: execute(id, ReplaceRoomResourcesRequest)
+activate UC
+
+UC -> Repo: roomRepository.findById(RoomId.of(id))
+activate Repo
+Repo -> DBRoom: SELECT * FROM rooms\nWHERE id=? AND status<>'DELETED'
+Repo --> UC: Optional<Room>
+deactivate Repo
+
+UC -> Repo: resourceRepository.findById\nde cada resourceId informado
+activate Repo
+Repo --> UC: Resource de cada um
+deactivate Repo
+
+UC -> Repo: roomResourceRepository.deleteByRoomId(roomId)
+activate Repo
+Repo -> DBRR: DELETE FROM room_resources\nWHERE room_id=?
+deactivate Repo
+
+UC -> RR: RoomResource.create(roomId, resourceId)\num por recurso
+activate RR
+RR --> UC: RoomResource de cada um
+deactivate RR
+
+UC -> Repo: roomResourceRepository.save\nde cada RoomResource
+activate Repo
+Repo -> DBRR: INSERT INTO room_resources
+deactivate Repo
+
+UC --> Ctrl: RoomResourcesResponse
+deactivate UC
+Ctrl --> FE: 200 OK {RoomResourcesResponse}
+deactivate Ctrl
+FE --> Ator: exibe o resultado
+deactivate FE
+
+@enduml

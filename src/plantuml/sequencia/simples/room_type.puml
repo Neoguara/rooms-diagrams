@@ -1,0 +1,152 @@
+@startuml room_type_simples
+
+' Recorte de tipo de sala do módulo room, inteiro em um arquivo, no estilo simplista. Os
+' diagramas completos continuam em sequencia/room_type/, e é lá que estão os desvios.
+'
+' Quatro cortes em relação a eles:
+'   1. RoomTypeRepositoryPort e RoomTypeRepositoryImpl viram um participante só.
+'   2. Só o caminho de sucesso. Nenhum alt: os erros (404, 422) estão nos diagramas
+'      completos, e as guardas de status estão em estado/room_type_status.puml.
+'   3. Colaborador sem regra própria vira mensagem para si mesmo.
+'   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
+'
+' A camada de caso de uso é uma raia só, tipada como «subsystem». Ela não representa uma
+' classe: representa a camada. As classes estão em classe/simples/room/room_type.puml.
+'
+' O PATCH /room-types/{id}/status fica de fora: as transições estão em
+' estado/room_type_status.puml.
+
+title Tipo de sala: criar, buscar, atualizar e remover
+
+actor "Administrador" as Ator
+boundary "Frontend" as FE
+participant "RoomTypeController" as Ctrl
+
+participant "<<subsystem>>\nusecases" as UC #F0FFF0
+
+participant "RoomType" as Entity
+participant "Repositório" as Repo
+database "room_types" as DB
+
+== POST /room-types: criar ==
+
+Ator -> FE: preenche o formulário e confirma
+activate FE
+FE -> Ctrl: POST /room-types\n{name, description, defaultCapacity,\ncolor, icon}
+activate Ctrl
+Ctrl -> UC: execute(CreateRoomTypeRequest)
+activate UC
+
+UC -> Entity: RoomType.create(name, description,\ndefaultCapacity, color, icon)
+activate Entity
+Entity -> Entity: valida os campos\nid = UUID aleatório\nstatus = ACTIVE
+Entity --> UC: RoomType
+deactivate Entity
+
+UC -> Repo: save(roomType)
+activate Repo
+Repo -> DB: INSERT INTO room_types
+Repo --> UC: RoomType
+deactivate Repo
+
+UC --> Ctrl: RoomTypeResponse
+deactivate UC
+Ctrl --> FE: 201 Created {RoomTypeResponse}
+deactivate Ctrl
+FE --> Ator: exibe o resultado
+deactivate FE
+
+== GET /room-types e GET /room-types/{id}: buscar ==
+
+Ator -> FE: abre a lista, ou um tipo de sala
+activate FE
+FE -> Ctrl: GET /room-types\nou GET /room-types/{id}
+activate Ctrl
+Ctrl -> UC: findAll() ou findById(id)
+activate UC
+
+UC -> Repo: findAll() ou findById(RoomTypeId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM room_types\nWHERE status<>'DELETED'\n[AND id=?]
+DB --> Repo: List<RoomType> ou Optional<RoomType>
+Repo --> UC: List<RoomType> ou Optional<RoomType>
+deactivate Repo
+
+UC --> Ctrl: RoomTypeResponse ou List<RoomTypeResponse>
+deactivate UC
+Ctrl --> FE: 200 OK
+deactivate Ctrl
+FE --> Ator: exibe o resultado
+deactivate FE
+
+== PUT /room-types/{id}: atualizar ==
+
+Ator -> FE: edita os dados e confirma
+activate FE
+FE -> Ctrl: PUT /room-types/{id}\n{name, description, defaultCapacity,\ncolor, icon}
+activate Ctrl
+Ctrl -> UC: execute(id, UpdateRoomTypeRequest)
+activate UC
+
+UC -> Repo: findById(RoomTypeId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM room_types\nWHERE id=? AND status<>'DELETED'
+DB --> Repo: Optional<RoomType>
+Repo --> UC: Optional<RoomType>
+deactivate Repo
+
+UC -> Entity: update(name, description,\ndefaultCapacity, color, icon)
+activate Entity
+Entity -> Entity: valida os campos\nupdatedAt = now()
+Entity --> UC: RoomType
+deactivate Entity
+
+UC -> Repo: save(roomType)
+activate Repo
+Repo -> DB: UPDATE room_types SET\nname=?, description=?, default_capacity=?,\ncolor=?, icon=?, updated_at=?
+Repo --> UC: RoomType
+deactivate Repo
+
+UC --> Ctrl: RoomTypeResponse
+deactivate UC
+Ctrl --> FE: 200 OK {RoomTypeResponse}
+deactivate Ctrl
+FE --> Ator: exibe o resultado
+deactivate FE
+
+== DELETE /room-types/{id}: remover ==
+
+Ator -> FE: confirma a remoção
+activate FE
+FE -> Ctrl: DELETE /room-types/{id}
+activate Ctrl
+Ctrl -> UC: execute(id)
+activate UC
+
+UC -> Repo: findById(RoomTypeId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM room_types\nWHERE id=? AND status<>'DELETED'
+DB --> Repo: Optional<RoomType>
+Repo --> UC: Optional<RoomType>
+deactivate Repo
+
+UC -> Entity: delete()
+activate Entity
+Entity -> Entity: exige status INACTIVE\nstatus = DELETED
+Entity --> UC: RoomType
+deactivate Entity
+
+UC -> Repo: save(roomType)
+activate Repo
+Repo -> DB: UPDATE room_types SET status='DELETED'
+Repo --> UC: RoomType
+deactivate Repo
+
+UC --> Ctrl: void
+deactivate UC
+Ctrl --> FE: 204 No Content
+deactivate Ctrl
+FE --> Ator: exibe o resultado
+deactivate FE
+
+@enduml

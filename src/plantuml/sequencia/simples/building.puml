@@ -1,0 +1,152 @@
+@startuml building_simples
+
+' Recorte de prédio do módulo room, inteiro em um arquivo, no estilo simplista. Os
+' diagramas completos continuam em sequencia/building/, e é lá que estão os desvios.
+'
+' Quatro cortes em relação a eles:
+'   1. BuildingRepositoryPort e BuildingRepositoryImpl viram um participante só.
+'   2. Só o caminho de sucesso. Nenhum alt: os erros (404, 422) estão nos diagramas
+'      completos, e as guardas de status estão em estado/building_status.puml.
+'   3. Colaborador sem regra própria vira mensagem para si mesmo.
+'   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
+'
+' A camada de caso de uso é uma raia só, tipada como «subsystem». Ela não representa uma
+' classe: representa a camada. As classes estão em classe/simples/room/building.puml.
+'
+' O PATCH /buildings/{id}/status fica de fora: as transições estão em
+' estado/building_status.puml.
+
+title Prédio: criar, buscar, atualizar e remover
+
+actor "Administrador" as Ator
+boundary "Frontend" as FE
+participant "BuildingController" as Ctrl
+
+participant "<<subsystem>>\nusecases" as UC #F0FFF0
+
+participant "Building" as Entity
+participant "Repositório" as Repo
+database "buildings" as DB
+
+== POST /buildings: criar ==
+
+Ator -> FE: preenche o formulário e confirma
+activate FE
+FE -> Ctrl: POST /buildings\n{name, address, totalFloors}
+activate Ctrl
+Ctrl -> UC: execute(CreateBuildingRequest)
+activate UC
+
+UC -> Entity: Building.create(name, address, totalFloors)
+activate Entity
+Entity -> Entity: valida os campos\nid = UUID aleatório\nstatus = ACTIVE
+Entity --> UC: Building
+deactivate Entity
+
+UC -> Repo: save(building)
+activate Repo
+Repo -> DB: INSERT INTO buildings
+Repo --> UC: Building
+deactivate Repo
+
+UC --> Ctrl: BuildingResponse
+deactivate UC
+Ctrl --> FE: 201 Created {BuildingResponse}
+deactivate Ctrl
+FE --> Ator: exibe o resultado
+deactivate FE
+
+== GET /buildings e GET /buildings/{id}: buscar ==
+
+Ator -> FE: abre a lista, ou um prédio
+activate FE
+FE -> Ctrl: GET /buildings\nou GET /buildings/{id}
+activate Ctrl
+Ctrl -> UC: findAll() ou findById(id)
+activate UC
+
+UC -> Repo: findAll() ou findById(BuildingId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM buildings\nWHERE status<>'DELETED'\n[AND id=?]
+DB --> Repo: List<Building> ou Optional<Building>
+Repo --> UC: List<Building> ou Optional<Building>
+deactivate Repo
+
+UC --> Ctrl: BuildingResponse ou List<BuildingResponse>
+deactivate UC
+Ctrl --> FE: 200 OK
+deactivate Ctrl
+FE --> Ator: exibe o resultado
+deactivate FE
+
+== PUT /buildings/{id}: atualizar ==
+
+Ator -> FE: edita os dados e confirma
+activate FE
+FE -> Ctrl: PUT /buildings/{id}\n{name, address, totalFloors}
+activate Ctrl
+Ctrl -> UC: execute(id, UpdateBuildingRequest)
+activate UC
+
+UC -> Repo: findById(BuildingId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM buildings\nWHERE id=? AND status<>'DELETED'
+DB --> Repo: Optional<Building>
+Repo --> UC: Optional<Building>
+deactivate Repo
+
+UC -> Entity: update(name, address, totalFloors)
+activate Entity
+Entity -> Entity: valida os campos\nupdatedAt = now()
+Entity --> UC: Building
+deactivate Entity
+
+UC -> Repo: save(building)
+activate Repo
+Repo -> DB: UPDATE buildings SET\nname=?, address=?, total_floors=?, updated_at=?
+Repo --> UC: Building
+deactivate Repo
+
+UC --> Ctrl: BuildingResponse
+deactivate UC
+Ctrl --> FE: 200 OK {BuildingResponse}
+deactivate Ctrl
+FE --> Ator: exibe o resultado
+deactivate FE
+
+== DELETE /buildings/{id}: remover ==
+
+Ator -> FE: confirma a remoção
+activate FE
+FE -> Ctrl: DELETE /buildings/{id}
+activate Ctrl
+Ctrl -> UC: execute(id)
+activate UC
+
+UC -> Repo: findById(BuildingId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM buildings\nWHERE id=? AND status<>'DELETED'
+DB --> Repo: Optional<Building>
+Repo --> UC: Optional<Building>
+deactivate Repo
+
+UC -> Entity: delete()
+activate Entity
+Entity -> Entity: exige status INACTIVE\nstatus = DELETED
+Entity --> UC: Building
+deactivate Entity
+
+UC -> Repo: save(building)
+activate Repo
+Repo -> DB: UPDATE buildings SET status='DELETED'
+Repo --> UC: Building
+deactivate Repo
+
+UC --> Ctrl: void
+deactivate UC
+Ctrl --> FE: 204 No Content
+deactivate Ctrl
+FE --> Ator: exibe o resultado
+deactivate FE
+
+@enduml
