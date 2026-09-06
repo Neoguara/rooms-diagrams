@@ -1,16 +1,14 @@
-\section{Diagramas de Estado}
+\section{Diagramas de Estado}\label{sec:estado}
 
 Nas figuras a seguir são apresentados os diagramas de estado das entidades do sistema,
 descrevendo os ciclos de vida e as transições de estado possíveis.
 
-% A exclusão é implementada como \textit{soft delete}: o registro permanece no banco de dados com status \texttt{DELETED}, impedindo qualquer operação futura sobre ele. Para as entidades \texttt{Building}, \texttt{RoomType} e \texttt{Resource}, o estado \texttt{DELETED} só é acessível a partir de \texttt{ARCHIVED}, exigindo o arquivamento prévio antes da exclusão.
-
 \subsection{Usuário}
 
-Na Figura~\ref{fig:estado-user} é representado o ciclo de vida da entidade \textit{User} do módulo de gerenciamento de usuarios
+Na Figura~\ref{fig:estado-user} é representado o ciclo de vida da entidade \texttt{User} do módulo de gerenciamento de usuários.
 
 \begin{figure}[H]
-    \caption{Diagrama de estado -- Usuário}
+    \caption{Diagrama de estado do usuário}
     \label{fig:estado-user}
     \centering
     \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../out/src/plantuml/estado/user_status.png}
@@ -21,10 +19,10 @@ Na Figura~\ref{fig:estado-user} é representado o ciclo de vida da entidade \tex
 
 \subsection{Sala}
 
-Na Figura~\ref{fig:estado-room}, Figura~\ref{fig:estado-room-type}, Figura~\ref{fig:estado-building} e Figura~\ref{fig:estado-resource} são representado respectivamente o ciclo de vida das entidades \texttt{Room}, \texttt{RoomType}, \texttt{Building} e \texttt{Resource} do módulo de gerenciamento de Salas.
+Na Figura~\ref{fig:estado-room}, Figura~\ref{fig:estado-room-type}, Figura~\ref{fig:estado-building} e Figura~\ref{fig:estado-resource} são representados respectivamente os ciclos de vida das entidades \texttt{Room}, \texttt{RoomType}, \texttt{Building} e \texttt{Resource} do módulo de gerenciamento de salas.
 
 \begin{figure}[H]
-    \caption{Diagrama de estado -- Sala}
+    \caption{Diagrama de estado da sala}
     \label{fig:estado-room}
     \centering
     \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../out/src/plantuml/estado/room_status.png}
@@ -33,9 +31,8 @@ Na Figura~\ref{fig:estado-room}, Figura~\ref{fig:estado-room-type}, Figura~\ref{
     \textbf{Acesso:} \href{\linkRoomStatus}{Diagrama de Estado: Sala}.}
 \end{figure}
 
-
 \begin{figure}[H]
-    \caption{Diagrama de estado -- Tipo de Sala}
+    \caption{Diagrama de estado do tipo de sala}
     \label{fig:estado-room-type}
     \centering
     \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../out/src/plantuml/estado/room_type_status.png}
@@ -45,7 +42,7 @@ Na Figura~\ref{fig:estado-room}, Figura~\ref{fig:estado-room-type}, Figura~\ref{
 \end{figure}
 
 \begin{figure}[H]
-    \caption{Diagrama de estado -- Prédio}
+    \caption{Diagrama de estado do prédio}
     \label{fig:estado-building}
     \centering
     \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../out/src/plantuml/estado/building_status.png}
@@ -55,11 +52,48 @@ Na Figura~\ref{fig:estado-room}, Figura~\ref{fig:estado-room-type}, Figura~\ref{
 \end{figure}
 
 \begin{figure}[H]
-    \caption{Diagrama de estado -- Recurso}
+    \caption{Diagrama de estado do recurso}
     \label{fig:estado-resource}
     \centering
     \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../out/src/plantuml/estado/resource_status.png}
 
     {\footnotesize \textbf{Fonte:} O autor.
     \textbf{Acesso:} \href{\linkResourceStatus}{Diagrama de Estado: Recurso}.}
+\end{figure}
+
+\subsection{Evento}
+
+Na Figura~\ref{fig:estado-event} e Figura~\ref{fig:estado-event-request} são representados respectivamente os ciclos de vida das entidades \texttt{Event} e \texttt{EventRequest} do módulo de gerenciamento de eventos.
+
+\begin{figure}[H]
+    \caption{Diagrama de estado do evento}
+    \label{fig:estado-event}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../out/src/plantuml/estado/event_status.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.
+    \textbf{Acesso:} \href{\linkEventStatus}{Diagrama de Estado: Evento}.}
+\end{figure}
+
+\begin{figure}[H]
+    \caption{Diagrama de estado da solicitação de alteração}
+    \label{fig:estado-event-request}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../out/src/plantuml/estado/event_request_status.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.
+    \textbf{Acesso:} \href{\linkEventRequestStatus}{Diagrama de Estado: Solicitação de Alteração}.}
+\end{figure}
+
+\subsection{Relatório}
+
+Na Figura~\ref{fig:estado-report} é representado o ciclo de vida da entidade \texttt{Report} do módulo de relatórios.
+
+\begin{figure}[H]
+    \caption{Diagrama de estado do relatório}
+    \label{fig:estado-report}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{../../../out/src/plantuml/estado/report_status.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.}
 \end{figure}

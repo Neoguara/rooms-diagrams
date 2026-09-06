@@ -1,8 +1,48 @@
 \section{Diagramas de Sequência}
 
 Nesta seção são apresentados os diagramas de sequência das operações do sistema,
-descrevendo o fluxo de mensagens entre os componentes.
+descrevendo o fluxo de mensagens entre os componentes. Cada figura reúne os endpoints de
+um módulo, separados por blocos.
 
-\input{./diagramas/sequencia/user/diagrama-sequencia-user.tex}
+\begin{itemize}
+    \item A Figura~\ref{fig:seq-user} representa as operações do módulo de gerenciamento de usuários.
+    \item A Figura~\ref{fig:seq-room} representa as operações do módulo de gerenciamento de salas.
+    \item A Figura~\ref{fig:seq-event} representa as operações de consulta do módulo de gerenciamento de eventos.
+    \item A Figura~\ref{fig:seq-report} representa as operações do módulo de relatórios.
+\end{itemize}
 
-\input{./diagramas/sequencia/room/diagrama-sequencia-room.tex}
+\begin{figure}[H]
+    \caption{Diagrama de sequência do usuário}
+    \label{fig:seq-user}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.85\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/simples/user_simples.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.}
+\end{figure}
+
+\begin{figure}[H]
+    \caption{Diagrama de sequência da sala}
+    \label{fig:seq-room}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.85\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/simples/room_simples.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.}
+\end{figure}
+
+\begin{figure}[H]
+    \caption{Diagrama de sequência do evento}
+    \label{fig:seq-event}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.85\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/simples/event_simples.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.}
+\end{figure}
+
+\begin{figure}[H]
+    \caption{Diagrama de sequência do relatório}
+    \label{fig:seq-report}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.85\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/simples/report_simples.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.}
+\end{figure}

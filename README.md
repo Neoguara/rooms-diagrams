@@ -7,7 +7,7 @@ Diagramas de salas gerados a partir de arquivos `.puml` usando [PlantUML](https:
 ### Dependências
 
 - **Java** (necessário para o PlantUML)
-- **PlantUML** — instale com um dos métodos abaixo:
+- **PlantUML**: instale com um dos métodos abaixo:
 
 **Arch Linux / Manjaro:**
 ```bash

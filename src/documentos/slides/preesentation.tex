@@ -4,13 +4,13 @@
 \usepackage[utf8]{inputenc}
 \usepackage{graphicx}
 \hypersetup{pdfpagemode=UseNone, hidelinks, pdfdisplaydoctitle=true,%
-pdftitle={Reserva de Salas -- Apresentação de Banca}}
+pdftitle={Reserva de Salas: Apresentação de Banca}}
 
 \input{../../../out/drive-links.tex}
 
 \title{Reserva de Salas}
 \author{José Ronaldo dos Santos Júnior\\[2mm]{\small Orientador: Prof.\ Gustavo Queiroz Silveira}}
-\date{Ciência da Computação -- Centro Universitário Filadélfia\\[1mm]Londrina, Junho de 2026}
+\date{Ciência da Computação, Centro Universitário Filadélfia\\[1mm]Londrina, Junho de 2026}
 
 \begin{document}
 \frame{\titlepage}
@@ -39,14 +39,14 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 \begin{itemize}
 \item \textbf{Linguagens de Programação:}
 \begin{itemize}
-\item \textit{Back-end}: Java --- consolidado no mercado corporativo
-\item \textit{Front-end}: JavaScript --- padrão para interfaces web
+\item \textit{Back-end}: Java, consolidado no mercado corporativo
+\item \textit{Front-end}: JavaScript, padrão para interfaces web
 \end{itemize}
-\item \textbf{Banco de Dados:} PostgreSQL --- maturidade e compatibilidade com os frameworks adotados
+\item \textbf{Banco de Dados:} PostgreSQL, maturidade e compatibilidade com os frameworks adotados
 \item \textbf{Frameworks de Desenvolvimento:}
 \begin{itemize}
-\item \textit{Front-end}: React --- interfaces reativas e componentizadas
-\item \textit{Back-end}: Spring Boot --- exposição de APIs REST sobre o ecossistema Spring
+\item \textit{Front-end}: React, interfaces reativas e componentizadas
+\item \textit{Back-end}: Spring Boot, exposição de APIs REST sobre o ecossistema Spring
 \end{itemize}
 \end{itemize}
 \end{frame}
@@ -77,12 +77,12 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 \begin{frame}
 \frametitle{Atores do Sistema}
 \begin{itemize}
-\item \textbf{sa\_professor} --- usuário comum:
+\item \textbf{sa\_professor}, usuário comum:
 \begin{itemize}
 \item Autenticação, gerenciamento de salas e agendamentos
 \item Geração de relatórios e consulta ao histórico
 \end{itemize}
-\item \textbf{sa\_coordenador} --- especialização de \textbf{sa\_professor}:
+\item \textbf{sa\_coordenador}, especialização de \textbf{sa\_professor}:
 \begin{itemize}
 \item Todas as permissões de professor
 \item Acesso ao gerenciamento de usuários
@@ -94,13 +94,13 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 \begin{frame}
 \frametitle{Modelagem do Banco de Dados (DER)}
 \begin{figure}
-\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/der-horizontal.png}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/entidade-relacionamento/der-horizontal.png}
 \end{figure}
 \end{frame}
 
 % ---- Diagrama de Componentes ----
 \begin{frame}
-\frametitle{Diagrama de Componentes --- Visão Geral dos Módulos}
+\frametitle{Diagrama de Componentes: Visão Geral dos Módulos}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/componentes.png}
 \end{figure}
@@ -108,28 +108,28 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 
 % ---- Diagramas de Classes ----
 \begin{frame}
-\frametitle{Diagrama de Classe --- Usuário}
+\frametitle{Diagrama de Classe: Usuário}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/classe/user.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Classe --- Sala}
+\frametitle{Diagrama de Classe: Sala}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/classe/room.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Classe --- Evento}
+\frametitle{Diagrama de Classe: Evento}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/classe/event.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Classe --- Autenticação}
+\frametitle{Diagrama de Classe: Autenticação}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/classe/auth.png}
 \end{figure}
@@ -137,7 +137,7 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 
 % ---- Diagrama de Estado: Usuário ----
 \begin{frame}
-\frametitle{Diagrama de Estado --- Usuário}
+\frametitle{Diagrama de Estado: Usuário}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/estado/user_status.png}
 \end{figure}
@@ -145,14 +145,14 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 
 % ---- Diagramas de Sequência: Usuário e Sala (representativos) ----
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Criar Usuário}
+\frametitle{Diagrama de Sequência: Criar Usuário}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/create_user.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Criar Sala}
+\frametitle{Diagrama de Sequência: Criar Sala}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/create_room.png}
 \end{figure}
@@ -239,91 +239,91 @@ pdftitle={Reserva de Salas -- Apresentação de Banca}}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Estado --- Sala}
+\frametitle{Diagrama de Estado: Sala}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/estado/room_status.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Estado --- Tipo de Sala}
+\frametitle{Diagrama de Estado: Tipo de Sala}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/estado/room_type_status.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Estado --- Prédio}
+\frametitle{Diagrama de Estado: Prédio}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/estado/building_status.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Estado --- Recurso}
+\frametitle{Diagrama de Estado: Recurso}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/estado/resource_status.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Buscar Usuário}
+\frametitle{Diagrama de Sequência: Buscar Usuário}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/get_user.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Atualizar Usuário}
+\frametitle{Diagrama de Sequência: Atualizar Usuário}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/update_user.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Atualizar Status do Usuário}
+\frametitle{Diagrama de Sequência: Atualizar Status do Usuário}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/update_user_status.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Excluir Usuário}
+\frametitle{Diagrama de Sequência: Excluir Usuário}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/delete_user.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Buscar Sala}
+\frametitle{Diagrama de Sequência: Buscar Sala}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/get_room_simple.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Atualizar Sala}
+\frametitle{Diagrama de Sequência: Atualizar Sala}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/update_room.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Atualizar Status da Sala}
+\frametitle{Diagrama de Sequência: Atualizar Status da Sala}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/update_room_status.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Substituir Recursos da Sala}
+\frametitle{Diagrama de Sequência: Substituir Recursos da Sala}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/replace_room_resources.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Excluir Sala}
+\frametitle{Diagrama de Sequência: Excluir Sala}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/delete_room.png}
 \end{figure}

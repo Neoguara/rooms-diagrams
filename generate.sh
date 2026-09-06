@@ -5,23 +5,33 @@ OUT="out"
 UPDATE_DRIVE=false
 FETCH_LINKS=false
 COMPILE_LATEX=false
+REPORT_ONLY=false
+SKIP_DIAGRAMS=false
+
+REPORT_TEX="./src/documentos/relatorio-estagio/relatorio-estagio.tex"
 
 usage() {
-  echo "Usage: $0 [--svg] [--latex] [--update-drive] [--fetch-links]"
+  echo "Usage: $0 [--svg] [--latex] [--only-report] [--skip-diagrams] [--update-drive] [--fetch-links]"
   echo ""
   echo "Options:"
-  echo "  --svg           Generate diagrams in SVG format (default: PNG)"
-  echo "  --latex         Compile LaTeX documents to PDF"
-  echo "  --update-drive  Upload SVGs to Google Drive (forces --svg, requires DRIVE_FOLDER_ID)"
-  echo "  --fetch-links   Fetch Drive links from API and update diagramas-drive.json"
-  echo "  --help          Show this help message"
+  echo "  --svg             Generate diagrams in SVG format (default: PNG)"
+  echo "  --latex           Compile LaTeX documents to PDF"
+  echo "  --only-report     Compile only $REPORT_TEX (implies --latex)"
+  echo "  --skip-diagrams   Reuse the images already in $OUT/ instead of regenerating them"
+  echo "  --update-drive    Upload SVGs to Google Drive (forces --svg, requires DRIVE_FOLDER_ID)"
+  echo "  --fetch-links     Fetch Drive links from API and update diagramas-drive.json"
+  echo "  --help            Show this help message"
+  echo ""
+  echo "Example: $0 --only-report --skip-diagrams   # fast rebuild of the report alone"
   exit 0
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --svg)          FORMAT="svg" ;;
-    --latex)        COMPILE_LATEX=true ;;
+    --latex)         COMPILE_LATEX=true ;;
+    --only-report)   REPORT_ONLY=true; COMPILE_LATEX=true ;;
+    --skip-diagrams) SKIP_DIAGRAMS=true ;;
     --update-drive) UPDATE_DRIVE=true; FORMAT="svg" ;;
     --fetch-links)  FETCH_LINKS=true ;;
     --help)         usage ;;
@@ -30,18 +40,27 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-rm -rf "$OUT"
-mkdir -p "$OUT"
-
-find . -name "*.puml" | while read -r file; do
-  dir="$OUT/$(dirname "$file" | sed 's|^\./||')"
-  mkdir -p "$dir"
-  if ! plantuml -DPLANTUML_LIMIT_SIZE=16384 -t"$FORMAT" -o "$(realpath "$dir")" "$file" 2>/dev/null; then
-    echo "WARN: failed to generate $file"
+if $SKIP_DIAGRAMS; then
+  if [ ! -d "$OUT" ]; then
+    echo "ERROR: --skip-diagrams needs $OUT/ to exist. Run without it at least once."
+    exit 1
   fi
-done
+  echo "Skipping diagram generation, reusing $OUT/"
+  mkdir -p "$OUT"
+else
+  rm -rf "$OUT"
+  mkdir -p "$OUT"
 
-echo "Done. $FORMAT images saved to $OUT/"
+  find . -name "*.puml" | while read -r file; do
+    dir="$OUT/$(dirname "$file" | sed 's|^\./||')"
+    mkdir -p "$dir"
+    if ! plantuml -DPLANTUML_LIMIT_SIZE=16384 -t"$FORMAT" -o "$(realpath "$dir")" "$file" 2>/dev/null; then
+      echo "WARN: failed to generate $file"
+    fi
+  done
+
+  echo "Done. $FORMAT images saved to $OUT/"
+fi
 
 if $COMPILE_LATEX; then
   echo ""
@@ -63,7 +82,17 @@ with open('out/drive-links.tex', 'w') as out:
         out.write(f'\\def\\link{macro}{{{link}}}\n')
 PYEOF
 
-  find . -name "*.tex" | while read -r file; do
+  if $REPORT_ONLY; then
+    if [ ! -f "$REPORT_TEX" ]; then
+      echo "ERROR: $REPORT_TEX not found."
+      exit 1
+    fi
+    TEX_FILES="$REPORT_TEX"
+  else
+    TEX_FILES="$(find . -name "*.tex")"
+  fi
+
+  echo "$TEX_FILES" | while read -r file; do
     if ! grep -q '\\documentclass' "$file"; then
       continue
     fi
@@ -87,7 +116,7 @@ PYEOF
     if [ -f "$src_dir/$filename.pdf" ]; then
       mv "$src_dir/$filename.pdf" "$dest_dir/$filename.pdf"
       echo "  -> $dest_dir/$filename.pdf"
-      (cd "$src_dir" && rm -f ./*.aux "$filename.log" "$filename.toc" \
+      (cd "$src_dir" && find . -name "*.aux" -delete && rm -f "$filename.log" "$filename.toc" \
         "$filename.lot" "$filename.lof" "$filename.out" "$filename.bbl" "$filename.blg" \
         "$filename.brf")
     else

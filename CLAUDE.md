@@ -4,9 +4,9 @@ Contexto do projeto para o Claude Code.
 
 ## Fluxo de build (`generate.sh`)
 
-1. **PlantUML** — lê todos os `.puml` em `src/` e gera imagens em `out/src/plantuml/` (PNG por padrão, SVG com `--svg`).
-2. **`out/drive-links.tex`** — quando `--latex` é passado, antes de compilar qualquer `.tex` o script roda um bloco Python que lê `src/data/diagramas-drive.json` e gera `out/drive-links.tex` com macros LaTeX.
-3. **pdflatex** — cada `.tex` com `\documentclass` é compilado com `pdflatex` a partir do seu próprio diretório (`cd "$src_dir"`); o PDF vai para `out/<caminho-do-tex>/`.
+1. **PlantUML**: lê todos os `.puml` em `src/` e gera imagens em `out/src/plantuml/` (PNG por padrão, SVG com `--svg`).
+2. **`out/drive-links.tex`**: quando `--latex` é passado, antes de compilar qualquer `.tex` o script roda um bloco Python que lê `src/data/diagramas-drive.json` e gera `out/drive-links.tex` com macros LaTeX.
+3. **pdflatex**: cada `.tex` com `\documentclass` é compilado com `pdflatex` a partir do seu próprio diretório (`cd "$src_dir"`); o PDF vai para `out/<caminho-do-tex>/`.
 
 Comandos úteis:
 

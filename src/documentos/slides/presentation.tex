@@ -4,13 +4,13 @@
 \usepackage[utf8]{inputenc}
 \usepackage{graphicx}
 \hypersetup{pdfpagemode=UseNone, hidelinks, pdfdisplaydoctitle=true,%
-pdftitle={Reserva de Salas -- Apresentação de Banca (versão detalhada)}}
+pdftitle={Reserva de Salas: Apresentação de Banca (versão detalhada)}}
 
 \input{../../../out/drive-links.tex}
 
 \title{Reserva de Salas}
 \author{José Ronaldo dos Santos Júnior\\[2mm]{\small Orientador: Prof.\ Gustavo Queiroz Silveira}}
-\date{Ciência da Computação -- Centro Universitário Filadélfia\\[1mm]Londrina, Junho de 2026}
+\date{Ciência da Computação, Centro Universitário Filadélfia\\[1mm]Londrina, Junho de 2026}
 
 \begin{document}
 \frame{\titlepage}
@@ -39,14 +39,14 @@ pdftitle={Reserva de Salas -- Apresentação de Banca (versão detalhada)}}
 \begin{itemize}
 \item \textbf{Linguagens de Programação:}
 \begin{itemize}
-\item \textit{Back-end}: Java --- ecossistema consolidado no mercado corporativo
-\item \textit{Front-end}: JavaScript --- padrão para interfaces web
+\item \textit{Back-end}: Java, ecossistema consolidado no mercado corporativo
+\item \textit{Front-end}: JavaScript, padrão para interfaces web
 \end{itemize}
-\item \textbf{Banco de Dados:} PostgreSQL --- maturidade e boa integração com os frameworks adotados
+\item \textbf{Banco de Dados:} PostgreSQL, maturidade e boa integração com os frameworks adotados
 \item \textbf{Frameworks de Desenvolvimento:}
 \begin{itemize}
-\item \textit{Front-end}: React --- interface reativa e componentizada
-\item \textit{Back-end}: Spring Boot --- exposição de uma API REST sobre o ecossistema Spring
+\item \textit{Front-end}: React, interface reativa e componentizada
+\item \textit{Back-end}: Spring Boot, exposição de uma API REST sobre o ecossistema Spring
 \end{itemize}
 \end{itemize}
 \end{frame}
@@ -78,12 +78,12 @@ pdftitle={Reserva de Salas -- Apresentação de Banca (versão detalhada)}}
 \begin{frame}
 \frametitle{Atores do Sistema}
 \begin{itemize}
-\item \textbf{sa\_professor} --- usuário comum do sistema:
+\item \textbf{sa\_professor}, usuário comum do sistema:
 \begin{itemize}
 \item Autenticação, gerenciamento de salas e agendamentos
 \item Geração de relatórios e consulta ao histórico
 \end{itemize}
-\item \textbf{sa\_coordenador} --- especialização de \textbf{sa\_professor}:
+\item \textbf{sa\_coordenador}, especialização de \textbf{sa\_professor}:
 \begin{itemize}
 \item Herda todas as permissões do professor
 \item Ganha, adicionalmente, o acesso ao gerenciamento de usuários
@@ -96,7 +96,7 @@ pdftitle={Reserva de Salas -- Apresentação de Banca (versão detalhada)}}
 \frametitle{Modelagem do Banco de Dados (DER)}
 {\footnotesize Modelagem das entidades no banco. As centrais são usuário, sala, tipo de sala, recurso e prédio, além das entidades de agendamento. As relações garantem, por exemplo, que cada sala pertence a um prédio e a um tipo, e que uma sala pode ter vários recursos.}
 \begin{figure}
-\includegraphics[width=\textwidth,height=0.62\textheight,keepaspectratio]{../../../out/src/plantuml/der-horizontal.png}
+\includegraphics[width=\textwidth,height=0.62\textheight,keepaspectratio]{../../../out/src/plantuml/entidade-relacionamento/der-horizontal.png}
 \end{figure}
 \end{frame}
 
@@ -125,7 +125,7 @@ Isso mantém as fronteiras entre os módulos claras.
 
 % ---- Diagramas de Classes ----
 \begin{frame}
-\frametitle{Diagrama de Classe --- Usuário}
+\frametitle{Diagrama de Classe: Usuário}
 {\footnotesize Estrutura em camadas: domínio no centro (entidade \texttt{User}), aplicação com os casos de uso (criar, atualizar) e infraestrutura por fora (controller e repositório).}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.62\textheight,keepaspectratio]{../../../out/src/plantuml/classe/user.png}
@@ -133,21 +133,21 @@ Isso mantém as fronteiras entre os módulos claras.
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Classe --- Sala}
+\frametitle{Diagrama de Classe: Sala}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.62\textheight,keepaspectratio]{../../../out/src/plantuml/classe/room.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Classe --- Evento}
+\frametitle{Diagrama de Classe: Evento}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.62\textheight,keepaspectratio]{../../../out/src/plantuml/classe/event.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Classe --- Autenticação}
+\frametitle{Diagrama de Classe: Autenticação}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.62\textheight,keepaspectratio]{../../../out/src/plantuml/classe/auth.png}
 \end{figure}
@@ -155,7 +155,7 @@ Isso mantém as fronteiras entre os módulos claras.
 
 % ---- Diagrama de Estado: Usuário ----
 \begin{frame}
-\frametitle{Diagrama de Estado --- Usuário}
+\frametitle{Diagrama de Estado: Usuário}
 {\footnotesize Entidades com ciclo de vida controlado por estados. O usuário transita entre ativo, inativo e excluído, e cada transição é uma operação específica do sistema, não uma edição livre do campo, o que evita estados inválidos.}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.6\textheight,keepaspectratio]{../../../out/src/plantuml/estado/user_status.png}
@@ -164,7 +164,7 @@ Isso mantém as fronteiras entre os módulos claras.
 
 % ---- Diagramas de Sequência: Usuário e Sala (representativos) ----
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Criar Usuário}
+\frametitle{Diagrama de Sequência: Criar Usuário}
 {\footnotesize Colaboração das camadas em tempo de execução: a requisição chega no controller, vai para o caso de uso, que cria a entidade e a persiste pelo repositório, devolvendo a resposta. Cada camada com responsabilidade clara.}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.6\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/create_user.png}
@@ -172,7 +172,7 @@ Isso mantém as fronteiras entre os módulos claras.
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Criar Sala}
+\frametitle{Diagrama de Sequência: Criar Sala}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.6\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/create_room.png}
 \end{figure}
@@ -257,91 +257,91 @@ Um objetivo do estágio foi aplicar, na prática, conceitos de engenharia de sof
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Estado --- Sala}
+\frametitle{Diagrama de Estado: Sala}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/estado/room_status.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Estado --- Tipo de Sala}
+\frametitle{Diagrama de Estado: Tipo de Sala}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/estado/room_type_status.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Estado --- Prédio}
+\frametitle{Diagrama de Estado: Prédio}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/estado/building_status.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Estado --- Recurso}
+\frametitle{Diagrama de Estado: Recurso}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/estado/resource_status.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Buscar Usuário}
+\frametitle{Diagrama de Sequência: Buscar Usuário}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/get_user.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Atualizar Usuário}
+\frametitle{Diagrama de Sequência: Atualizar Usuário}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/update_user.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Atualizar Status do Usuário}
+\frametitle{Diagrama de Sequência: Atualizar Status do Usuário}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/update_user_status.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Excluir Usuário}
+\frametitle{Diagrama de Sequência: Excluir Usuário}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/user/delete_user.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Buscar Sala}
+\frametitle{Diagrama de Sequência: Buscar Sala}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/get_room_simple.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Atualizar Sala}
+\frametitle{Diagrama de Sequência: Atualizar Sala}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/update_room.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Atualizar Status da Sala}
+\frametitle{Diagrama de Sequência: Atualizar Status da Sala}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/update_room_status.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Substituir Recursos da Sala}
+\frametitle{Diagrama de Sequência: Substituir Recursos da Sala}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/replace_room_resources.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{Diagrama de Sequência --- Excluir Sala}
+\frametitle{Diagrama de Sequência: Excluir Sala}
 \begin{figure}
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/room/delete_room.png}
 \end{figure}
