@@ -4,10 +4,10 @@
 ' diagramas completos continuam em sequencia/room_type/, e é lá que estão os desvios.
 '
 ' Quatro cortes em relação a eles:
-'   1. RoomTypeRepositoryPort e RoomTypeRepositoryImpl viram um participante só.
+'   1. Porta e implementação viram um participante só, tipado como «subsystem».
 '   2. Só o caminho de sucesso. Nenhum alt: os erros (404, 422) estão nos diagramas
 '      completos, e as guardas de status estão em estado/room_type_status.puml.
-'   3. Colaborador sem regra própria vira mensagem para si mesmo.
+'   3. Nenhuma mensagem para si mesmo: fluxo interno não é troca entre participantes.
 '   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
 '
 ' A camada de caso de uso é uma raia só, tipada como «subsystem». Ela não representa uma
@@ -25,7 +25,7 @@ participant "RoomTypeController" as Ctrl
 participant "<<subsystem>>\nusecases" as UC #F0FFF0
 
 participant "RoomType" as Entity
-participant "Repositório" as Repo
+participant "<<subsystem>>\nrepositories" as Repo
 database "room_types" as DB
 
 == POST /room-types: criar ==
@@ -37,15 +37,15 @@ activate Ctrl
 Ctrl -> UC: execute(CreateRoomTypeRequest)
 activate UC
 
-UC -> Entity: RoomType.create(name, description,\ndefaultCapacity, color, icon)
+UC -> Entity: RoomType.create(name, description,\ndefaultCapacity, color, icon)\nvalida os campos
 activate Entity
-Entity -> Entity: valida os campos\nid = UUID aleatório\nstatus = ACTIVE
-Entity --> UC: RoomType
+Entity --> UC: RoomType com id novo e status ACTIVE
 deactivate Entity
 
 UC -> Repo: save(roomType)
 activate Repo
 Repo -> DB: INSERT INTO room_types
+DB --> Repo: RoomType
 Repo --> UC: RoomType
 deactivate Repo
 
@@ -95,15 +95,15 @@ DB --> Repo: Optional<RoomType>
 Repo --> UC: Optional<RoomType>
 deactivate Repo
 
-UC -> Entity: update(name, description,\ndefaultCapacity, color, icon)
+UC -> Entity: update(name, description,\ndefaultCapacity, color, icon)\nvalida os campos
 activate Entity
-Entity -> Entity: valida os campos\nupdatedAt = now()
-Entity --> UC: RoomType
+Entity --> UC: RoomType com updatedAt novo
 deactivate Entity
 
 UC -> Repo: save(roomType)
 activate Repo
 Repo -> DB: UPDATE room_types SET\nname=?, description=?, default_capacity=?,\ncolor=?, icon=?, updated_at=?
+DB --> Repo: RoomType
 Repo --> UC: RoomType
 deactivate Repo
 
@@ -132,13 +132,13 @@ deactivate Repo
 
 UC -> Entity: delete()
 activate Entity
-Entity -> Entity: exige status INACTIVE\nstatus = DELETED
-Entity --> UC: RoomType
+Entity --> UC: RoomType com status DELETED
 deactivate Entity
 
 UC -> Repo: save(roomType)
 activate Repo
 Repo -> DB: UPDATE room_types SET status='DELETED'
+DB --> Repo: RoomType
 Repo --> UC: RoomType
 deactivate Repo
 

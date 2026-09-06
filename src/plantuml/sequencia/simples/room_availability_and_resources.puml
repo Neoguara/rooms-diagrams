@@ -11,7 +11,7 @@
 '   1. Porta e implementação viram um participante só, tipado como «subsystem».
 '   2. Só o caminho de sucesso. Nenhum alt: os erros (404, 422) estão nos completos.
 '   3. Nenhum loop. Onde o código repete por item, a repetição fica dita na mensagem.
-'   4. Colaborador sem regra própria vira mensagem para si mesmo.
+'   4. Nenhuma mensagem para si mesmo: fluxo interno não é troca entre participantes.
 '   5. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
 
 title Sala: disponibilidade e recursos
@@ -26,8 +26,7 @@ participant "RoomResource" as RR
 
 participant "<<subsystem>>\nrepositories" as Repo
 participant "RoomAvailabilityPort\n(módulo event)" as Avail
-database "rooms" as DBRoom
-database "room_resources" as DBRR
+database "rooms\nroom_resources" as DB
 
 == GET /rooms/available: buscar salas livres ==
 
@@ -38,8 +37,6 @@ activate Ctrl
 Ctrl -> UC: execute(RoomAvailabilityFilter, expand)
 activate UC
 
-UC -> UC: exige startAt e endAt,\ncom startAt antes de endAt
-
 UC -> Avail: findOccupiedRoomIds(startAt, endAt)
 activate Avail
 Avail --> UC: Set<UUID>\nsalas com evento ACTIVE ou COMPLETED no período
@@ -47,13 +44,12 @@ deactivate Avail
 
 UC -> Repo: roomRepository.findAll()
 activate Repo
-Repo -> DBRoom: SELECT * FROM rooms\nWHERE status<>'DELETED'
+Repo -> DB: SELECT * FROM rooms\nWHERE status<>'DELETED'
+DB --> Repo: List<Room>
 Repo --> UC: List<Room>
 deactivate Repo
 
-UC -> UC: filtra por status AVAILABLE, capacidade,\ntipo, prédio, ocupação, recursos e busca textual
-
-UC --> Ctrl: List<RoomDetailResponse>
+UC --> Ctrl: List<RoomDetailResponse>\njá filtrada por status AVAILABLE, capacidade, tipo,\nprédio, ocupação, recursos e busca textual
 deactivate UC
 Ctrl --> FE: 200 OK
 deactivate Ctrl
@@ -71,7 +67,8 @@ activate UC
 
 UC -> Repo: roomRepository.findById(RoomId.of(id))
 activate Repo
-Repo -> DBRoom: SELECT * FROM rooms\nWHERE id=? AND status<>'DELETED'
+Repo -> DB: SELECT * FROM rooms\nWHERE id=? AND status<>'DELETED'
+DB --> Repo: Optional<Room>
 Repo --> UC: Optional<Room>
 deactivate Repo
 
@@ -82,7 +79,9 @@ deactivate Repo
 
 UC -> Repo: roomResourceRepository.deleteByRoomId(roomId)
 activate Repo
-Repo -> DBRR: DELETE FROM room_resources\nWHERE room_id=?
+Repo -> DB: DELETE FROM room_resources\nWHERE room_id=?
+DB --> Repo: linhas apagadas
+Repo --> UC: void
 deactivate Repo
 
 UC -> RR: RoomResource.create(roomId, resourceId)\num por recurso
@@ -92,7 +91,9 @@ deactivate RR
 
 UC -> Repo: roomResourceRepository.save\nde cada RoomResource
 activate Repo
-Repo -> DBRR: INSERT INTO room_resources
+Repo -> DB: INSERT INTO room_resources
+DB --> Repo: RoomResource de cada um
+Repo --> UC: RoomResource de cada um
 deactivate Repo
 
 UC --> Ctrl: RoomResourcesResponse

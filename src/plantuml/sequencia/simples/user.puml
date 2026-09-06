@@ -4,11 +4,11 @@
 ' continuam em sequencia/user/, um por endpoint, e é lá que estão os desvios.
 '
 ' Quatro cortes em relação a eles:
-'   1. UserRepositoryPort e UserRepositoryImpl viram um participante só, "Repositório".
+'   1. Porta e implementação viram um participante só, tipado como «subsystem».
 '   2. Só o caminho de sucesso. Nenhum alt: os erros (400, 404, 409, 422) estão nos
 '      diagramas completos, e as guardas de status estão em estado/user_status.puml.
-'   3. Colaborador sem regra própria vira mensagem para si mesmo, como a codificação da
-'      senha, para o fato não sumir junto com a raia.
+'   3. Nenhuma mensagem para si mesmo: fluxo interno não é troca entre participantes. O
+'      que ele dizia foi para o rótulo da chamada ou do retorno.
 '   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
 '
 ' A camada de caso de uso é uma raia só, tipada como «subsystem». Ela não representa uma
@@ -25,7 +25,7 @@ participant "UserController" as Ctrl
 participant "<<subsystem>>\nusecases" as UC #F0FFF0
 
 participant "User" as Entity
-participant "Repositório" as Repo
+participant "<<subsystem>>\nrepositories" as Repo
 database "users" as DB
 
 == POST /users: criar ==
@@ -44,17 +44,15 @@ DB --> Repo: boolean
 Repo --> UC: boolean
 deactivate Repo
 
-UC -> UC: codifica a senha
-
-UC -> Entity: User.create(name, email, senha, role)
+UC -> Entity: User.create(name, email,\nsenha, role)
 activate Entity
-Entity -> Entity: id = UUID aleatório\nstatus = ACTIVE
-Entity --> UC: User
+Entity --> UC: User com id novo e status ACTIVE
 deactivate Entity
 
 UC -> Repo: save(user)
 activate Repo
 Repo -> DB: INSERT INTO users
+DB --> Repo: User
 Repo --> UC: User
 deactivate Repo
 
@@ -104,17 +102,15 @@ DB --> Repo: Optional<User>
 Repo --> UC: Optional<User>
 deactivate Repo
 
-UC -> UC: password em branco mantém a atual\nrole omitida mantém a atual\ncodifica a senha nova, se houver
-
 UC -> Entity: update(name, email, senha, papel)
 activate Entity
-Entity -> Entity: updatedAt = now()
-Entity --> UC: User
+Entity --> UC: User com updatedAt novo
 deactivate Entity
 
 UC -> Repo: save(user)
 activate Repo
 Repo -> DB: UPDATE users SET\nname=?, email=?, password=?, role=?, updated_at=?
+DB --> Repo: User
 Repo --> UC: User
 deactivate Repo
 
@@ -143,13 +139,13 @@ deactivate Repo
 
 UC -> Entity: delete()
 activate Entity
-Entity -> Entity: exige status INACTIVE\nstatus = DELETED
-Entity --> UC: User
+Entity --> UC: User com status DELETED
 deactivate Entity
 
 UC -> Repo: save(user)
 activate Repo
 Repo -> DB: UPDATE users SET status='DELETED'
+DB --> Repo: User
 Repo --> UC: User
 deactivate Repo
 
