@@ -77,8 +77,6 @@ package "Infrastructure" #FFF8F0 {
   }
 
   class ResourceRepositoryImpl <<Repository>>
-
-  interface ResourceJpaRepository
 }
 
 ' ── Implementação ──────────────────────────────────────
@@ -99,7 +97,5 @@ GetResourceUseCase --> ResourceRepositoryPort
 UpdateResourceUseCase --> ResourceRepositoryPort
 UpdateResourceStatusUseCase --> ResourceRepositoryPort
 DeleteResourceUseCase --> ResourceRepositoryPort
-
-ResourceRepositoryImpl --> ResourceJpaRepository
 
 @enduml

@@ -1,0 +1,92 @@
+@startuml auth_simples
+
+' Versão simples do módulo auth. A versão exaustiva está em classe/auth.puml, e é ela que
+' serve de referência de sincronia com o backend.
+'
+' O módulo é plano: não tem domain/application/infrastructure porque não tem entidade
+' própria. Ele lê o usuário pela porta UserAuthPort, implementada pelo módulo user.
+'
+' O que esta versão corta: DTOs, os tipos de fora do módulo, getters, construtores e
+' métodos privados. Com os tipos do Spring Security fora, somem as heranças de
+' UserDetails, UserDetailsService e OncePerRequestFilter, e o campo AuthenticationManager
+' de AuthService.
+
+left to right direction
+skinparam packageStyle rectangle
+
+package "auth" #EEF2FF {
+
+  class AuthController <<RestController>> {
+    + login()
+  }
+
+  class AuthService <<Service>> {
+    + login()
+  }
+
+  class JwtService <<Service>> {
+    - String secret
+    - int expirationHours
+    + String generateToken(String)
+    + String extractUsername(String)
+    + boolean isTokenValid(String)
+  }
+
+  class AuthUserDetailsService <<Service>> {
+    + loadUserByUsername()
+  }
+
+  class AuthUserDetails {
+    - AuthUserData data
+    + getData()
+    + getId()
+    + getAuthorities()
+    + getPassword()
+    + getUsername()
+    + isEnabled()
+  }
+
+  class SecurityFilter <<Component>> {
+    + doFilterInternal()
+  }
+
+  class SecurityConfig <<Configuration>> {
+    + filterChain()
+    + authenticationManager()
+    + passwordEncoder()
+    + corsConfigurationSource()
+  }
+
+  interface UserAuthPort {
+    + Optional<AuthUserData> findByEmail(String)
+  }
+
+  class AuthUserData <<record>> {
+    - UUID id
+    - String name
+    - String email
+    - String encodedPassword
+    - String role
+    - Boolean isActive
+    - LocalDateTime createdAt
+    - LocalDateTime updatedAt
+    - LocalDateTime deletedAt
+  }
+}
+
+' ── Campos ─────────────────────────────────────────────
+AuthController --> AuthService
+AuthService --> JwtService
+AuthUserDetailsService --> UserAuthPort
+AuthUserDetails *-- AuthUserData
+SecurityFilter --> JwtService
+SecurityFilter --> UserAuthPort
+SecurityConfig --> SecurityFilter
+
+' ── Uso ────────────────────────────────────────────────
+UserAuthPort ..> AuthUserData
+AuthService ..> AuthUserDetails
+AuthUserDetailsService ..> AuthUserDetails
+SecurityFilter ..> AuthUserDetails
+
+@enduml

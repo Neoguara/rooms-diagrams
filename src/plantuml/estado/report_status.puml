@@ -8,12 +8,12 @@ title Report: Ciclo de Vida do Status
 
 !include estilo.iuml
 
-[*] --> PENDING : Report.request()
+[*] --> PENDING : request()
 
-PENDING    --> PROCESSING : start()\nReportStateWriter.markProcessing
-PROCESSING --> COMPLETED  : complete(artifact)\nReportStateWriter.markCompleted
-PROCESSING --> FAILED     : fail(reason)\nReportStateWriter.markFailed
-COMPLETED  --> EXPIRED    : expire()\nsem chamador na aplicação
+PENDING    --> PROCESSING : start()
+PROCESSING --> COMPLETED  : complete(artifact)
+PROCESSING --> FAILED     : fail(reason)
+COMPLETED  --> EXPIRED    : expire()
 
 COMPLETED --> [*]
 FAILED    --> [*]

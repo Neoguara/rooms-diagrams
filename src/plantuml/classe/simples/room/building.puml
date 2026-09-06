@@ -77,8 +77,6 @@ package "Infrastructure" #FFF8F0 {
   }
 
   class BuildingRepositoryImpl <<Repository>>
-
-  interface BuildingJpaRepository
 }
 
 ' ── Implementação ──────────────────────────────────────
@@ -99,7 +97,5 @@ GetBuildingUseCase --> BuildingRepositoryPort
 UpdateBuildingUseCase --> BuildingRepositoryPort
 UpdateBuildingStatusUseCase --> BuildingRepositoryPort
 DeleteBuildingUseCase --> BuildingRepositoryPort
-
-BuildingRepositoryImpl --> BuildingJpaRepository
 
 @enduml

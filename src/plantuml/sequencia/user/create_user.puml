@@ -1,70 +1,89 @@
 @startuml create_user
 
+' Participantes conforme classe/simples/user.puml: sem mapper e sem a interface JPA.
+' O PasswordEncoder fica, apesar de ser tipo de fora do módulo: omitir a chamada mostraria
+' a senha sendo gravada como veio, que não é o que acontece.
+'
+' Rota pública: POST /users é a única do módulo liberada sem token.
+
 title POST /users: Criar Usuário
 
-actor User
+actor "Visitante" as Ator
 boundary "Frontend" as FE
 participant "UserController" as Ctrl
 participant "CreateUserUseCase" as UC
 participant "PasswordEncoder" as Encoder
-participant "UserMapper" as Mapper
 participant "User" as Entity
-participant "UserRepositoryPort" as Repo
+participant "UserRepositoryPort" as Port
+participant "UserRepositoryImpl" as Impl
 database "users" as DB
 
-User -> FE: preenche formulário e confirma
+Ator -> FE: preenche o formulário e confirma
 activate FE
 FE -> Ctrl: POST /users\n{name, email, password, role}
 activate Ctrl
 
-Ctrl -> UC: execute(CreateUserRequest)
-activate UC
+alt corpo inválido: @Valid falha
+  Ctrl --> FE: 400 Bad Request\nVALIDATION_ERROR
+  FE --> Ator: exibe erros de preenchimento
+else corpo válido
 
-UC -> Repo: existsByEmail(email)
-activate Repo
-Repo -> DB: SELECT EXISTS FROM users\nWHERE email=? AND status!=DELETED
-DB --> Repo: boolean
-Repo --> UC: boolean
-deactivate Repo
+  Ctrl -> UC: execute(CreateUserRequest)
+  activate UC
 
-alt email disponível
-  UC -> Encoder: encode(request.password)
-  activate Encoder
-  Encoder --> UC: encodedPassword
-  deactivate Encoder
+  UC -> Port: existsByEmail(email)
+  activate Port
+  Port -> Impl: existsByEmail(email)
+  activate Impl
+  Impl -> DB: SELECT COUNT(*)>0 FROM users\nWHERE email=? AND status<>'DELETED'
+  DB --> Impl: boolean
+  Impl --> Port: boolean
+  deactivate Impl
+  Port --> UC: boolean
+  deactivate Port
 
-  UC -> Mapper: toDomain(request, encodedPassword)
-  activate Mapper
-  Mapper -> Entity: create(name, email, encodedPassword, role)
-  activate Entity
-  note right of Entity: UserValidator.validate()\nid = new UUID\nstatus = ACTIVE\ncreatedAt = now()
-  Entity --> Mapper: user
-  deactivate Entity
-  Mapper --> UC: user
-  deactivate Mapper
+  alt email já cadastrado
+    UC --> Ctrl: ConflictException\n"Email already in use"
+    deactivate UC
+    Ctrl --> FE: 409 Conflict\nCONFLICT
+    FE --> Ator: exibe erro
+  else email disponível
 
-  UC -> Repo: save(user)
-  activate Repo
-  Repo -> DB: INSERT INTO users
-  DB --> Repo: user
-  Repo --> UC: saved
-  deactivate Repo
+    UC -> Encoder: encode(password)
+    activate Encoder
+    Encoder --> UC: encodedPassword
+    deactivate Encoder
 
-  UC -> Mapper: toResponse(saved)
-  activate Mapper
-  Mapper --> UC: UserResponse
-  deactivate Mapper
+    UC -> Entity: User.create(name, email, encodedPassword, role)
+    activate Entity
+    Entity -> Entity: id = UUID aleatório\nstatus = ACTIVE\ncreatedAt = updatedAt = now()
 
-  UC --> Ctrl: UserResponse
-  Ctrl --> FE: 201 Created {UserResponse}
-  FE --> User: exibe confirmação de criação
-else email já cadastrado
-  UC --> Ctrl: ConflictException\n"Email already in use"
-  Ctrl --> FE: 409 Conflict
-  FE --> User: exibe erro
+    alt algum campo obrigatório em branco
+      Entity --> UC: DomainValidationException
+      UC --> Ctrl: DomainValidationException
+      Ctrl --> FE: 422 Unprocessable Entity\nDOMAIN_VALIDATION_ERROR
+      FE --> Ator: exibe erros de domínio
+    else campos válidos
+      Entity --> UC: User
+      deactivate Entity
+
+      UC -> Port: save(user)
+      activate Port
+      Port -> Impl: save(user)
+      activate Impl
+      Impl -> DB: INSERT INTO users\n(id, name, email, password, role, status,\ncreated_at, updated_at)
+      DB --> Impl: User
+      Impl --> Port: User
+      deactivate Impl
+      Port --> UC: User
+      deactivate Port
+
+      UC --> Ctrl: UserResponse\nsem o campo password
+      Ctrl --> FE: 201 Created {UserResponse}
+      FE --> Ator: exibe confirmação
+    end
+  end
 end
-
-deactivate UC
 deactivate Ctrl
 deactivate FE
 

@@ -8,19 +8,19 @@ title Event: Ciclo de Vida do Status
 
 !include estilo.iuml
 
-[*] --> ACTIVE : Event.create()\naprovação de item CREATE
+[*] --> ACTIVE : create()
 
-ACTIVE    --> CANCELLED : cancel()\naprovação de item CANCEL
-CANCELLED --> ACTIVE    : reactivate()\naprovação de item REACTIVATE
+ACTIVE    --> CANCELLED : cancel()
+CANCELLED --> ACTIVE    : reactivate()
 
-ACTIVE    --> DISCARDED : discard()\naprovação de item DISCARD
-CANCELLED --> DISCARDED : discard()\naprovação de item DISCARD
+ACTIVE    --> DISCARDED : discard()
+CANCELLED --> DISCARDED : discard()
 
-ACTIVE    --> COMPLETED : complete()\nsem chamador na aplicação
+ACTIVE    --> COMPLETED : complete()
 
-CANCELLED --> ARCHIVED : archive()\nsem chamador na aplicação
-COMPLETED --> ARCHIVED : archive()\nsem chamador na aplicação
-DISCARDED --> ARCHIVED : archive()\nsem chamador na aplicação
+CANCELLED --> ARCHIVED : archive()
+COMPLETED --> ARCHIVED : archive()
+DISCARDED --> ARCHIVED : archive()
 
 ARCHIVED --> [*]
 

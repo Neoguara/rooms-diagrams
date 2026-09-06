@@ -158,10 +158,6 @@ package "Infrastructure" #FFF8F0 {
   class EventRequestRepositoryImpl <<Repository>>
   class EventChangeItemRepositoryImpl <<Repository>>
   class ApprovalRepositoryImpl <<Repository>>
-
-  interface EventRequestJpaRepository
-  interface EventChangeItemJpaRepository
-  interface ApprovalJpaRepository
 }
 
 package "Recorte de evento" #EEEEFF {
@@ -222,11 +218,6 @@ GetEventRequestUseCase --> EventRepositoryPort
 GetEventRequestAuditUseCase --> EventRequestRepositoryPort
 GetEventRequestAuditUseCase --> EventChangeItemRepositoryPort
 GetEventRequestAuditUseCase --> ApprovalRepositoryPort
-
-' ── Campos: infraestrutura ─────────────────────────────
-EventRequestRepositoryImpl --> EventRequestJpaRepository
-EventChangeItemRepositoryImpl --> EventChangeItemJpaRepository
-ApprovalRepositoryImpl --> ApprovalJpaRepository
 
 ' ── Uso: o que efetiva a alteração no evento ───────────
 EventChangeItem ..> Event : snapshot do antes

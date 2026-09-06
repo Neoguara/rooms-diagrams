@@ -1,66 +1,71 @@
 @startuml update_user_status
 
-title PATCH /users/{id}/status: Atualizar Status do Usuário
+' Participantes conforme classe/simples/user.puml: sem mapper e sem a interface JPA.
+' O corpo só aceita ACTIVE e INACTIVE. Para chegar a DELETED existe o DELETE /users/{id},
+' que exige o usuário já INACTIVE.
 
-actor User
+title PATCH /users/{id}/status: Alterar Status do Usuário
+
+actor "Administrador" as Ator
 boundary "Frontend" as FE
 participant "UserController" as Ctrl
 participant "UpdateUserStatusUseCase" as UC
-participant "UserMapper" as Mapper
 participant "User" as Entity
-participant "UserRepositoryPort" as Repo
+participant "UserRepositoryPort" as Port
+participant "UserRepositoryImpl" as Impl
 database "users" as DB
 
-User -> FE: solicita alteração de status
+Ator -> FE: ativa ou desativa o usuário
 activate FE
-FE -> Ctrl: PATCH /users/{id}/status\n{status: ACTIVE|INACTIVE}
+FE -> Ctrl: PATCH /users/{id}/status\n{status: ACTIVE | INACTIVE}
 activate Ctrl
 
-Ctrl -> UC: execute(id, status)
+Ctrl -> UC: execute(id, request.status())
 activate UC
 
-UC -> Repo: findById(UserId.of(id))
-activate Repo
-Repo -> DB: SELECT * FROM users\nWHERE id=? AND status!=DELETED
-DB --> Repo: Optional<User>
-Repo --> UC: Optional<User>
-deactivate Repo
+UC -> Port: findById(UserId.of(id))
+activate Port
+Port -> Impl: findById(userId)
+activate Impl
+Impl -> DB: SELECT * FROM users\nWHERE id=? AND status<>'DELETED'
+DB --> Impl: Optional<User>
+Impl --> Port: Optional<User>
+deactivate Impl
+Port --> UC: Optional<User>
+deactivate Port
 
-alt found
+alt usuário não encontrado
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found\nNOT_FOUND
+  FE --> Ator: exibe erro
+else usuário encontrado
 
-  alt status == ACTIVE
+  alt status = ACTIVE
     UC -> Entity: activate()
     activate Entity
-    note right of Entity: Lança InvalidStateException (422)\nse a transição for inválida
-    Entity --> UC:
+    Entity --> UC: status = ACTIVE
     deactivate Entity
-  else status == INACTIVE
+  else status = INACTIVE
     UC -> Entity: deactivate()
     activate Entity
-    note right of Entity: Lança InvalidStateException (422)\nse a transição for inválida\n(ex: DELETED não pode ser modificado)
-    Entity --> UC:
+    Entity --> UC: status = INACTIVE
     deactivate Entity
   end
 
-  UC -> Repo: save(user)
-  activate Repo
-  Repo -> DB: UPDATE users SET status=?
-  DB --> Repo: user
-  Repo --> UC: saved
-  deactivate Repo
-
-  UC -> Mapper: toResponse(saved)
-  activate Mapper
-  Mapper --> UC: UserResponse
-  deactivate Mapper
+  UC -> Port: save(user)
+  activate Port
+  Port -> Impl: save(user)
+  activate Impl
+  Impl -> DB: UPDATE users SET status=?
+  DB --> Impl: User
+  Impl --> Port: User
+  deactivate Impl
+  Port --> UC: User
+  deactivate Port
 
   UC --> Ctrl: UserResponse
   Ctrl --> FE: 200 OK {UserResponse}
-  FE --> User: exibe novo status
-else not found
-  UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> FE: 404 Not Found
-  FE --> User: exibe erro
+  FE --> Ator: exibe o novo status
 end
 
 deactivate UC

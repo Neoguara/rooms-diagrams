@@ -8,15 +8,13 @@ title Room: Ciclo de Vida do Status
 
 !include estilo.iuml
 
-[*] --> AVAILABLE : Room.create()
+[*] --> AVAILABLE : create()
 
-AVAILABLE   --> AVAILABLE   : activate()
 AVAILABLE   --> INACTIVE    : deactivate()
 AVAILABLE   --> MAINTENANCE : putUnderMaintenance()
 
 MAINTENANCE --> AVAILABLE   : activate()
 MAINTENANCE --> INACTIVE    : deactivate()
-MAINTENANCE --> MAINTENANCE : putUnderMaintenance()
 
 INACTIVE    --> AVAILABLE   : activate()
 INACTIVE    --> MAINTENANCE : putUnderMaintenance()

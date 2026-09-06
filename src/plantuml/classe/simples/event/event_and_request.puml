@@ -14,6 +14,7 @@
 ' métodos privados, os tipos de fora do módulo, e as dependências de uso, exceto as que
 ' ligam um serviço de domínio ao que ele opera.
 
+left to right direction
 skinparam packageStyle rectangle
 
 package "Domain" #EEF2FF {
@@ -142,29 +143,6 @@ package "Domain" #EEF2FF {
     interface RoomOccupancy <<FunctionalInterface>> {
       + List<Event> occupying(RoomId,LocalDateTime,LocalDateTime)
     }
-    class LoadedOccupancy {
-      - List<Event> events
-      + {static} of()
-    }
-    class OccupiedSlot <<record>> {
-      - UUID id
-      - RoomId roomId
-      - String title
-      - LocalDateTime startAt
-      - LocalDateTime endAt
-      + {static} of()
-      + boolean competesWith(OccupiedSlot)
-    }
-    class EventConflict <<record>> {
-      - OccupiedSlot attempted
-      - OccupiedSlot occupant
-      + {static} against()
-      + String describe()
-    }
-    class EventRequestConflicts {
-      + {static} List<OccupiedSlot> claims()
-      + {static} List<EventConflict> preview()
-    }
   }
 
 }
@@ -244,10 +222,6 @@ package "Infrastructure" #FFF8F0 {
     class EventRequestRepositoryImpl <<Repository>>
     class EventChangeItemRepositoryImpl <<Repository>>
     class ApprovalRepositoryImpl <<Repository>>
-    interface EventJpaRepository
-    interface EventRequestJpaRepository
-    interface EventChangeItemJpaRepository
-    interface ApprovalJpaRepository
   }
 
   package "adapters" {
@@ -258,7 +232,6 @@ package "Infrastructure" #FFF8F0 {
 }
 
 ' ── Implementação ──────────────────────────────────────
-RoomOccupancy <|.. LoadedOccupancy
 RoomOccupancy <|.. RoomOccupancyAdapter
 
 EventRepositoryPort <|.. EventRepositoryImpl
@@ -289,10 +262,6 @@ Approval --> ApprovalDecision
 
 EventSnapshot --> RoomId
 EventSnapshot --> SeriesId
-
-OccupiedSlot --> RoomId
-EventConflict --> OccupiedSlot
-LoadedOccupancy --> Event
 
 ' ── Campos: controllers ────────────────────────────────
 EventController --> GetEventUseCase
@@ -330,26 +299,13 @@ GetEventRequestAuditUseCase --> EventChangeItemRepositoryPort
 GetEventRequestAuditUseCase --> ApprovalRepositoryPort
 
 ' ── Campos: infraestrutura ─────────────────────────────
-EventRepositoryImpl --> EventJpaRepository
-EventRequestRepositoryImpl --> EventRequestJpaRepository
-EventChangeItemRepositoryImpl --> EventChangeItemJpaRepository
-ApprovalRepositoryImpl --> ApprovalJpaRepository
 
 RoomOccupancyAdapter --> EventRepositoryPort
 EventAvailabilityAdapter --> EventRepositoryPort
 EventReportDataAdapter --> EventRepositoryPort
 
-' ── Uso: a regra de conflito ───────────────────────────
+' ── Uso: a agenda ──────────────────────────────────────
 Event ..> RoomOccupancy
-Event ..> EventConflict
-OccupiedSlot ..> Event
-
-EventRequestConflicts ..> EventChangeItem
-EventRequestConflicts ..> EventConflict
-EventRequestConflicts ..> RoomOccupancy
-RequestEventChangesUseCase ..> EventRequestConflicts
-ReverseEventRequestUseCase ..> EventRequestConflicts
-GetEventRequestUseCase ..> EventRequestConflicts
 
 ' ── Uso: o que efetiva a alteração no evento ───────────
 EventChangeItem ..> Event

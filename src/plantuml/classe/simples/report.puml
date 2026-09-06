@@ -1,0 +1,217 @@
+@startuml report_simples
+
+' Versão simples do módulo report. A versão exaustiva está em classe/report.puml, e é ela
+' que serve de referência de sincronia com o backend.
+'
+' É o único módulo assíncrono: o pedido é registrado numa transação, o arquivo é produzido
+' fora dela e o estado do relatório é gravado por um escritor com transação própria.
+'
+' O que esta versão corta: DTOs, mappers, validators, os tipos de fora do módulo, a
+' interface JPA, getters, construtores e métodos privados. Saem também ReportAsyncConfig
+' e PageFooter, que só se ligavam a tipos de fora.
+
+left to right direction
+skinparam packageStyle rectangle
+
+package "Domain" #EEF2FF {
+
+  class Report <<Entity>> {
+    - ReportId id
+    - UserId requestedBy
+    - ReportType type
+    - ReportFormat format
+    - ReportParameters parameters
+    - ReportStatus status
+    - ReportArtifact artifact
+    - String failureReason
+    - LocalDateTime requestedAt
+    - LocalDateTime startedAt
+    - LocalDateTime finishedAt
+    + {static} request()
+    + start()
+    + complete()
+    + fail()
+    + expire()
+    + requireArtifact()
+    + isOwnedBy()
+  }
+
+  class ReportId <<record>> {
+    - UUID id
+  }
+  class UserId <<record>> {
+    - UUID id
+  }
+  class ReportParameters <<record>> {
+    - LocalDateTime startAt
+    - LocalDateTime endAt
+    - UUID roomId
+    + boolean isRoomScoped()
+  }
+  class ReportArtifact <<record>> {
+    - String filename
+    - String contentType
+    - Long sizeBytes
+    - String storageKey
+  }
+
+  enum ReportType {
+    EVENTS_BY_PERIOD
+    + String filenamePrefix()
+  }
+  enum ReportFormat {
+    CSV
+    PDF
+    + String contentType()
+    + String extension()
+  }
+  enum ReportStatus {
+    PENDING
+    PROCESSING
+    COMPLETED
+    FAILED
+    EXPIRED
+  }
+}
+
+package "Application" #F0FFF0 {
+
+  package "ports" {
+    interface ReportRepositoryPort {
+      + Report save(Report)
+      + Optional<Report> findById(ReportId)
+      + List<Report> findAll()
+      + List<Report> findByStatus(ReportStatus)
+    }
+    interface ReportStoragePort {
+      + String store(ReportId,String,byte[])
+      + InputStream load(String)
+      + void delete(String)
+    }
+    interface ReportGenerator {
+      + boolean supports(ReportType,ReportFormat)
+      + byte[] generate(ReportParameters)
+    }
+    interface EventReportDataPort {
+      + List<EventReportRow> findForReport()
+      + List<EventReportRow> findForReportByRoom()
+    }
+    interface RoomReportDataPort {
+      + Map<UUID,String> resolveRoomLabels()
+    }
+  }
+
+  class ReportGeneratorRegistry <<Service>> {
+    + require()
+  }
+
+  class SubmitReportUseCase <<Service>> {
+    + execute()
+  }
+  class GetReportUseCase <<Service>> {
+    + findAll()
+    + execute()
+  }
+  class DownloadReportUseCase <<Service>> {
+    + execute()
+  }
+  class GenerateReportUseCase <<Service>> {
+    + execute()
+  }
+  class ReportStateWriter <<Service>> {
+    + markProcessing()
+    + markCompleted()
+    + markFailed()
+  }
+  class ReconcileOrphanedReportsUseCase <<Service>> {
+    + execute()
+  }
+
+  class ReportRequested <<record>> {
+    - UUID reportId
+  }
+}
+
+package "Infrastructure" #FFF8F0 {
+
+  class ReportController <<RestController>> {
+    + listReports()
+    + submitReport()
+    + getReport()
+    + downloadReport()
+  }
+
+  class ReportRepositoryImpl <<Repository>>
+
+  class FileSystemReportStorageAdapter <<Component>>
+
+  class CsvEventsByPeriodGenerator <<Component>> {
+    + supports()
+    + generate()
+  }
+  class PdfEventsByPeriodGenerator <<Component>> {
+    + supports()
+    + generate()
+  }
+  class EventsByPeriodTable {
+    + {static} rows()
+  }
+  class CsvWriter {
+    + {static} write()
+  }
+
+  class ReportRequestedListener <<Component>> {
+    + on()
+  }
+  class OrphanedReportListener <<Component>> {
+    + failReportsInterruptedByShutdown()
+  }
+}
+
+' ── Implementação ──────────────────────────────────────
+ReportRepositoryPort <|.. ReportRepositoryImpl
+ReportStoragePort <|.. FileSystemReportStorageAdapter
+ReportGenerator <|.. CsvEventsByPeriodGenerator
+ReportGenerator <|.. PdfEventsByPeriodGenerator
+
+' ── Campos: domínio ────────────────────────────────────
+Report *-- ReportId
+Report --> UserId
+Report *-- ReportParameters
+Report *-- ReportArtifact
+Report --> ReportType
+Report --> ReportFormat
+Report --> ReportStatus
+
+' ── Campos: aplicação ──────────────────────────────────
+ReportGeneratorRegistry --> ReportGenerator
+SubmitReportUseCase --> ReportRepositoryPort
+SubmitReportUseCase --> ReportGeneratorRegistry
+GetReportUseCase --> ReportRepositoryPort
+DownloadReportUseCase --> ReportRepositoryPort
+DownloadReportUseCase --> ReportStoragePort
+GenerateReportUseCase --> ReportStateWriter
+GenerateReportUseCase --> ReportGeneratorRegistry
+GenerateReportUseCase --> ReportStoragePort
+ReportStateWriter --> ReportRepositoryPort
+ReconcileOrphanedReportsUseCase --> ReportRepositoryPort
+
+' ── Campos: infraestrutura ─────────────────────────────
+ReportController --> SubmitReportUseCase
+ReportController --> GetReportUseCase
+ReportController --> DownloadReportUseCase
+CsvEventsByPeriodGenerator --> EventReportDataPort
+CsvEventsByPeriodGenerator --> RoomReportDataPort
+PdfEventsByPeriodGenerator --> EventReportDataPort
+PdfEventsByPeriodGenerator --> RoomReportDataPort
+ReportRequestedListener --> GenerateReportUseCase
+OrphanedReportListener --> ReconcileOrphanedReportsUseCase
+
+' ── Uso: o caminho assíncrono ──────────────────────────
+SubmitReportUseCase ..> ReportRequested
+ReportRequestedListener ..> ReportRequested
+CsvEventsByPeriodGenerator ..> EventsByPeriodTable
+CsvEventsByPeriodGenerator ..> CsvWriter
+PdfEventsByPeriodGenerator ..> EventsByPeriodTable
+
+@enduml

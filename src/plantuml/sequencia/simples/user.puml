@@ -1,0 +1,223 @@
+@startuml user_simples
+
+' Módulo user inteiro em um arquivo, no estilo simplista. Os cinco diagramas completos
+' continuam em sequencia/user/, um por endpoint.
+'
+' Três cortes em relação a eles:
+'   1. UserRepositoryPort e UserRepositoryImpl viram um participante só, "Repositório".
+'   2. Um alt por bloco, o da decisão que define aquele endpoint. Erro de preenchimento
+'      (400) e erro de validação de domínio (422) saem, porque se repetem em todos.
+'   3. Colaborador sem regra própria vira mensagem para si mesmo, como a codificação da
+'      senha, para o fato não sumir junto com a raia.
+'
+' Os cinco casos de uso continuam como raias separadas: são cinco classes no código, e
+' cada bloco usa uma delas.
+
+title Módulo user: os cinco endpoints
+
+actor "Administrador" as Ator
+boundary "Frontend" as FE
+participant "UserController" as Ctrl
+participant "CreateUserUseCase" as Create
+participant "GetUserUseCase" as Get
+participant "UpdateUserUseCase" as Update
+participant "UpdateUserStatusUseCase" as Status
+participant "DeleteUserUseCase" as Delete
+participant "User" as Entity
+participant "Repositório" as Repo
+database "users" as DB
+
+== POST /users: criar ==
+
+Ator -> FE: preenche o formulário e confirma
+activate FE
+FE -> Ctrl: POST /users\n{name, email, password, role}
+activate Ctrl
+Ctrl -> Create: execute(CreateUserRequest)
+activate Create
+
+Create -> Repo: existsByEmail(email)
+activate Repo
+Repo -> DB: SELECT COUNT(*)>0 FROM users\nWHERE email=? AND status<>'DELETED'
+DB --> Repo: boolean
+Repo --> Create: boolean
+deactivate Repo
+
+alt email já cadastrado
+  Create --> Ctrl: ConflictException
+  Ctrl --> FE: 409 Conflict
+else email disponível
+  Create -> Create: codifica a senha
+  Create -> Entity: User.create(name, email, senha, role)
+  activate Entity
+  Entity -> Entity: id = UUID aleatório\nstatus = ACTIVE
+  Entity --> Create: User
+  deactivate Entity
+
+  Create -> Repo: save(user)
+  activate Repo
+  Repo -> DB: INSERT INTO users
+  Repo --> Create: User
+  deactivate Repo
+
+  Create --> Ctrl: UserResponse
+  Ctrl --> FE: 201 Created {UserResponse}
+end
+deactivate Create
+deactivate Ctrl
+FE --> Ator: exibe o resultado
+deactivate FE
+
+== GET /users e GET /users/{id}: buscar ==
+
+Ator -> FE: abre a lista, ou um usuário
+activate FE
+FE -> Ctrl: GET /users\nou GET /users/{id}
+activate Ctrl
+Ctrl -> Get: findAll() ou findById(id)
+activate Get
+
+Get -> Repo: findAll() ou findById(UserId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM users\nWHERE status<>'DELETED'\n[AND id=?]
+DB --> Repo: List<User> ou Optional<User>
+Repo --> Get: List<User> ou Optional<User>
+deactivate Repo
+
+alt busca por id sem resultado
+  Get --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+else encontrado
+  Get --> Ctrl: UserResponse ou List<UserResponse>
+  Ctrl --> FE: 200 OK
+end
+deactivate Get
+deactivate Ctrl
+FE --> Ator: exibe o resultado
+deactivate FE
+
+== PUT /users/{id}: atualizar ==
+
+Ator -> FE: edita os dados e confirma
+activate FE
+FE -> Ctrl: PUT /users/{id}\n{name, email, password?, role?}
+activate Ctrl
+Ctrl -> Update: execute(id, UpdateUserRequest)
+activate Update
+
+Update -> Repo: findById(UserId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM users\nWHERE id=? AND status<>'DELETED'
+DB --> Repo: Optional<User>
+Repo --> Update: Optional<User>
+deactivate Repo
+
+alt usuário não encontrado
+  Update --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+else usuário encontrado
+  Update -> Update: password em branco mantém a atual\nrole omitida mantém a atual\ncodifica a senha nova, se houver
+
+  Update -> Entity: update(name, email, senha, papel)
+  activate Entity
+  Entity -> Entity: updatedAt = now()
+  Entity --> Update: User
+  deactivate Entity
+
+  Update -> Repo: save(user)
+  activate Repo
+  Repo -> DB: UPDATE users SET\nname=?, email=?, password=?, role=?, updated_at=?
+  Repo --> Update: User
+  deactivate Repo
+
+  Update --> Ctrl: UserResponse
+  Ctrl --> FE: 200 OK {UserResponse}
+end
+deactivate Update
+deactivate Ctrl
+FE --> Ator: exibe o resultado
+deactivate FE
+
+== PATCH /users/{id}/status: alterar status ==
+
+Ator -> FE: ativa ou desativa o usuário
+activate FE
+FE -> Ctrl: PATCH /users/{id}/status\n{status: ACTIVE | INACTIVE}
+activate Ctrl
+Ctrl -> Status: execute(id, request.status())
+activate Status
+
+Status -> Repo: findById(UserId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM users\nWHERE id=? AND status<>'DELETED'
+DB --> Repo: Optional<User>
+Repo --> Status: Optional<User>
+deactivate Repo
+
+alt status = ACTIVE
+  Status -> Entity: activate()
+  activate Entity
+  Entity --> Status: status = ACTIVE
+  deactivate Entity
+else status = INACTIVE
+  Status -> Entity: deactivate()
+  activate Entity
+  Entity --> Status: status = INACTIVE
+  deactivate Entity
+end
+
+Status -> Repo: save(user)
+activate Repo
+Repo -> DB: UPDATE users SET status=?
+Repo --> Status: User
+deactivate Repo
+
+Status --> Ctrl: UserResponse
+deactivate Status
+Ctrl --> FE: 200 OK {UserResponse}
+deactivate Ctrl
+FE --> Ator: exibe o novo status
+deactivate FE
+
+== DELETE /users/{id}: remover ==
+
+Ator -> FE: confirma a remoção
+activate FE
+FE -> Ctrl: DELETE /users/{id}
+activate Ctrl
+Ctrl -> Delete: execute(id)
+activate Delete
+
+Delete -> Repo: findById(UserId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM users\nWHERE id=? AND status<>'DELETED'
+DB --> Repo: Optional<User>
+Repo --> Delete: Optional<User>
+deactivate Repo
+
+Delete -> Entity: delete()
+activate Entity
+
+alt usuário não está INACTIVE
+  Entity --> Delete: InvalidStateException
+  Delete --> Ctrl: InvalidStateException
+  Ctrl --> FE: 422 Unprocessable Entity\nINVALID_STATE
+else usuário INACTIVE
+  Entity --> Delete: status = DELETED
+  deactivate Entity
+
+  Delete -> Repo: save(user)
+  activate Repo
+  Repo -> DB: UPDATE users SET status='DELETED'
+  Repo --> Delete: User
+  deactivate Repo
+
+  Delete --> Ctrl: void
+  Ctrl --> FE: 204 No Content
+end
+deactivate Delete
+deactivate Ctrl
+FE --> Ator: exibe o resultado
+deactivate FE
+
+@enduml

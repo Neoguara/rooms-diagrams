@@ -1,18 +1,22 @@
 @startuml get_user
 
+' Participantes conforme classe/simples/user.puml: sem mapper e sem a interface JPA.
+' O filtro de status DELETED mora no UserRepositoryImpl, não no caso de uso: é ele que
+' escolhe a variante ...AndStatusNot do repositório JPA.
+
 title GET /users e GET /users/{id}: Buscar Usuário
 
-actor User
+actor "Administrador" as Ator
 boundary "Frontend" as FE
 participant "UserController" as Ctrl
 participant "GetUserUseCase" as UC
-participant "UserMapper" as Mapper
-participant "UserRepositoryPort" as Repo
+participant "UserRepositoryPort" as Port
+participant "UserRepositoryImpl" as Impl
 database "users" as DB
 
 == Listar todos ==
 
-User -> FE: solicita listagem de usuários
+Ator -> FE: abre a lista de usuários
 activate FE
 FE -> Ctrl: GET /users
 activate Ctrl
@@ -20,28 +24,27 @@ activate Ctrl
 Ctrl -> UC: findAll()
 activate UC
 
-UC -> Repo: findAll()
-activate Repo
-Repo -> DB: SELECT * FROM users\nWHERE status != DELETED
-DB --> Repo: List<User>
-Repo --> UC: List<User>
-deactivate Repo
-
-UC -> Mapper: toResponse(each user)
-activate Mapper
-Mapper --> UC: List<UserResponse>
-deactivate Mapper
+UC -> Port: findAll()
+activate Port
+Port -> Impl: findAll()
+activate Impl
+Impl -> DB: SELECT * FROM users\nWHERE status<>'DELETED'
+DB --> Impl: List<User>
+Impl --> Port: List<User>
+deactivate Impl
+Port --> UC: List<User>
+deactivate Port
 
 UC --> Ctrl: List<UserResponse>
 deactivate UC
-Ctrl --> FE: 200 OK {List<UserResponse>}
+Ctrl --> FE: 200 OK [UserResponse]
 deactivate Ctrl
-FE --> User: exibe listagem
+FE --> Ator: exibe a lista
 deactivate FE
 
-== Buscar por ID ==
+== Buscar por id ==
 
-User -> FE: solicita busca por ID
+Ator -> FE: abre um usuário
 activate FE
 FE -> Ctrl: GET /users/{id}
 activate Ctrl
@@ -49,26 +52,25 @@ activate Ctrl
 Ctrl -> UC: findById(id)
 activate UC
 
-UC -> Repo: findById(UserId.of(id))
-activate Repo
-Repo -> DB: SELECT * FROM users\nWHERE id=? AND status!=DELETED
-DB --> Repo: Optional<User>
-Repo --> UC: Optional<User>
-deactivate Repo
+UC -> Port: findById(UserId.of(id))
+activate Port
+Port -> Impl: findById(userId)
+activate Impl
+Impl -> DB: SELECT * FROM users\nWHERE id=? AND status<>'DELETED'
+DB --> Impl: Optional<User>
+Impl --> Port: Optional<User>
+deactivate Impl
+Port --> UC: Optional<User>
+deactivate Port
 
-alt found
-  UC -> Mapper: toResponse(user)
-  activate Mapper
-  Mapper --> UC: UserResponse
-  deactivate Mapper
-
+alt usuário encontrado
   UC --> Ctrl: UserResponse
   Ctrl --> FE: 200 OK {UserResponse}
-  FE --> User: exibe dados
-else not found
+  FE --> Ator: exibe os dados
+else não encontrado, ou já deletado
   UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> FE: 404 Not Found
-  FE --> User: exibe erro
+  Ctrl --> FE: 404 Not Found\nNOT_FOUND
+  FE --> Ator: exibe erro
 end
 
 deactivate UC

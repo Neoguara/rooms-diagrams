@@ -6,7 +6,7 @@ title Building: Ciclo de Vida do Status
 
 !include estilo.iuml
 
-[*] --> ACTIVE : Building.create()
+[*] --> ACTIVE : create()
 
 ACTIVE   --> INACTIVE : deactivate()
 

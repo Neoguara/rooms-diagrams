@@ -113,7 +113,6 @@ package "Infrastructure" #FFF8F0 {
   }
 
   class EventRepositoryImpl <<Repository>>
-  interface EventJpaRepository
 
   class RoomOccupancyAdapter <<Component>>
   class EventAvailabilityAdapter <<Component>>
@@ -136,7 +135,6 @@ LoadedOccupancy --> Event
 
 EventController --> GetEventUseCase
 GetEventUseCase --> EventRepositoryPort
-EventRepositoryImpl --> EventJpaRepository
 RoomOccupancyAdapter --> EventRepositoryPort
 EventAvailabilityAdapter --> EventRepositoryPort
 EventReportDataAdapter --> EventRepositoryPort

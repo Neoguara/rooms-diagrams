@@ -6,9 +6,8 @@ title User: Ciclo de Vida do Status
 
 !include estilo.iuml
 
-[*] --> ACTIVE : User.create()
+[*] --> ACTIVE : create()
 
-ACTIVE   --> ACTIVE   : activate()
 ACTIVE   --> INACTIVE : deactivate()
 
 INACTIVE --> ACTIVE   : activate()

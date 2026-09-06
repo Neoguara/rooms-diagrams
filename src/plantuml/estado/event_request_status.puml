@@ -8,7 +8,7 @@ title EventRequest: Ciclo de Vida do Status
 
 !include estilo.iuml
 
-[*] --> PENDING : EventRequest.open()
+[*] --> PENDING : open()
 
 PENDING --> APPROVED : approve()
 PENDING --> REJECTED : reject()

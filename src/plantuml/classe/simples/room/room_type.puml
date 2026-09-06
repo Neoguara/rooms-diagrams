@@ -78,8 +78,6 @@ package "Infrastructure" #FFF8F0 {
   }
 
   class RoomTypeRepositoryImpl <<Repository>>
-
-  interface RoomTypeJpaRepository
 }
 
 ' ── Implementação ──────────────────────────────────────
@@ -100,7 +98,5 @@ GetRoomTypeUseCase --> RoomTypeRepositoryPort
 UpdateRoomTypeUseCase --> RoomTypeRepositoryPort
 UpdateRoomTypeStatusUseCase --> RoomTypeRepositoryPort
 DeleteRoomTypeUseCase --> RoomTypeRepositoryPort
-
-RoomTypeRepositoryImpl --> RoomTypeJpaRepository
 
 @enduml

@@ -1,68 +1,92 @@
 @startuml update_user
 
+' Participantes conforme classe/simples/user.puml: sem mapper e sem a interface JPA.
+' O PasswordEncoder fica, apesar de ser tipo de fora do módulo: é ele que decide se a
+' senha muda ou é mantida, e omitir a chamada esconderia essa decisão.
+
 title PUT /users/{id}: Atualizar Usuário
 
-actor User
+actor "Administrador" as Ator
 boundary "Frontend" as FE
 participant "UserController" as Ctrl
 participant "UpdateUserUseCase" as UC
 participant "PasswordEncoder" as Encoder
-participant "UserMapper" as Mapper
 participant "User" as Entity
-participant "UserRepositoryPort" as Repo
+participant "UserRepositoryPort" as Port
+participant "UserRepositoryImpl" as Impl
 database "users" as DB
 
-User -> FE: edita dados e confirma
+Ator -> FE: edita os dados e confirma
 activate FE
-FE -> Ctrl: PUT /users/{id}\n{name, email, password, role}
+FE -> Ctrl: PUT /users/{id}\n{name, email, password?, role?}
 activate Ctrl
 
-Ctrl -> UC: execute(id, UpdateUserRequest)
-activate UC
+alt corpo inválido: @Valid falha
+  Ctrl --> FE: 400 Bad Request\nVALIDATION_ERROR
+  FE --> Ator: exibe erros de preenchimento
+else corpo válido
 
-UC -> Repo: findById(UserId.of(id))
-activate Repo
-Repo -> DB: SELECT * FROM users\nWHERE id=? AND status!=DELETED
-DB --> Repo: Optional<User>
-Repo --> UC: Optional<User>
-deactivate Repo
+  Ctrl -> UC: execute(id, UpdateUserRequest)
+  activate UC
 
-alt found
-  opt request.password informado
-    UC -> Encoder: encode(request.password)
-    activate Encoder
-    Encoder --> UC: encodedPassword
-    deactivate Encoder
+  UC -> Port: findById(UserId.of(id))
+  activate Port
+  Port -> Impl: findById(userId)
+  activate Impl
+  Impl -> DB: SELECT * FROM users\nWHERE id=? AND status<>'DELETED'
+  DB --> Impl: Optional<User>
+  Impl --> Port: Optional<User>
+  deactivate Impl
+  Port --> UC: Optional<User>
+  deactivate Port
+
+  alt usuário não encontrado
+    UC --> Ctrl: ResourceNotFoundException
+    Ctrl --> FE: 404 Not Found\nNOT_FOUND
+    FE --> Ator: exibe erro
+  else usuário encontrado
+
+    alt password informada e não em branco
+      UC -> Encoder: encode(password)
+      activate Encoder
+      Encoder --> UC: encodedPassword
+      deactivate Encoder
+    else password omitida
+      UC -> UC: mantém user.getPassword()
+    end
+
+    UC -> UC: role omitida mantém user.getRole()
+
+    UC -> Entity: update(name, email, senha, papel)
+    activate Entity
+    Entity -> Entity: updatedAt = now()
+
+    alt algum campo obrigatório em branco
+      Entity --> UC: DomainValidationException
+      UC --> Ctrl: DomainValidationException
+      Ctrl --> FE: 422 Unprocessable Entity\nDOMAIN_VALIDATION_ERROR
+      FE --> Ator: exibe erros de domínio
+    else campos válidos
+      Entity --> UC: User
+      deactivate Entity
+
+      UC -> Port: save(user)
+      activate Port
+      Port -> Impl: save(user)
+      activate Impl
+      Impl -> DB: UPDATE users SET\nname=?, email=?, password=?, role=?, updated_at=?
+      DB --> Impl: User
+      Impl --> Port: User
+      deactivate Impl
+      Port --> UC: User
+      deactivate Port
+
+      UC --> Ctrl: UserResponse
+      Ctrl --> FE: 200 OK {UserResponse}
+      FE --> Ator: exibe os dados atualizados
+    end
   end
-  note over UC: password e role são opcionais:\nomitidos, mantêm o valor atual
-
-  UC -> Entity: update(name, email, newPassword, newRole)
-  activate Entity
-  note right of Entity: UserValidator.validate()\nupdatedAt = now()
-  Entity --> UC:
-  deactivate Entity
-
-  UC -> Repo: save(user)
-  activate Repo
-  Repo -> DB: UPDATE users SET\nname=?, email=?, password=?,\nrole=?, updated_at=?
-  DB --> Repo: user
-  Repo --> UC: saved
-  deactivate Repo
-
-  UC -> Mapper: toResponse(saved)
-  activate Mapper
-  Mapper --> UC: UserResponse
-  deactivate Mapper
-
-  UC --> Ctrl: UserResponse
-  Ctrl --> FE: 200 OK {UserResponse}
-  FE --> User: exibe dados atualizados
-else not found
-  UC --> Ctrl: ResourceNotFoundException
-  Ctrl --> FE: 404 Not Found
-  FE --> User: exibe erro
 end
-
 deactivate UC
 deactivate Ctrl
 deactivate FE

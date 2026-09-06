@@ -5,6 +5,8 @@
 '
 ' É o recorte que depende dos outros três: a sala aponta para prédio e tipo, e a busca por
 ' salas livres consulta a agenda pela RoomAvailabilityPort, implementada pelo módulo event.
+' BuildingId, RoomTypeId, ResourceId e as portas de prédio, tipo e recurso pertencem aos
+' outros recortes, mas aparecem na camada a que pertencem, não em um pacote à parte.
 '
 ' O que esta versão corta: DTOs, mappers, validators, exceções, getters, construtores,
 ' métodos privados, os tipos de fora do módulo, e as dependências de uso, exceto as que
@@ -48,6 +50,9 @@ package "Domain" #EEF2FF {
   class RoomResourceId <<record>> {
     - UUID id
   }
+  class BuildingId <<record>>
+  class RoomTypeId <<record>>
+  class ResourceId <<record>>
 
   enum RoomStatus {
     AVAILABLE
@@ -74,6 +79,10 @@ package "Application" #F0FFF0 {
   interface RoomAvailabilityPort {
     + Set<UUID> findOccupiedRoomIds(LocalDateTime,LocalDateTime)
   }
+
+  interface BuildingRepositoryPort
+  interface RoomTypeRepositoryPort
+  interface ResourceRepositoryPort
 
   class CreateRoomUseCase <<Service>> {
     + execute()
@@ -115,19 +124,7 @@ package "Infrastructure" #FFF8F0 {
   class RoomRepositoryImpl <<Repository>>
   class RoomResourceRepositoryImpl <<Repository>>
 
-  interface RoomJpaRepository
-  interface RoomResourceJpaRepository
-
   class RoomReportDataAdapter <<Component>>
-}
-
-package "Outros recortes do módulo" #EEEEFF {
-  class BuildingId <<record>>
-  class RoomTypeId <<record>>
-  class ResourceId <<record>>
-  interface BuildingRepositoryPort
-  interface RoomTypeRepositoryPort
-  interface ResourceRepositoryPort
 }
 
 ' ── Implementação ──────────────────────────────────────
@@ -179,8 +176,6 @@ ReplaceRoomResourcesUseCase --> RoomResourceRepositoryPort
 ReplaceRoomResourcesUseCase --> ResourceRepositoryPort
 
 ' ── Campos: infraestrutura ─────────────────────────────
-RoomRepositoryImpl --> RoomJpaRepository
-RoomResourceRepositoryImpl --> RoomResourceJpaRepository
 RoomReportDataAdapter --> RoomRepositoryPort
 RoomReportDataAdapter --> BuildingRepositoryPort
 

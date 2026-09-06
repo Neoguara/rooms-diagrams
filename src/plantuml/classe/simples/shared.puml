@@ -1,0 +1,87 @@
+@startuml shared_simples
+
+' Versão simples do módulo shared. A versão exaustiva está em classe/shared.puml, e é ela
+' que serve de referência de sincronia com o backend.
+'
+' Aqui a regra de corte se inverte: exceções e validação são o conteúdo do módulo, não o
+' ruído. O que sai são os tipos de fora, e com eles a herança de RuntimeException, os dez
+' implementadores de Validator, os tipos do Spring e do Jackson que o handler traduz, e o
+' OpenApiConfig, que só se ligava ao OpenAPI do springdoc.
+
+left to right direction
+skinparam packageStyle rectangle
+
+package "Domain" #EEF2FF {
+
+  package "exceptions" {
+    abstract class BusinessException
+    class ConflictException {
+      - List<String> errors
+      + List<String> getErrors()
+    }
+    class DomainValidationException {
+      - Notification notification
+      + Notification getNotification()
+    }
+    class InvalidStateException
+    class ResourceNotFoundException
+  }
+
+  package "validation" {
+    class Notification <<final>> {
+      - List<String> errors
+      + {static} create()
+      + addError()
+      + addErrorIf()
+      + hasErrors()
+      + getErrors()
+      + merge()
+      + raiseIfHasErrors()
+    }
+    interface "Validator<T>" as Validator {
+      + void validate(T,Notification)
+    }
+  }
+}
+
+package "Infrastructure" #FFF8F0 {
+
+  class ErrorResponse <<record>> {
+    - int status
+    - String error
+    - String message
+    - List<String> errors
+    - Instant timestamp
+  }
+
+  class GlobalExceptionHandler <<RestControllerAdvice>> {
+    + handleDomainValidation()
+    + handleResourceNotFound()
+    + handleConflict()
+    + handleInvalidState()
+    + handleBusiness()
+    + handleValidation()
+    + handleTypeMismatch()
+    + handleHttpMessageNotReadable()
+    + handleNoResourceFound()
+    + handleNoHandlerFound()
+    + handleMethodNotSupported()
+  }
+}
+
+' ── Herança ────────────────────────────────────────────
+BusinessException <|-- ConflictException
+BusinessException <|-- DomainValidationException
+BusinessException <|-- InvalidStateException
+BusinessException <|-- ResourceNotFoundException
+
+' ── Campos ─────────────────────────────────────────────
+DomainValidationException --> Notification
+
+' ── Uso ────────────────────────────────────────────────
+Notification ..> DomainValidationException : raiseIfHasErrors
+Validator ..> Notification
+GlobalExceptionHandler ..> BusinessException : traduz para HTTP
+GlobalExceptionHandler ..> ErrorResponse
+
+@enduml
