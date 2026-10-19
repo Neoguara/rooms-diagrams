@@ -1,4 +1,5 @@
 @startuml
+
 skinparam linetype ortho
 skinparam backgroundColor white
 skinparam node {
@@ -7,6 +8,10 @@ skinparam node {
   FontStyle bold
 }
 skinparam artifact {
+  BorderColor #444444
+  BackgroundColor #FFFFFF
+}
+skinparam folder {
   BorderColor #444444
   BackgroundColor #FFFFFF
 }
@@ -22,19 +27,24 @@ node "Cliente" <<device>> #DDEEFF {
   artifact "Navegador Web" as browser
 }
 
-node "Servidor Web" <<server>> #DDFFD8 {
-  artifact "Frontend" as Frontend
+node "Servidor" <<server>> #F2F2F2 {
+
+  node "Serviço Web" <<service>> #DDFFD8 {
+    artifact "Frontend (build estático React)" as Frontend
+  }
+
+  node "Serviço de Aplicação" <<service>> #FFE0D8 {
+    artifact "Spring Boot" as api
+  }
+
+  node "Serviço de Banco de Dados" <<service>> #FFF3CC {
+    database "PostgreSQL" as db
+  }
 }
 
-node "Servidor de Aplicação" <<server>> #FFE0D8 {
-  artifact "Backend API" as api
-}
+browser --> Frontend : HTTPS\nbaixa a aplicação
+browser --> api      : HTTPS\nREST + JSON
 
-node "Servidor de Banco de Dados" <<server>> #FFF3CC {
-  database "PostgreSQL" as db
-}
+api --> db      : JDBC
 
-browser --> Frontend  : HTTPS
-Frontend   --> api    : HTTPS
-api     --> db     : JDBC
 @enduml
