@@ -79,11 +79,27 @@ Este relatório descreve os objetivos alcançados, detalha os casos de uso imple
 
 % O presente projeto tem como objetivo principal (ou objetivo geral) propor uma solucao de agendamento de salas para a unifil. o Sistema irá proporcionar controle de resolução de conflito e cadastros de salas e usuários, controle de históricos de alterações, uma agenda centralizada da locação dos recursos e geração de relatórios.
 
-O presente trabalho teve como objetivo principal (ou objetivo geral) desenvolver uma solução de agendamento de salas para a UniFil. Os seus objetivos específicos foram:
+principal (ou objetivo geral) desenvolver uma solução de agendamento de salas para a UniFil. Os seus objetivos específicos foram:
 
-um fluxo padrão para agendamento.
+\begin{itemize}
 
-controle de históricos de alterações
+    \item \textbf{Padronizar o fluxo de reserva}, estabelecendo um caminho único de
+          solicitação, análise e confirmação, com estados explícitos para cada
+          solicitação.
+
+    \item \textbf{Automatizar a verificação de disponibilidade}, apresentando ao
+          solicitante apenas as salas livres no período desejado, filtradas por
+          capacidade, prédio, tipo de sala e recursos.
+
+    \item \textbf{Detectar conflitos de agendamento pelo sistema}, verificando a
+          sobreposição de horários no momento do envio da solicitação.
+
+    \item \textbf{Registrar o histórico das decisões} tornando possível reconstruir o que
+          foi decidido, por quem e quando.
+
+    \item \textbf{Disponibilizar relatórios} sobre uso, agendamentos e
+          histórico do sistema, com a exportação opcional do resultado em arquivo.
+\end{itemize}
 
 \section{JUSTIFICATIVA}
 
