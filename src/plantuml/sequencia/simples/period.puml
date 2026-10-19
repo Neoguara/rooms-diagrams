@@ -1,0 +1,155 @@
+@startuml period_simples
+
+' Recorte de período do módulo event, inteiro em um arquivo, no estilo simplista.
+'
+' Quatro cortes, os mesmos dos outros diagramas desta pasta:
+'   1. Porta e implementação viram um participante só, tipado como «subsystem».
+'   2. Só o caminho de sucesso. Nenhum alt: os erros (404, 422) ficam de fora, e as
+'      guardas de status estão em estado/period_status.puml.
+'   3. Nenhuma mensagem para si mesmo: fluxo interno não é troca entre participantes.
+'   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
+'
+' A camada de caso de uso é uma raia só, tipada como «subsystem». Ela não representa uma
+' classe: representa a camada. As classes estão em classe/simples/event/period.puml.
+'
+' O PATCH /periods/{id}/status fica de fora: as transições estão em
+' estado/period_status.puml.
+'
+' Period é catálogo: escolher um período só preenche dois campos de hora na tela, não
+' reserva horário e não passa por EventRequest. Por isso não há conferência de agenda
+' em nenhum dos fluxos abaixo, e dois períodos podem se sobrepor.
+
+title Período: criar, buscar, atualizar e remover
+
+actor "Administrador" as Ator
+boundary "Frontend" as FE
+participant "PeriodController" as Ctrl
+
+participant "<<subsystem>>\nusecases" as UC
+
+participant "Period" as Entity
+participant "<<subsystem>>\nrepositories" as Repo
+database "periods" as DB
+
+== POST /periods: criar ==
+
+Ator -> FE: preenche o formulário e confirma
+activate FE
+FE -> Ctrl: POST /periods\n{name, description, startTime,\nendTime, color}
+activate Ctrl
+Ctrl -> UC: execute(CreatePeriodRequest)
+activate UC
+
+UC -> Entity: Period.create(name, description,\nstartTime, endTime, color)\nvalida os campos e exige endTime > startTime
+activate Entity
+Entity --> UC: Period com id novo e status ACTIVE
+deactivate Entity
+
+UC -> Repo: save(period)
+activate Repo
+Repo -> DB: INSERT INTO periods
+DB --> Repo: Period
+Repo --> UC: Period
+deactivate Repo
+
+UC --> Ctrl: PeriodResponse
+deactivate UC
+Ctrl --> FE: 201 Created {PeriodResponse}
+deactivate Ctrl
+FE --> Ator: exibe o resultado
+deactivate FE
+
+== GET /periods e GET /periods/{id}: buscar ==
+
+Ator -> FE: abre a lista, ou um período
+activate FE
+FE -> Ctrl: GET /periods\nou GET /periods/{id}
+activate Ctrl
+Ctrl -> UC: findAll() ou findById(id)
+activate UC
+
+UC -> Repo: findAll() ou findById(PeriodId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM periods\nWHERE status<>'DELETED'\n[AND id=?]\nORDER BY start_time
+DB --> Repo: List<Period> ou Optional<Period>
+Repo --> UC: List<Period> ou Optional<Period>
+deactivate Repo
+
+UC --> Ctrl: PeriodResponse ou List<PeriodResponse>
+deactivate UC
+Ctrl --> FE: 200 OK
+deactivate Ctrl
+FE --> Ator: exibe o resultado
+deactivate FE
+
+== PUT /periods/{id}: atualizar ==
+
+Ator -> FE: edita os dados e confirma
+activate FE
+FE -> Ctrl: PUT /periods/{id}\n{name, description, startTime,\nendTime, color}
+activate Ctrl
+Ctrl -> UC: execute(id, UpdatePeriodRequest)
+activate UC
+
+UC -> Repo: findById(PeriodId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM periods\nWHERE id=? AND status<>'DELETED'
+DB --> Repo: Optional<Period>
+Repo --> UC: Optional<Period>
+deactivate Repo
+
+UC -> Entity: update(name, description,\nstartTime, endTime, color)\nvalida os campos
+activate Entity
+Entity --> UC: Period com updatedAt novo
+deactivate Entity
+
+UC -> Repo: save(period)
+activate Repo
+Repo -> DB: UPDATE periods SET\nname=?, description=?, start_time=?,\nend_time=?, color=?, updated_at=?
+DB --> Repo: Period
+Repo --> UC: Period
+deactivate Repo
+
+UC --> Ctrl: PeriodResponse
+deactivate UC
+Ctrl --> FE: 200 OK {PeriodResponse}
+deactivate Ctrl
+FE --> Ator: exibe o resultado
+deactivate FE
+
+== DELETE /periods/{id}: remover ==
+
+Ator -> FE: confirma a remoção
+activate FE
+FE -> Ctrl: DELETE /periods/{id}
+activate Ctrl
+Ctrl -> UC: execute(id)
+activate UC
+
+UC -> Repo: findById(PeriodId.of(id))
+activate Repo
+Repo -> DB: SELECT * FROM periods\nWHERE id=? AND status<>'DELETED'
+DB --> Repo: Optional<Period>
+Repo --> UC: Optional<Period>
+deactivate Repo
+
+UC -> Entity: delete()\nexige status INACTIVE
+activate Entity
+Entity --> UC: Period com status DELETED
+deactivate Entity
+
+UC -> Repo: save(period)
+activate Repo
+Repo -> DB: UPDATE periods SET status='DELETED'
+DB --> Repo: Period
+Repo --> UC: Period
+deactivate Repo
+
+UC --> Ctrl: void
+deactivate UC
+Ctrl --> FE: 204 No Content
+deactivate Ctrl
+FE --> Ator: exibe o resultado
+deactivate FE
+
+@enduml

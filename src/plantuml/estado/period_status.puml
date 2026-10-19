@@ -1,0 +1,23 @@
+@startuml period_status
+
+' Fonte: PeriodStatus e os métodos activate/deactivate/delete de Period (rooms-backend).
+'
+' delete() exige INACTIVE: "Period must be inactive before deletion". Por isso DELETED só
+' chega a partir de INACTIVE, e não existe aresta direta de ACTIVE.
+'
+' DELETED é terminal: activate() e deactivate() lançam InvalidStateException a partir dele.
+
+title Period: Ciclo de Vida do Status
+
+!include estilo.iuml
+
+[*] --> ACTIVE : create()
+
+ACTIVE   --> INACTIVE : deactivate()
+
+INACTIVE --> ACTIVE   : activate()
+INACTIVE --> DELETED  : delete()
+
+DELETED --> [*]
+
+@enduml

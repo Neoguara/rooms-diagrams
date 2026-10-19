@@ -150,6 +150,25 @@ entity "approvals" as Approval {
   decided_at : TIMESTAMP
 }
 
+' ── periods ────────────────────────────────────────────
+' Catálogo puro do módulo event: não referencia evento nem sala, não reserva
+' horário e não passa por EventRequest. Por isso não tem nenhum relacionamento
+' no diagrama, e dois períodos podem se sobrepor sem conflito.
+' start_time e end_time são TIME, não TIMESTAMP: guardam hora do dia, não
+' instante, de modo que o mesmo período vale para qualquer data.
+entity "periods" as Period {
+  * id : UUID <<PK>>
+  --
+  name : VARCHAR(255)
+  description : VARCHAR(255)
+  start_time : TIME
+  end_time : TIME
+  color : VARCHAR(255)
+  status : ENUM <<PeriodStatus>>
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
 ' ── reports ────────────────────────────────────────────
 entity "reports" as Report {
   * id : UUID <<PK>>

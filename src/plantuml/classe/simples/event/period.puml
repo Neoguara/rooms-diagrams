@@ -1,0 +1,105 @@
+@startuml event_period
+
+' Versão simples do recorte de período, dentro do módulo event. A versão exaustiva do
+' módulo inteiro está em classe/event.puml, e é ela que serve de referência de sincronia.
+'
+' O que esta versão corta: DTOs, mappers, validators, exceções, getters, construtores,
+' métodos privados, os tipos de fora do módulo, e as dependências de uso, exceto as que
+' ligam um serviço de domínio ao que ele opera.
+'
+' Period é catálogo puro: não referencia Event, Room nem EventRequest. Por isso não há
+' nenhuma associação com o resto do módulo event.
+
+left to right direction
+skinparam packageStyle rectangle
+
+package "Domain" #EEF2FF {
+
+  class Period <<Entity>> {
+    - PeriodId id
+    - String name
+    - String description
+    - LocalTime startTime
+    - LocalTime endTime
+    - String color
+    - PeriodStatus status
+    - LocalDateTime createdAt
+    - LocalDateTime updatedAt
+    + {static} create()
+    + update()
+    + activate()
+    + deactivate()
+    + delete()
+  }
+
+  class PeriodId <<record>> {
+    - UUID id
+  }
+
+  enum PeriodStatus {
+    ACTIVE
+    INACTIVE
+    DELETED
+  }
+}
+
+package "Application" #F0FFF0 {
+
+  interface PeriodRepositoryPort {
+    + Period save(Period)
+    + Optional<Period> findById(PeriodId)
+    + List<Period> findAll()
+  }
+
+  class CreatePeriodUseCase <<Service>> {
+    + execute()
+  }
+  class GetPeriodUseCase <<Service>> {
+    + findById()
+    + findAll()
+  }
+  class UpdatePeriodUseCase <<Service>> {
+    + execute()
+  }
+  class UpdatePeriodStatusUseCase <<Service>> {
+    + execute()
+  }
+  class DeletePeriodUseCase <<Service>> {
+    + execute()
+  }
+}
+
+package "Infrastructure" #FFF8F0 {
+
+  class PeriodController <<RestController>> {
+    + createPeriod()
+    + listPeriods()
+    + getPeriod()
+    + updatePeriod()
+    + updatePeriodStatus()
+    + deletePeriod()
+  }
+
+  class PeriodRepositoryImpl <<Repository>>
+}
+
+' ── Implementação ──────────────────────────────────────
+PeriodRepositoryPort <|.. PeriodRepositoryImpl
+
+' ── Campos ─────────────────────────────────────────────
+Period *-- PeriodId
+Period --> PeriodStatus
+
+PeriodController --> CreatePeriodUseCase
+PeriodController --> GetPeriodUseCase
+PeriodController --> UpdatePeriodUseCase
+PeriodController --> UpdatePeriodStatusUseCase
+PeriodController --> DeletePeriodUseCase
+
+CreatePeriodUseCase --> PeriodRepositoryPort
+GetPeriodUseCase --> PeriodRepositoryPort
+UpdatePeriodUseCase --> PeriodRepositoryPort
+UpdatePeriodStatusUseCase --> PeriodRepositoryPort
+DeletePeriodUseCase --> PeriodRepositoryPort
+
+@enduml
