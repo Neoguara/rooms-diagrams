@@ -15,7 +15,7 @@ O diagrama de caso de uso é uma das partes fundamentais do projeto, pois é com
 \subsection{Atores}
 
 \begin{description}
-    \item[\textbf{sa\_professor}] Representa o usuário comum do sistema. Tem acesso às funcionalidades de envio de notificações, autenticação, gerenciamento de salas e agendamentos, geração de relatórios e consulta ao histórico de ações.
+    \item[\textbf{sa\_professor}] Representa o usuário comum do sistema. Associa-se diretamente ao gerenciamento de solicitações, de ambientes e de agendamentos, além da geração de relatórios.
 
     \item[\textbf{sa\_coordenador}] Especialização de \textbf{sa\_professor}, herdando todas as suas permissões. Possui acesso adicional ao gerenciamento de usuários do sistema.
 \end{description}
@@ -23,21 +23,25 @@ O diagrama de caso de uso é uma das partes fundamentais do projeto, pois é com
 \subsection{Casos de uso}
 
 \begin{description}
-    \item[\textbf{suc\_enviar\_notificacao}] Permite ao sistema enviar notificações aos usuários sobre atualizações, lembretes e eventos importantes.
+    \item[\textbf{suc\_gerenciar\_ambientes}] Reúne o cadastro, a edição, a remoção e a consulta dos elementos que compõem o espaço físico da instituição.
 
-    \item[\textbf{suc\_gerenciar\_autenticacao}] Permite realizar login, logout e controle de acesso dos usuários no sistema.
+    \begin{description}
+        \item[\textbf{suc\_gerenciar\_prédios}] Trata dos prédios, que delimitam onde cada sala está localizada.
 
-    \item[\textbf{suc\_gerenciar\_salas}] Permite cadastrar, editar, remover e consultar as salas disponíveis.
+        \item[\textbf{suc\_gerenciar\_salas}] Trata das salas propriamente ditas, que são as unidades efetivamente reserváveis.
+
+        \item[\textbf{suc\_gerenciar\_tipos\_de\_salas}] Trata da classificação das salas, por exemplo laboratório, auditório ou sala de aula.
+
+        \item[\textbf{suc\_gerenciar\_recursos}] Trata dos recursos associados às salas, como projetores e computadores.
+    \end{description}
 
     \item[\textbf{suc\_gerenciar\_agendamentos}] Permite criar, atualizar, cancelar e visualizar agendamentos de salas.
 
-    \item[\textbf{suc\_gerar\_relatorios}] Permite emitir relatórios com informações consolidadas sobre uso, agendamentos e histórico do sistema.
+    \item[\textbf{suc\_gerenciar\_solicitações}] Permite registrar e acompanhar as solicitações de reserva, com seus respectivos status.
 
-    \item[\textbf{suc\_gerenciar\_histórico}] Permite consultar e acompanhar o histórico de ações, reservas e alterações realizadas.
+    \item[\textbf{suc\_gerar\_relatórios}] Permite emitir relatórios com informações consolidadas sobre uso, agendamentos e histórico do sistema.
+
+    \item[\textbf{suc\_exportar\_relatórios}] Estende \textbf{suc\_\allowbreak{}gerar\_\allowbreak{}relatórios} com a exportação do resultado em arquivo. É um comportamento opcional: o relatório pode ser apenas consultado, sem ser exportado.
 
     \item[\textbf{suc\_gerenciar\_usuarios}] Permite cadastrar, editar, remover e consultar usuários do sistema.
-
-    \item[\textbf{suc\_exportar\_PDF}] Permite exportar documentos, relatórios ou comprovantes em formato PDF.
-
-    \item[\textbf{suc\_montar\_grade}] Permite organizar e estruturar a grade de horários ou ocupação das salas.
 \end{description}
