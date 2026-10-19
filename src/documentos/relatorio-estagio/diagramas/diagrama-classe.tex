@@ -1,10 +1,10 @@
 \section{Diagramas de Classe}
 
 O sistema segue uma arquitetura de módulos, cada módulo possui seu próprio domínio, casos de uso e camada de infraestrutura. Cada diagrama exibe as três camadas da arquitetura do módulo: \textbf{Domain} (entidades, objetos de valor e enumerações), \textbf{Application} (casos de uso e portas) e \textbf{Infrastructure} (controladores, repositórios e adaptadores).
-A Figura~\ref{fig:classe-user} representa o módulo de gerenciamento de usuários.
-A Figura~\ref{fig:classe-building}, a Figura~\ref{fig:classe-room-type}, a Figura~\ref{fig:classe-resource} e a Figura~\ref{fig:classe-room} representam o módulo de gerenciamento de salas.
-A Figura~\ref{fig:classe-event} e a Figura~\ref{fig:classe-period} representam o módulo de gerenciamento de eventos.
-A Figura~\ref{fig:classe-report} representa o módulo de relatórios.
+
+\subsection{Usuário}
+
+Na Figura~\ref{fig:classe-user} são apresentadas as classes do módulo de gerenciamento de usuários.
 
 \begin{figure}[H]
     \caption{Diagrama de classe do usuário}
@@ -14,6 +14,10 @@ A Figura~\ref{fig:classe-report} representa o módulo de relatórios.
 
     {\footnotesize \textbf{Fonte:} O autor.}
 \end{figure}
+
+\subsection{Sala}
+
+Na Figura~\ref{fig:classe-building}, Figura~\ref{fig:classe-room-type}, Figura~\ref{fig:classe-resource} e Figura~\ref{fig:classe-room} são apresentadas respectivamente as classes de \texttt{Building}, \texttt{RoomType}, \texttt{Resource} e \texttt{Room}, que compõem o módulo de gerenciamento de salas.
 
 \begin{figure}[H]
     \caption{Diagrama de classe do prédio}
@@ -51,6 +55,10 @@ A Figura~\ref{fig:classe-report} representa o módulo de relatórios.
     {\footnotesize \textbf{Fonte:} O autor.}
 \end{figure}
 
+\subsection{Evento}
+
+Na Figura~\ref{fig:classe-event} e Figura~\ref{fig:classe-period} são apresentadas respectivamente as classes do evento com sua solicitação de alteração e as classes do período, ambas do módulo de gerenciamento de eventos.
+
 \begin{figure}[H]
     \caption{Diagrama de classe do evento e da solicitação}
     \label{fig:classe-event}
@@ -68,6 +76,10 @@ A Figura~\ref{fig:classe-report} representa o módulo de relatórios.
 
     {\footnotesize \textbf{Fonte:} O autor.}
 \end{figure}
+
+\subsection{Relatório}
+
+Na Figura~\ref{fig:classe-report} são apresentadas as classes do módulo de relatórios.
 
 \begin{figure}[H]
     \caption{Diagrama de classe do relatório}
