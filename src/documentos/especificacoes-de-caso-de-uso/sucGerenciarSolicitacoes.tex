@@ -1,0 +1,325 @@
+% Especificacao de Caso de Uso: sucGerenciarSolicitacoes
+%
+% Conteudo convertido do documento original do NPI. A tipografia segue o
+% relatorio de estagio (unifil.cls): Helvetica em tudo, 12pt, A4, margens
+% 3cm/2cm, paragrafo com recuo de 1,5cm e sumario com pontilhado.
+% Do original ficaram a capa, o cabecalho em tabela de 3 linhas e o rodape
+% "Confidencial", que sao a identidade do documento do NPI.
+
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
+\usepackage[inner=30mm,outer=20mm,top=20mm,bottom=20mm,includehead,
+            headheight=62pt,headsep=10mm,footskip=12mm]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{indentfirst}
+\usepackage{setspace}
+\usepackage{helvet}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{enumitem}
+\usepackage[font=normalsize,labelfont=bf,labelsep=endash,
+            justification=centering,position=above]{caption}
+\usepackage[colorlinks=true,linkcolor=black,urlcolor=black,citecolor=black]{hyperref}
+
+\renewcommand{\familydefault}{\sfdefault}
+\onehalfspacing
+\setlength{\parindent}{1.5cm}
+
+% Folga extra na justificacao: os nomes dos casos de uso nao hifenizam e
+% sem ela uma linha que contenha dois deles estoura a margem.
+\setlength{\emergencystretch}{4em}
+
+% Os nomes dos casos de uso nao devem ser hifenizados.
+\hyphenation{sucGerenciarUsuarios sucGerenciarAmbientes sucGerenciarPredios
+             sucGerenciarSalas sucGerenciarTiposDeSalas sucGerenciarRecursos
+             sucGerenciarAgendamentos sucGerarRelatorios sucExportarRelatorios
+             sucGerenciarSolicitacoes saProfessor saCoordenador}
+
+% ------------------------------------------------------------- metadados
+
+\newcommand{\ucnome}{sucGerenciarSolicitacoes}
+\newcommand{\ucprojeto}{Reserva de salas}
+\newcommand{\ucversao}{1.0}
+\newcommand{\ucdata}{30/10/2026}
+\newcommand{\ucautor}{José Ronaldo dos Santos Jr.}
+\newcommand{\ucorgao}{Núcleo de Prática de Informática - NPI}
+\newcommand{\uctitulo}{Especificação de Caso de Uso: \ucnome}
+
+% --------------------------------------------------- cabecalho e rodape
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\newcolumntype{H}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\fancyhead[L]{%
+  \setstretch{1.0}\small
+  \begin{tabularx}{\textwidth}{|X|H{4.4cm}|}
+    \hline
+    \textbf{\ucprojeto} & Versão:\qquad \ucversao \\
+    \hline
+    \uctitulo & Data:\ \ \ucdata \\
+    \hline
+    \uctitulo{} - \ucautor & \\
+    \hline
+  \end{tabularx}%
+}
+
+\fancyfoot[L]{\small Confidencial}
+\fancyfoot[C]{\small\copyright\ucorgao, 2026}
+\fancyfoot[R]{\small Página \thepage}
+
+% ------------------------------------------------------ titulos de secao
+
+% "1." nas secoes e "3.1" nas subsecoes, como no documento do NPI.
+\renewcommand{\thesection}{\arabic{section}.}
+\renewcommand{\thesubsection}{\arabic{section}.\arabic{subsection}}
+
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.8em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.8em}{}
+\titlespacing*{\section}{0pt}{1.4\baselineskip}{0.5\baselineskip}
+\titlespacing*{\subsection}{0pt}{1.0\baselineskip}{0.4\baselineskip}
+
+% ------------------------------------------------------------- o sumario
+
+% Mesmo formato do relatorio: titulo centralizado em caixa alta, numeros a
+% esquerda, pontilhado ate a pagina, negrito no primeiro nivel.
+\addto\captionsbrazilian{\renewcommand{\contentsname}{SUMÁRIO}}
+
+\renewcommand{\cfttoctitlefont}{\hfill\normalfont\Large}
+\renewcommand{\cftaftertoctitle}{\hfill}
+\setlength{\cftbeforetoctitleskip}{0pt}
+\setlength{\cftaftertoctitleskip}{1.5\baselineskip}
+
+\renewcommand{\cftsecfont}{\bfseries}
+\renewcommand{\cftsecpagefont}{\bfseries}
+\renewcommand{\cftsecleader}{\bfseries\cftdotfill{\cftdotsep}}
+\renewcommand{\cftsubsecfont}{\normalfont}
+\renewcommand{\cftsubsecpagefont}{\normalfont}
+
+% Os dois niveis compartilham a mesma coluna de numeros e de titulos.
+\setlength{\cftsecindent}{0pt}
+\setlength{\cftsecnumwidth}{1.8cm}
+\setlength{\cftsubsecindent}{0pt}
+\setlength{\cftsubsecnumwidth}{1.8cm}
+\setlength{\cftbeforesecskip}{0.7\baselineskip}
+\setlength{\cftbeforesubsecskip}{0pt}
+
+% ---------------------------------------------------------- os fluxos
+
+\newlist{fluxo}{enumerate}{1}
+\setlist[fluxo]{label=\arabic*., leftmargin=1.5cm, labelsep=0.5em,
+                topsep=0.4\baselineskip, itemsep=0.2\baselineskip, parsep=0pt}
+
+\begin{document}
+
+% ------------------------------------------------------------------ capa
+
+\thispagestyle{empty}
+% geometry[includehead] reserva o espaco do cabecalho tambem nesta pagina,
+% que nao tem cabecalho; o recuo negativo devolve o topo.
+\vspace*{-3.3cm}
+{\bfseries
+  \hrule height 0.8pt
+  \vspace{10pt}
+  \raggedleft \Large \ucorgao \par
+  \vspace{10pt}
+  \hrule height 0.8pt
+  \vspace{36pt}
+  \raggedleft \Large \ucprojeto \par
+  \vspace{12pt}
+  \raggedleft \Large \uctitulo \par
+  \vspace{36pt}
+  \raggedleft \large Versão \ucversao \par
+}
+\newpage
+
+% -------------------------------------------- historico da revisao e sumario
+
+\begin{center}
+  {\Large\bfseries Histórico da Revisão}
+\end{center}
+
+\vspace{\baselineskip}
+
+{\setstretch{1.0}\small
+\noindent
+\begin{tabularx}{\textwidth}{|p{2.6cm}|p{1.6cm}|X|p{3.6cm}|}
+  \hline
+  \centering\textbf{Data} & \centering\textbf{Versão} & \centering\textbf{Descrição}
+    & \centering\arraybackslash\textbf{Autor} \\
+  \hline
+  \ucdata & \ucversao & Primeira versão & \ucautor \\
+  \hline
+  & & & \\
+  \hline
+  & & & \\
+  \hline
+  & & & \\
+  \hline
+\end{tabularx}
+\par}
+
+\vspace{\baselineskip}
+
+% O sumario do relatorio e entrelinhado simples, com respiro so entre os
+% grupos de primeiro nivel.
+{\setstretch{1.0}\tableofcontents\par}
+% \tableofcontents forca \thispagestyle{plain}; devolvemos cabecalho e rodape.
+\thispagestyle{fancy}
+\newpage
+
+% ------------------------------------------------------------- o documento
+
+\begin{center}
+  {\Large\bfseries \uctitulo}
+\end{center}
+
+\vspace{0.5\baselineskip}
+
+O objetivo deste documento é apresentar todas as especificações dos requisitos
+funcionais do caso de uso \ucnome.
+
+\section{Breve Descrição}
+
+A função deste caso de uso é permitir que o usuário do sistema, coordenador ou
+professor, seja capaz de visualizar, submeter, aprovar, rejeitar e reverter
+solicitações de alteração de agendamentos, com suas devidas permissões no
+sistema.
+
+\section{Fluxo Básico de Eventos}
+
+\begin{fluxo}
+  \item O usuário acessa o menu principal.
+  \item O usuário acessa a seção de solicitações.
+  \item O usuário escolhe a opção de submeter uma solicitação.
+  \item O sistema exibe um formulário com as alterações pretendidas e a
+        justificativa.
+  \item O usuário faz a inserção dos dados.
+  \item O usuário submete a solicitação.
+  \item O sistema valida os dados recebidos, registra a solicitação como
+        pendente e informa os choques de sala previstos.
+\end{fluxo}
+
+\section{Fluxos Alternativos}
+
+Nesta seção, serão abordados fluxos alternativos relacionados ao caso de uso
+\ucnome. Um fluxo alternativo representa um comportamento alternativo,
+geralmente derivado de exceções que ocorrem no fluxo principal.
+
+\subsection{Visualizar Solicitações}
+
+\begin{fluxo}
+  \item O usuário acessa o menu principal.
+  \item O usuário acessa a seção de solicitações.
+  \item O usuário seleciona uma solicitação.
+  \item O usuário visualiza as informações desejadas.
+\end{fluxo}
+
+\subsection{Aprovar Solicitações}
+
+\begin{fluxo}
+  \item O usuário acessa o menu principal.
+  \item O usuário acessa a seção de solicitações.
+  \item O usuário seleciona a solicitação pendente que deseja decidir.
+  \item O usuário seleciona a opção de aprovar e registra um comentário.
+  \item O sistema efetiva as alterações nos agendamentos e finaliza o processo.
+\end{fluxo}
+
+\subsection{Rejeitar Solicitações}
+
+\begin{fluxo}
+  \item O usuário acessa o menu principal.
+  \item O usuário acessa a seção de solicitações.
+  \item O usuário seleciona a solicitação pendente que deseja decidir.
+  \item O usuário seleciona a opção de rejeitar e registra um comentário.
+  \item O sistema mantém os agendamentos inalterados e finaliza o processo.
+\end{fluxo}
+
+\subsection{Reverter Solicitações}
+
+\begin{fluxo}
+  \item O usuário acessa o menu principal.
+  \item O usuário acessa a seção de solicitações.
+  \item O usuário seleciona uma solicitação já decidida.
+  \item O usuário seleciona a opção de reverter e informa a justificativa.
+  \item O sistema abre uma nova solicitação pendente com as operações
+        contrárias.
+\end{fluxo}
+
+\subsection{Tratamento de Dados}
+
+O sistema valida os dados inseridos pelo usuário. O sistema apresenta uma
+mensagem de erro caso os dados inseridos pelo usuário não estejam adequados
+para o sistema.
+
+\section{Subfluxos}
+
+Não existem subfluxos associados a este caso de uso.
+
+\section{Cenários Chave}
+
+Os cenários-chave deste caso de uso são: submissão, visualização, aprovação,
+rejeição e reversão de solicitações registradas no sistema.
+
+\section{Condições Prévias}
+
+Não se aplica.
+
+\section{Condições Posteriores}
+
+Nesta seção serão listados os possíveis estados do sistema imediatamente após
+a conclusão do caso de uso em questão.
+
+\subsection{Submeter Solicitação}
+
+Uma solicitação será registrada no sistema com o status pendente e salva no
+banco de dados.
+
+\subsection{Aprovar Solicitação}
+
+Uma solicitação pendente passará para o status aprovado e as alterações serão
+aplicadas aos agendamentos no banco de dados.
+
+\subsection{Rejeitar Solicitação}
+
+Uma solicitação pendente passará para o status rejeitado e os agendamentos
+permanecerão inalterados no banco de dados.
+
+\subsection{Reverter Solicitação}
+
+Uma nova solicitação será registrada no banco de dados com o status pendente,
+apontando para a solicitação original.
+
+\section{Pontos de Extensão}
+
+O caso de uso \ucnome{} não possui pontos de extensão.
+
+\section{Requisitos Especiais}
+
+O caso de uso \ucnome{} não possui requisitos especiais.
+
+\section{Informações Adicionais}
+
+Na Figura~\ref{fig:caso-de-uso} são apresentados os atores e funcionalidades
+do caso de uso.
+
+\begin{figure}[H]
+  \caption{Caso de uso}
+  \label{fig:caso-de-uso}
+  \centering
+  \includegraphics[width=0.6\textwidth]{../../../out/src/plantuml/casos-de-uso/sucGerenciarSolicitacoes.png}
+
+  {\footnotesize \textbf{Fonte:} O autor.}
+\end{figure}
+
+\end{document}

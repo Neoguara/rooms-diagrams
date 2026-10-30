@@ -1,0 +1,15 @@
+@startuml
+left to right direction
+
+actor saProfessor
+
+rectangle uc {
+    usecase "sucGerarRelatorios" as UC5
+    usecase "sucExportarRelatorios" as UC9
+}
+
+saProfessor --> UC5
+
+UC5 <.. UC9 : <<extend>>
+
+@enduml

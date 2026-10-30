@@ -1,0 +1,12 @@
+@startuml
+left to right direction
+
+actor saProfessor
+
+rectangle uc {
+    usecase "sucGerenciarAgendamentos" as UC4
+}
+
+saProfessor --> UC4
+
+@enduml
