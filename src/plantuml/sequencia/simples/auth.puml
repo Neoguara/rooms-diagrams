@@ -6,12 +6,15 @@
 ' O módulo é plano: não tem camada de caso de uso nem repositório próprio, então não há
 ' raia de subsistema aqui. Ele lê o usuário pela UserAuthPort, do módulo user.
 '
-' Quatro cortes em relação aos completos:
+' Cinco cortes em relação aos completos:
 '   1. Só o caminho de sucesso. Nenhum alt: as recusas (credencial inválida, conta
 '      inativa, token ausente ou expirado) estão nos diagramas completos.
 '   2. Nenhum loop.
 '   3. Nenhuma mensagem para si mesmo: fluxo interno não é troca entre participantes.
 '   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
+'   5. O armazenamento não aparece. As mensagens param no participante de repositório,
+'      e a consulta ou gravação fica implícita: o que importa é a conversa entre as
+'      camadas, não o SQL.
 '
 ' O AuthenticationManager fica, apesar de ser tipo de fora do módulo: é ele que confere a
 ' senha e a conta habilitada, e omitir a chamada mostraria um login que não acontece.
@@ -27,7 +30,6 @@ participant "AuthenticationManager\n(spring security)" as AuthMgr
 participant "AuthUserDetailsService" as Details
 participant "JwtService" as Jwt
 participant "UserAuthPort\n(módulo user)" as Port
-database "users" as DB
 
 == POST /auth/login: autenticar ==
 
@@ -45,8 +47,6 @@ AuthMgr -> Details: loadUserByUsername(email)
 activate Details
 Details -> Port: findByEmail(email)
 activate Port
-Port -> DB: SELECT * FROM users\nWHERE email=? AND status<>'DELETED'
-DB --> Port: Optional<User>
 Port --> Details: Optional<AuthUserData>
 deactivate Port
 Details --> AuthMgr: AuthUserDetails
@@ -86,8 +86,6 @@ deactivate Jwt
 
 Filter -> Port: findByEmail(email)
 activate Port
-Port -> DB: SELECT * FROM users\nWHERE email=? AND status<>'DELETED'
-DB --> Port: Optional<User>
 Port --> Filter: Optional<AuthUserData>
 deactivate Port
 

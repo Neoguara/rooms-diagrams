@@ -12,6 +12,9 @@
 '   3. Nenhum loop. Onde o código repete por item, a repetição fica dita no texto da
 '      mensagem, que é o que interessa aqui.
 '   4. Nenhuma mensagem para si mesmo: fluxo interno não é troca entre participantes.
+'   5. O armazenamento não aparece. As mensagens param no participante de repositório,
+'      e a consulta ou gravação fica implícita: o que importa é a conversa entre as
+'      camadas, não o SQL.
 '   5. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
 '
 ' A camada de caso de uso é uma raia só, tipada como «subsystem». Ela não representa uma
@@ -31,7 +34,6 @@ participant "Room" as Room
 participant "RoomResource" as RR
 
 participant "<<subsystem>>\nrepositories" as Repo
-database "rooms\nroom_resources" as DB
 
 == POST /rooms: criar ==
 
@@ -49,8 +51,6 @@ deactivate Room
 
 UC -> Repo: roomRepository.save(room)
 activate Repo
-Repo -> DB: INSERT INTO rooms
-DB --> Repo: Room
 Repo --> UC: Room
 deactivate Repo
 
@@ -66,8 +66,6 @@ deactivate RR
 
 UC -> Repo: roomResourceRepository.save\nde cada RoomResource
 activate Repo
-Repo -> DB: INSERT INTO room_resources
-DB --> Repo: RoomResource de cada um
 Repo --> UC: RoomResource de cada um
 deactivate Repo
 
@@ -89,8 +87,6 @@ activate UC
 
 UC -> Repo: roomRepository.findAll()\nou findById(RoomId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM rooms\nWHERE status<>'DELETED'\n[AND id=?]
-DB --> Repo: List<Room> ou Optional<Room>
 Repo --> UC: List<Room> ou Optional<Room>
 deactivate Repo
 
@@ -117,8 +113,6 @@ activate UC
 
 UC -> Repo: roomRepository.findById(RoomId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM rooms\nWHERE id=? AND status<>'DELETED'
-DB --> Repo: Optional<Room>
 Repo --> UC: Optional<Room>
 deactivate Repo
 
@@ -129,8 +123,6 @@ deactivate Room
 
 UC -> Repo: roomRepository.save(room)
 activate Repo
-Repo -> DB: UPDATE rooms SET ...
-DB --> Repo: Room
 Repo --> UC: Room
 deactivate Repo
 
@@ -152,8 +144,6 @@ activate UC
 
 UC -> Repo: roomRepository.findById(RoomId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM rooms\nWHERE id=? AND status<>'DELETED'
-DB --> Repo: Optional<Room>
 Repo --> UC: Optional<Room>
 deactivate Repo
 
@@ -164,8 +154,6 @@ deactivate Room
 
 UC -> Repo: roomRepository.save(room)
 activate Repo
-Repo -> DB: UPDATE rooms SET status='DELETED'
-DB --> Repo: Room
 Repo --> UC: Room
 deactivate Repo
 

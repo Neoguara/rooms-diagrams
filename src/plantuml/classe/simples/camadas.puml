@@ -1,0 +1,51 @@
+@startuml camadas
+
+' Recorte das três camadas de um módulo, usando o módulo user como exemplo, para o slide
+' da banca. O módulo inteiro está em classe/simples/user.puml, e a versão exaustiva em
+' classe/user.puml.
+'
+' O que o recorte mostra: um caso de uso por camada e o sentido das dependências, sempre
+' da infraestrutura para o domínio, nunca o contrário.
+
+skinparam packageStyle rectangle
+skinparam backgroundColor white
+skinparam defaultFontSize 14
+skinparam nodesep 40
+skinparam ranksep 45
+
+package "Infrastructure" #FFF8F0 {
+  class UserController <<RestController>>
+  class UserRepositoryImpl <<Repository>>
+}
+
+package "Application" #F0FFF0 {
+  class CreateUserUseCase <<Service>> {
+    + execute()
+  }
+  interface UserRepositoryPort {
+    + User save(User)
+  }
+}
+
+package "Domain" #EEF2FF {
+  class User <<Entity>> {
+    + {static} create()
+    + update()
+    + activate()
+    + deactivate()
+    + delete()
+  }
+  enum UserStatus {
+    ACTIVE
+    INACTIVE
+    DELETED
+  }
+}
+
+UserController --> CreateUserUseCase
+CreateUserUseCase --> UserRepositoryPort
+CreateUserUseCase ..> User
+UserRepositoryPort <|.. UserRepositoryImpl
+User --> UserStatus
+
+@enduml

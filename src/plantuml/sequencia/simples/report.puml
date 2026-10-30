@@ -4,12 +4,16 @@
 ' que acontece fora da requisição, está em report_generation.puml. Os diagramas completos
 ' continuam em sequencia/report/, e é lá que estão os desvios.
 '
-' Quatro cortes em relação aos completos:
+' Cinco cortes em relação aos completos:
 '   1. Porta e implementação viram um participante só, tipado como «subsystem».
 '   2. Só o caminho de sucesso. Nenhum alt: os erros (404, 422) estão nos completos, e as
 '      transições de estado estão em estado/report_status.puml.
 '   3. Nenhum loop, nenhuma mensagem para si mesmo.
 '   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
+'   5. O armazenamento não aparece. As mensagens param no participante de repositório,
+'      que absorve também o ReportStoragePort, e a consulta, a gravação e a leitura do
+'      arquivo ficam implícitas: o que importa é a conversa entre as camadas, não o SQL
+'      nem o disco.
 '
 ' O POST responde 202, e não 201, porque o arquivo ainda não existe: o que existe é o
 ' acompanhamento.
@@ -25,9 +29,6 @@ participant "<<subsystem>>\nusecases" as UC
 participant "Report" as Entity
 
 participant "<<subsystem>>\nrepositories" as Repo
-participant "ReportStoragePort" as Storage
-database "reports" as DB
-database "data/reports" as FS
 
 == POST /reports: pedir um relatório ==
 
@@ -45,8 +46,6 @@ deactivate Entity
 
 UC -> Repo: save(report)
 activate Repo
-Repo -> DB: INSERT INTO reports
-DB --> Repo: Report
 Repo --> UC: Report
 deactivate Repo
 
@@ -68,8 +67,6 @@ activate UC
 
 UC -> Repo: findById(ReportId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM reports WHERE id=?
-DB --> Repo: Optional<Report>
 Repo --> UC: Optional<Report>
 deactivate Repo
 
@@ -91,8 +88,6 @@ activate UC
 
 UC -> Repo: findById(ReportId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM reports WHERE id=?
-DB --> Repo: Optional<Report>
 Repo --> UC: Optional<Report>
 deactivate Repo
 
@@ -101,12 +96,10 @@ activate Entity
 Entity --> UC: ReportArtifact\n{filename, contentType, sizeBytes, storageKey}
 deactivate Entity
 
-UC -> Storage: load(storageKey)
-activate Storage
-Storage -> FS: lê o arquivo pela chave
-FS --> Storage: bytes
-Storage --> UC: InputStream
-deactivate Storage
+UC -> Repo: load(storageKey)
+activate Repo
+Repo --> UC: InputStream
+deactivate Repo
 
 UC --> Ctrl: ReportDownload
 deactivate UC
@@ -126,8 +119,6 @@ activate UC
 
 UC -> Repo: findAll()
 activate Repo
-Repo -> DB: SELECT * FROM reports\nORDER BY requested_at DESC
-DB --> Repo: List<Report>
 Repo --> UC: List<Report>
 deactivate Repo
 

@@ -6,7 +6,10 @@ skinparam linetype ortho
 actor sa_professor
 actor sa_coordenador
 
-sa_coordenador --|> sa_professor
+' com "left to right direction" as dicas giram 90 graus: -right- empilha o
+' coordenador abaixo do professor e deixa a generalizacao vertical, encostando
+' no ator. Sem a dica o roteador ortho solta o triangulo longe da figura.
+sa_professor <|-right- sa_coordenador
 
 rectangle "Reserva de Salas" {
 

@@ -3,12 +3,15 @@
 ' Recorte de tipo de sala do módulo room, inteiro em um arquivo, no estilo simplista. Os
 ' diagramas completos continuam em sequencia/room_type/, e é lá que estão os desvios.
 '
-' Quatro cortes em relação a eles:
+' Cinco cortes em relação a eles:
 '   1. Porta e implementação viram um participante só, tipado como «subsystem».
 '   2. Só o caminho de sucesso. Nenhum alt: os erros (404, 422) estão nos diagramas
 '      completos, e as guardas de status estão em estado/room_type_status.puml.
 '   3. Nenhuma mensagem para si mesmo: fluxo interno não é troca entre participantes.
 '   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
+'   5. O armazenamento não aparece. As mensagens param no participante de repositório,
+'      e a consulta ou gravação fica implícita: o que importa é a conversa entre as
+'      camadas, não o SQL.
 '
 ' A camada de caso de uso é uma raia só, tipada como «subsystem». Ela não representa uma
 ' classe: representa a camada. As classes estão em classe/simples/room/room_type.puml.
@@ -26,7 +29,6 @@ participant "<<subsystem>>\nusecases" as UC
 
 participant "RoomType" as Entity
 participant "<<subsystem>>\nrepositories" as Repo
-database "room_types" as DB
 
 == POST /room-types: criar ==
 
@@ -44,8 +46,6 @@ deactivate Entity
 
 UC -> Repo: save(roomType)
 activate Repo
-Repo -> DB: INSERT INTO room_types
-DB --> Repo: RoomType
 Repo --> UC: RoomType
 deactivate Repo
 
@@ -67,8 +67,6 @@ activate UC
 
 UC -> Repo: findAll() ou findById(RoomTypeId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM room_types\nWHERE status<>'DELETED'\n[AND id=?]
-DB --> Repo: List<RoomType> ou Optional<RoomType>
 Repo --> UC: List<RoomType> ou Optional<RoomType>
 deactivate Repo
 
@@ -90,8 +88,6 @@ activate UC
 
 UC -> Repo: findById(RoomTypeId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM room_types\nWHERE id=? AND status<>'DELETED'
-DB --> Repo: Optional<RoomType>
 Repo --> UC: Optional<RoomType>
 deactivate Repo
 
@@ -102,8 +98,6 @@ deactivate Entity
 
 UC -> Repo: save(roomType)
 activate Repo
-Repo -> DB: UPDATE room_types SET\nname=?, description=?, default_capacity=?,\ncolor=?, icon=?, updated_at=?
-DB --> Repo: RoomType
 Repo --> UC: RoomType
 deactivate Repo
 
@@ -125,8 +119,6 @@ activate UC
 
 UC -> Repo: findById(RoomTypeId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM room_types\nWHERE id=? AND status<>'DELETED'
-DB --> Repo: Optional<RoomType>
 Repo --> UC: Optional<RoomType>
 deactivate Repo
 
@@ -137,8 +129,6 @@ deactivate Entity
 
 UC -> Repo: save(roomType)
 activate Repo
-Repo -> DB: UPDATE room_types SET status='DELETED'
-DB --> Repo: RoomType
 Repo --> UC: RoomType
 deactivate Repo
 

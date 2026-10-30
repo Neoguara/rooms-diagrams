@@ -12,6 +12,9 @@
 '   2. Só o caminho de sucesso. Nenhum alt: os erros (404, 422) estão nos completos.
 '   3. Nenhum loop. Onde o código repete por item, a repetição fica dita na mensagem.
 '   4. Nenhuma mensagem para si mesmo: fluxo interno não é troca entre participantes.
+'   5. O armazenamento não aparece. As mensagens param no participante de repositório,
+'      e a consulta ou gravação fica implícita: o que importa é a conversa entre as
+'      camadas, não o SQL.
 '   5. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
 
 title Sala: disponibilidade e recursos
@@ -26,7 +29,6 @@ participant "RoomResource" as RR
 
 participant "<<subsystem>>\nrepositories" as Repo
 participant "RoomAvailabilityPort\n(módulo event)" as Avail
-database "rooms\nroom_resources" as DB
 
 == GET /rooms/available: buscar salas livres ==
 
@@ -44,8 +46,6 @@ deactivate Avail
 
 UC -> Repo: roomRepository.findAll()
 activate Repo
-Repo -> DB: SELECT * FROM rooms\nWHERE status<>'DELETED'
-DB --> Repo: List<Room>
 Repo --> UC: List<Room>
 deactivate Repo
 
@@ -67,8 +67,6 @@ activate UC
 
 UC -> Repo: roomRepository.findById(RoomId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM rooms\nWHERE id=? AND status<>'DELETED'
-DB --> Repo: Optional<Room>
 Repo --> UC: Optional<Room>
 deactivate Repo
 
@@ -79,8 +77,6 @@ deactivate Repo
 
 UC -> Repo: roomResourceRepository.deleteByRoomId(roomId)
 activate Repo
-Repo -> DB: DELETE FROM room_resources\nWHERE room_id=?
-DB --> Repo: linhas apagadas
 Repo --> UC: void
 deactivate Repo
 
@@ -91,8 +87,6 @@ deactivate RR
 
 UC -> Repo: roomResourceRepository.save\nde cada RoomResource
 activate Repo
-Repo -> DB: INSERT INTO room_resources
-DB --> Repo: RoomResource de cada um
 Repo --> UC: RoomResource de cada um
 deactivate Repo
 

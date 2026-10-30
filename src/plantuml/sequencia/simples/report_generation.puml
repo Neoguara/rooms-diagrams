@@ -11,12 +11,16 @@
 ' transação própria. É isso que permite marcar PROCESSING, gerar o arquivo fora de
 ' transação, e só então marcar COMPLETED ou FAILED.
 '
-' Quatro cortes em relação aos completos:
+' Cinco cortes em relação aos completos:
 '   1. Porta e implementação viram um participante só, tipado como «subsystem».
 '   2. Só o caminho de sucesso. O ramo de falha, que grava FAILED com o motivo truncado
 '      em 500 caracteres, está no diagrama completo e em estado/report_status.puml.
 '   3. Nenhum loop, nenhuma mensagem para si mesmo.
 '   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
+'   5. O armazenamento não aparece. As mensagens param no participante de repositório,
+'      que absorve também o ReportStoragePort, e a consulta, a gravação e a leitura do
+'      arquivo ficam implícitas: o que importa é a conversa entre as camadas, não o SQL
+'      nem o disco.
 
 title Módulo report: geração assíncrona do arquivo
 
@@ -27,10 +31,7 @@ participant "ReportGeneratorRegistry" as Registry
 participant "<<subsystem>>\ngenerators" as Gen
 participant "EventReportDataPort\n(módulo event)" as EventData
 participant "RoomReportDataPort\n(módulo room)" as RoomData
-participant "ReportStoragePort" as Storage
 participant "<<subsystem>>\nrepositories" as Repo
-database "reports" as DB
-database "data/reports" as FS
 
 [-> Listener: ReportRequested(reportId)\nentregue pelo Spring Modulith
 activate Listener
@@ -42,8 +43,6 @@ UC -> Writer: markProcessing(id)
 activate Writer
 Writer -> Repo: findById e save
 activate Repo
-Repo -> DB: UPDATE reports SET\nstatus='PROCESSING', started_at=?
-DB --> Repo: Report
 Repo --> Writer: Report
 deactivate Repo
 Writer --> UC: Report em PROCESSING
@@ -70,19 +69,15 @@ deactivate RoomData
 Gen --> UC: byte[] do CSV ou do PDF
 deactivate Gen
 
-UC -> Storage: store(id, filename, content)
-activate Storage
-Storage -> FS: grava o arquivo
-FS --> Storage: chave de armazenamento
-Storage --> UC: storageKey
-deactivate Storage
+UC -> Repo: store(id, filename, content)
+activate Repo
+Repo --> UC: storageKey
+deactivate Repo
 
 UC -> Writer: markCompleted(id, artifact)
 activate Writer
 Writer -> Repo: findById e save
 activate Repo
-Repo -> DB: UPDATE reports SET status='COMPLETED',\nfilename=?, content_type=?, size_bytes=?,\nstorage_key=?, finished_at=?
-DB --> Repo: Report
 Repo --> Writer: Report
 deactivate Repo
 Writer --> UC: Report em COMPLETED

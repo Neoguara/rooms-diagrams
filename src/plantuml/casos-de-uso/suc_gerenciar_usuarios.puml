@@ -1,0 +1,12 @@
+@startuml
+left to right direction
+
+actor sa_coordenador
+
+rectangle uc {
+    usecase "suc_gerenciar_usuarios" as UC7
+}
+
+sa_coordenador --> UC7
+
+@enduml

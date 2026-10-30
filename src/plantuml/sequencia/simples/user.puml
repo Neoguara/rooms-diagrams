@@ -3,13 +3,16 @@
 ' Módulo user inteiro em um arquivo, no estilo simplista. Os cinco diagramas completos
 ' continuam em sequencia/user/, um por endpoint, e é lá que estão os desvios.
 '
-' Quatro cortes em relação a eles:
+' Cinco cortes em relação a eles:
 '   1. Porta e implementação viram um participante só, tipado como «subsystem».
 '   2. Só o caminho de sucesso. Nenhum alt: os erros (400, 404, 409, 422) estão nos
 '      diagramas completos, e as guardas de status estão em estado/user_status.puml.
 '   3. Nenhuma mensagem para si mesmo: fluxo interno não é troca entre participantes. O
 '      que ele dizia foi para o rótulo da chamada ou do retorno.
 '   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
+'   5. O armazenamento não aparece. As mensagens param no participante de repositório,
+'      e a consulta ou gravação fica implícita: o que importa é a conversa entre as
+'      camadas, não o SQL.
 '
 ' A camada de caso de uso é uma raia só, tipada como «subsystem». Ela não representa uma
 ' classe: representa a camada. As cinco classes estão em classe/simples/user.puml.
@@ -26,7 +29,6 @@ participant "<<subsystem>>\nusecases" as UC
 
 participant "User" as Entity
 participant "<<subsystem>>\nrepositories" as Repo
-database "users" as DB
 
 == POST /users: criar ==
 
@@ -39,8 +41,6 @@ activate UC
 
 UC -> Repo: existsByEmail(email)
 activate Repo
-Repo -> DB: SELECT COUNT(*)>0 FROM users\nWHERE email=? AND status<>'DELETED'
-DB --> Repo: boolean
 Repo --> UC: boolean
 deactivate Repo
 
@@ -51,8 +51,6 @@ deactivate Entity
 
 UC -> Repo: save(user)
 activate Repo
-Repo -> DB: INSERT INTO users
-DB --> Repo: User
 Repo --> UC: User
 deactivate Repo
 
@@ -74,8 +72,6 @@ activate UC
 
 UC -> Repo: findAll() ou findById(UserId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM users\nWHERE status<>'DELETED'\n[AND id=?]
-DB --> Repo: List<User> ou Optional<User>
 Repo --> UC: List<User> ou Optional<User>
 deactivate Repo
 
@@ -97,8 +93,6 @@ activate UC
 
 UC -> Repo: findById(UserId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM users\nWHERE id=? AND status<>'DELETED'
-DB --> Repo: Optional<User>
 Repo --> UC: Optional<User>
 deactivate Repo
 
@@ -109,8 +103,6 @@ deactivate Entity
 
 UC -> Repo: save(user)
 activate Repo
-Repo -> DB: UPDATE users SET\nname=?, email=?, password=?, role=?, updated_at=?
-DB --> Repo: User
 Repo --> UC: User
 deactivate Repo
 
@@ -132,8 +124,6 @@ activate UC
 
 UC -> Repo: findById(UserId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM users\nWHERE id=? AND status<>'DELETED'
-DB --> Repo: Optional<User>
 Repo --> UC: Optional<User>
 deactivate Repo
 
@@ -144,8 +134,6 @@ deactivate Entity
 
 UC -> Repo: save(user)
 activate Repo
-Repo -> DB: UPDATE users SET status='DELETED'
-DB --> Repo: User
 Repo --> UC: User
 deactivate Repo
 

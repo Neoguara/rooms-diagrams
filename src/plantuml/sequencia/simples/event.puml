@@ -4,11 +4,14 @@
 ' aprovação, estão em event_request.puml. Os diagramas completos continuam em
 ' sequencia/event/, e é lá que estão os desvios.
 '
-' Quatro cortes em relação aos completos:
+' Cinco cortes em relação aos completos:
 '   1. Porta e implementação viram um participante só, tipado como «subsystem».
 '   2. Só o caminho de sucesso. Nenhum alt: os erros (404) estão nos completos.
 '   3. Nenhum loop, nenhuma mensagem para si mesmo.
 '   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
+'   5. O armazenamento não aparece. As mensagens param no participante de repositório,
+'      e a consulta ou gravação fica implícita: o que importa é a conversa entre as
+'      camadas, não o SQL.
 '
 ' Não existe recurso de série: as ocorrências de uma recorrência são listadas filtrando os
 ' eventos por seriesId.
@@ -23,7 +26,6 @@ participant "EventRequestController" as ReqCtrl
 participant "<<subsystem>>\nusecases" as UC
 
 participant "<<subsystem>>\nrepositories" as Repo
-database "events\nevent_requests\nevent_change_items\napprovals" as DB
 
 == GET /events: listar eventos ==
 
@@ -36,8 +38,6 @@ activate UC
 
 UC -> Repo: eventRepository.findAll()\nou findBySeriesId(SeriesId.of(seriesId))
 activate Repo
-Repo -> DB: SELECT * FROM events\n[WHERE series_id=? ORDER BY start_at]
-DB --> Repo: List<Event>
 Repo --> UC: List<Event>
 deactivate Repo
 
@@ -59,8 +59,6 @@ activate UC
 
 UC -> Repo: eventRequestRepository.findAll()\ne changeItemRepository.findByEventRequestIdIn(ids)
 activate Repo
-Repo -> DB: SELECT * FROM event_requests\nSELECT * FROM event_change_items\nWHERE event_request_id IN (...)\nORDER BY item_position
-DB --> Repo: List<EventRequest> e List<EventChangeItem>
 Repo --> UC: grupos e seus itens
 deactivate Repo
 
@@ -82,8 +80,6 @@ activate UC
 
 UC -> Repo: eventRequestRepository.findById,\nchangeItemRepository.findByEventRequestId\ne approvalRepository.findByEventRequestId
 activate Repo
-Repo -> DB: SELECT nas três tabelas\nitens por item_position, decisões por decided_at
-DB --> Repo: EventRequest, itens e decisões
 Repo --> UC: EventRequest, itens e decisões
 deactivate Repo
 

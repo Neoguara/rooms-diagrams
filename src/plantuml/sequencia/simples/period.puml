@@ -2,12 +2,15 @@
 
 ' Recorte de período do módulo event, inteiro em um arquivo, no estilo simplista.
 '
-' Quatro cortes, os mesmos dos outros diagramas desta pasta:
+' Cinco cortes, os mesmos dos outros diagramas desta pasta:
 '   1. Porta e implementação viram um participante só, tipado como «subsystem».
 '   2. Só o caminho de sucesso. Nenhum alt: os erros (404, 422) ficam de fora, e as
 '      guardas de status estão em estado/period_status.puml.
 '   3. Nenhuma mensagem para si mesmo: fluxo interno não é troca entre participantes.
 '   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
+'   5. O armazenamento não aparece. As mensagens param no participante de repositório,
+'      e a consulta ou gravação fica implícita: o que importa é a conversa entre as
+'      camadas, não o SQL.
 '
 ' A camada de caso de uso é uma raia só, tipada como «subsystem». Ela não representa uma
 ' classe: representa a camada. As classes estão em classe/simples/event/period.puml.
@@ -29,7 +32,6 @@ participant "<<subsystem>>\nusecases" as UC
 
 participant "Period" as Entity
 participant "<<subsystem>>\nrepositories" as Repo
-database "periods" as DB
 
 == POST /periods: criar ==
 
@@ -47,8 +49,6 @@ deactivate Entity
 
 UC -> Repo: save(period)
 activate Repo
-Repo -> DB: INSERT INTO periods
-DB --> Repo: Period
 Repo --> UC: Period
 deactivate Repo
 
@@ -70,8 +70,6 @@ activate UC
 
 UC -> Repo: findAll() ou findById(PeriodId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM periods\nWHERE status<>'DELETED'\n[AND id=?]\nORDER BY start_time
-DB --> Repo: List<Period> ou Optional<Period>
 Repo --> UC: List<Period> ou Optional<Period>
 deactivate Repo
 
@@ -93,8 +91,6 @@ activate UC
 
 UC -> Repo: findById(PeriodId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM periods\nWHERE id=? AND status<>'DELETED'
-DB --> Repo: Optional<Period>
 Repo --> UC: Optional<Period>
 deactivate Repo
 
@@ -105,8 +101,6 @@ deactivate Entity
 
 UC -> Repo: save(period)
 activate Repo
-Repo -> DB: UPDATE periods SET\nname=?, description=?, start_time=?,\nend_time=?, color=?, updated_at=?
-DB --> Repo: Period
 Repo --> UC: Period
 deactivate Repo
 
@@ -128,8 +122,6 @@ activate UC
 
 UC -> Repo: findById(PeriodId.of(id))
 activate Repo
-Repo -> DB: SELECT * FROM periods\nWHERE id=? AND status<>'DELETED'
-DB --> Repo: Optional<Period>
 Repo --> UC: Optional<Period>
 deactivate Repo
 
@@ -140,8 +132,6 @@ deactivate Entity
 
 UC -> Repo: save(period)
 activate Repo
-Repo -> DB: UPDATE periods SET status='DELETED'
-DB --> Repo: Period
 Repo --> UC: Period
 deactivate Repo
 

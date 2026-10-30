@@ -1,0 +1,44 @@
+@startuml contrato_modulos
+
+' Recorte do contrato entre os módulos report e room, para o slide da banca. A versão
+' exaustiva está em classe/report.puml e classe/room.puml.
+'
+' A regra que o recorte mostra: a porta é declarada na camada de aplicação do módulo que
+' precisa do dado (report) e implementada na infraestrutura do módulo que é dono do dado
+' (room). Nenhum dos dois conhece as classes internas do outro.
+
+skinparam packageStyle rectangle
+skinparam backgroundColor white
+skinparam defaultFontSize 14
+skinparam nodesep 40
+skinparam ranksep 50
+
+package "report" #E8DDFF {
+
+  package "Application" as reportApp #F0FFF0 {
+    interface RoomReportDataPort {
+      + Map<UUID,String> resolveRoomLabels(Collection<UUID>)
+    }
+  }
+
+  package "Infrastructure" as reportInfra #FFF8F0 {
+    class CsvEventsByPeriodGenerator <<Component>>
+    class PdfEventsByPeriodGenerator <<Component>>
+  }
+}
+
+package "room" #FFF3CC {
+
+  package "Infrastructure" as roomInfra #FFF8F0 {
+    class RoomReportDataAdapter <<Component>> {
+      + Map<UUID,String> resolveRoomLabels(Collection<UUID>)
+    }
+  }
+}
+
+CsvEventsByPeriodGenerator --> RoomReportDataPort
+PdfEventsByPeriodGenerator --> RoomReportDataPort
+
+RoomReportDataPort <|.. RoomReportDataAdapter
+
+@enduml
