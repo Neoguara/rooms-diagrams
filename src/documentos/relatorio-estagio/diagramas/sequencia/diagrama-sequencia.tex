@@ -59,13 +59,22 @@ Na Figura~\ref{fig:seq-building}, Figura~\ref{fig:seq-room-type}, Figura~\ref{fi
 
 \subsection{Evento}
 
-Na Figura~\ref{fig:seq-event} e Figura~\ref{fig:seq-period} são apresentadas respectivamente as operações de consulta de eventos e as operações sobre o catálogo de períodos, ambas do módulo de gerenciamento de eventos.
+Na Figura~\ref{fig:seq-event}, Figura~\ref{fig:seq-event-request} e Figura~\ref{fig:seq-period} são apresentadas respectivamente a agenda com a solicitação de alteração, a fila de solicitações com a sua revisão e as operações sobre o catálogo de períodos, todas do módulo de gerenciamento de eventos.
 
 \begin{figure}[H]
     \caption{Diagrama de sequência do evento}
     \label{fig:seq-event}
     \centering
     \includegraphics[width=0.95\textwidth,height=0.85\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/simples/event_simples.png}
+
+    {\footnotesize \textbf{Fonte:} O autor.}
+\end{figure}
+
+\begin{figure}[H]
+    \caption{Diagrama de sequência da solicitação de alteração}
+    \label{fig:seq-event-request}
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.85\textheight,keepaspectratio]{../../../out/src/plantuml/sequencia/simples/event_request_simples.png}
 
     {\footnotesize \textbf{Fonte:} O autor.}
 \end{figure}

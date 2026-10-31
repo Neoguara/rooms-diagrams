@@ -1,25 +1,40 @@
 @startuml event_request_simples
 
-' As três escritas do módulo event, no estilo simplista. As três leituras estão em
-' event.puml. Os diagramas completos continuam em sequencia/event/, e é lá que estão os
-' desvios.
+' A tela do aprovador, no estilo simplista: ele vê a fila de solicitações e decide um
+' grupo. A tela do solicitante, com a agenda e a submissão, está em event.puml. Os
+' diagramas completos continuam em sequencia/event/, e é lá que estão todos os desvios.
 '
-' Nenhuma delas toca o evento na submissão: o que se pretende fazer fica guardado nos
-' itens do grupo, e só a aprovação efetiva. As três são transacionais.
+' A forma do diagrama segue o uso da tela: abrir a fila lista as solicitações, e a
+' listagem é obrigatória, acontece antes de tudo e não é alternativa a nada. A decisão vem
+' depois dela, e é a única operação que esta tela oferece. Por isso não há alt aqui: não
+' existem caminhos alternativos a escolher, existe um só, que é o que o aprovador faz.
+'
+' Aprovar e rejeitar são o mesmo endpoint, decidido pelo campo decision. A diferença
+' aparece na mensagem para o EventRequest e no fato de que só a aprovação efetiva as
+' alterações sobre os eventos.
+'
+' A decisão é do grupo inteiro, não de cada alteração: basta uma não poder ser aplicada
+' para que nada seja gravado. É isso que os dois break do trecho de efetivação dizem.
 '
 ' Cinco cortes em relação aos completos:
 '   1. Porta e implementação viram um participante só, tipado como «subsystem».
-'   2. Só o caminho de sucesso. Nenhum alt: os erros (404, 409 de choque de sala, 422 de
-'      grupo já decidido ou já revertido) estão nos completos.
+'   2. Os desvios são marcados com break, o fragmento que cancela o resto da interação,
+'      que é o que o throw faz: 404 no grupo que não existe, 422 no grupo que já foi
+'      decidido e 409 na sala ocupada no horário. O 422 de decision ausente e o 422 do
+'      evento em estado incompatível ficam nos completos.
 '   3. Nenhum loop. Onde o código repete por item, a repetição fica dita na mensagem.
-'   4. Nenhuma mensagem para si mesmo, e ativação só em trecho reto.
+'   4. Nenhuma mensagem para si mesmo, e ativação só em trecho reto. As barras aninham:
+'      a do ator cobre a interação inteira, e cada camada abaixo ocupa menos tempo.
 '   5. O armazenamento não aparece. As mensagens param no participante de repositório,
 '      e a consulta ou gravação fica implícita: o que importa é a conversa entre as
 '      camadas, não o SQL.
+'
+' O RoomOccupancy não tem raia: a conferência de horário livre roda dentro do Event, que
+' recebe a agenda como argumento. O que sobra dela é o break do 409, que é o que o
+' aprovador sente.
 
-title Módulo event: submeter, revisar e reverter
+title Solicitação de alteração: a fila e a revisão
 
-actor "Solicitante" as Ator
 actor "Aprovador" as Aprov
 boundary "Frontend" as FE
 participant "EventRequestController" as Ctrl
@@ -27,88 +42,83 @@ participant "EventRequestController" as Ctrl
 participant "<<subsystem>>\nusecases" as UC
 
 participant "EventRequest" as Req
-participant "EventChangeItem" as Item
 participant "Event" as Event
 participant "Approval" as Appr
-participant "RoomOccupancy" as Occ
-participant "EventRequestConflicts" as Conflicts
 
 participant "<<subsystem>>\nrepositories" as Repo
 
-== POST /event-requests: submeter um grupo ==
-
-Ator -> FE: monta as alterações e submete
+activate Aprov
+Aprov -> FE: abre a fila de solicitações
 activate FE
-FE -> Ctrl: POST /event-requests\n{justification, changes: [{type, ...}]}
+FE -> Ctrl: GET /event-requests
 activate Ctrl
-Ctrl -> UC: execute(principal.getId(), SubmitEventRequest)
+Ctrl -> UC: findAll()
 activate UC
 
-UC -> Req: EventRequest.open(UserId, justification)
-activate Req
-Req --> UC: EventRequest em PENDING
-deactivate Req
-
-UC -> Item: create, update, cancel ou reactivate,\num item por alteração e por ocorrência atingida
-activate Item
-Item --> UC: List<EventChangeItem>\ncom o snapshot do antes e do depois
-deactivate Item
-
-UC -> Repo: eventRequestRepository.save\ne changeItemRepository.saveAll
+UC -> Repo: eventRequestRepository.findAll()\ne changeItemRepository.findByEventRequestIdIn(ids)
 activate Repo
-Repo --> UC: grupo e itens gravados
+Repo --> UC: grupos e seus itens
 deactivate Repo
 
-UC -> Conflicts: preview(changeItems, roomOccupancy)
-activate Conflicts
-Conflicts -> Occ: occupying(roomId, startAt, endAt)
-activate Occ
-Occ --> Conflicts: List<Event>
-deactivate Occ
-Conflicts --> UC: List<EventConflict>\naviso, não recusa
-deactivate Conflicts
-
-UC --> Ctrl: EventRequestResponse
+UC --> Ctrl: List<EventRequestResponse>\nchoques previstos só nos grupos ainda pendentes
 deactivate UC
-Ctrl --> FE: 201 Created {EventRequestResponse}\nLocation: /event-requests/{id}
+Ctrl --> FE: 200 OK [EventRequestResponse]
 deactivate Ctrl
-FE --> Ator: exibe o grupo pendente e os choques previstos
+FE --> Aprov: exibe
 deactivate FE
+deactivate Aprov
 
-== POST /event-requests/{id}/review: aprovar ou rejeitar ==
-
-Aprov -> FE: decide o grupo
+Aprov -> FE: escolhe um grupo e decide
+activate Aprov
 activate FE
-FE -> Ctrl: POST /event-requests/{id}/review\n{decision, comment}
+FE -> Ctrl: POST /event-requests/{id}/review
 activate Ctrl
-Ctrl -> UC: execute(id, principal.getId(), ReviewEventRequest)
+Ctrl -> UC: execute(id, ReviewEventRequest)
 activate UC
 
-UC -> Repo: eventRequestRepository.findById\ne changeItemRepository.findByEventRequestId
+UC -> Repo: eventRequestRepository.findById(EventRequestId.of(id))\ne changeItemRepository.findByEventRequestId
 activate Repo
-Repo --> UC: EventRequest e itens
+Repo --> UC: Optional<EventRequest> e seus itens
 deactivate Repo
+
+break Optional vazio
+  UC --> Ctrl: ResourceNotFoundException
+  Ctrl --> FE: 404 Not Found
+  FE --> Aprov: exibe o erro
+end
 
 UC -> Req: approve() ou reject()
 activate Req
+
+break status diferente de PENDING
+  Req --> UC: InvalidStateException
+  UC --> Ctrl: InvalidStateException
+  Ctrl --> FE: 422 Unprocessable Entity
+  FE --> Aprov: exibe o erro
+end
+
 Req --> UC: EventRequest em APPROVED ou REJECTED
 deactivate Req
 
-UC -> Event: na aprovação, cada item vira uma chamada:\ncreate, update, cancel, reactivate ou discard
+UC -> Event: só na aprovação, cada item vira uma chamada:\ncreate, update, cancel, reactivate ou discard
 activate Event
-Event -> Occ: occupying(roomId, startAt, endAt)
-activate Occ
-Occ --> Event: List<Event>
-deactivate Occ
+
+break sala ocupada no horário de alguma alteração
+  Event --> UC: EventConflictException
+  UC --> Ctrl: EventConflictException
+  Ctrl --> FE: 409 Conflict
+  FE --> Aprov: exibe o erro e nada é gravado
+end
+
 Event --> UC: eventos efetivados, com o horário livre conferido
 deactivate Event
 
-UC -> Appr: Approval.of(requestId, UserId, decision, comment)
+UC -> Appr: Approval.of(requestId, reviewedBy,\ndecision, comment)
 activate Appr
 Appr --> UC: Approval
 deactivate Appr
 
-UC -> Repo: eventRepository.save de cada evento,\neventRequestRepository.save,\nchangeItemRepository.saveAll\ne approvalRepository.save
+UC -> Repo: eventRepository.save de cada evento efetivado,\nchangeItemRepository.saveAll,\neventRequestRepository.save\ne approvalRepository.save
 activate Repo
 Repo --> UC: tudo gravado
 deactivate Repo
@@ -119,46 +129,6 @@ Ctrl --> FE: 200 OK {EventRequestResponse}
 deactivate Ctrl
 FE --> Aprov: exibe o grupo decidido
 deactivate FE
-
-== POST /event-requests/{id}/reverse: reverter a decisão ==
-
-Ator -> FE: pede a reversão do grupo
-activate FE
-FE -> Ctrl: POST /event-requests/{id}/reverse\n{justification}
-activate Ctrl
-Ctrl -> UC: execute(id, principal.getId(), ReverseEventRequest)
-activate UC
-
-UC -> Repo: eventRequestRepository.findById e hasReversal,\nchangeItemRepository.findByEventRequestId
-activate Repo
-Repo --> UC: grupo original e itens
-deactivate Repo
-
-UC -> Req: EventRequest.open e markAsReversalOf(original)
-activate Req
-Req --> UC: grupo novo em PENDING, apontando para o original
-deactivate Req
-
-UC -> Item: grupo aprovado vira a operação contrária de cada item,\nna ordem inversa; grupo rejeitado vira o mesmo pedido,\nna mesma ordem
-activate Item
-Item --> UC: List<EventChangeItem>\ncada um apontando para o item que desfaz
-deactivate Item
-
-UC -> Repo: eventRequestRepository.save\ne changeItemRepository.saveAll
-activate Repo
-Repo --> UC: grupo e itens gravados
-deactivate Repo
-
-UC -> Conflicts: preview(reversalItems, roomOccupancy)
-activate Conflicts
-Conflicts --> UC: List<EventConflict>
-deactivate Conflicts
-
-UC --> Ctrl: EventRequestResponse
-deactivate UC
-Ctrl --> FE: 201 Created {EventRequestResponse}\nLocation: /event-requests/{novo id}
-deactivate Ctrl
-FE --> Ator: exibe o grupo de reversão,\nque ainda precisa ser aprovado
-deactivate FE
+deactivate Aprov
 
 @enduml

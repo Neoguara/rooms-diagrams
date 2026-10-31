@@ -1,42 +1,62 @@
 @startuml event_simples
 
-' As três leituras do módulo event, no estilo simplista. As três escritas, que passam pela
-' aprovação, estão em event_request.puml. Os diagramas completos continuam em
-' sequencia/event/, e é lá que estão os desvios.
+' A tela da agenda, no estilo simplista: o solicitante vê os eventos e pede alterações. A
+' tela do aprovador, com a fila e a decisão, está em event_request.puml. Os diagramas
+' completos continuam em sequencia/event/, e é lá que estão todos os desvios.
+'
+' A forma do diagrama segue o uso da tela: abrir a agenda lista os eventos, e a listagem é
+' obrigatória, acontece antes de tudo e não é alternativa a nada. A solicitação vem depois
+' dela, e é a única operação que esta tela oferece. Por isso não há alt aqui: não existem
+' caminhos alternativos a escolher, existe um só, que é o que o solicitante faz.
+'
+' Submeter não toca o evento. O que se pretende fazer fica guardado nos itens do grupo,
+' que nascem em PENDING; só a aprovação efetiva, e ela está em event_request.puml.
 '
 ' Cinco cortes em relação aos completos:
 '   1. Porta e implementação viram um participante só, tipado como «subsystem».
-'   2. Só o caminho de sucesso. Nenhum alt: os erros (404) estão nos completos.
-'   3. Nenhum loop, nenhuma mensagem para si mesmo.
-'   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
+'   2. Os desvios são marcados com break, o fragmento que cancela o resto da interação,
+'      que é o que o throw faz: 404 no evento que não existe e 422 na alteração que o
+'      estado do evento não aceita. O 422 de changes vazio, que é a primeira linha do
+'      caso de uso, fica nos completos.
+'   3. Nenhum loop. Onde o código repete por item, a repetição fica dita na mensagem.
+'   4. Nenhuma mensagem para si mesmo, e ativação só em trecho reto. As barras aninham:
+'      a do ator cobre a interação inteira, e cada camada abaixo ocupa menos tempo.
 '   5. O armazenamento não aparece. As mensagens param no participante de repositório,
 '      e a consulta ou gravação fica implícita: o que importa é a conversa entre as
 '      camadas, não o SQL.
 '
-' Não existe recurso de série: as ocorrências de uma recorrência são listadas filtrando os
-' eventos por seriesId.
+' O EventRequestConflicts não tem raia: o cálculo dos choques roda dentro do caso de uso,
+' e mensagem para si mesmo fica de fora deste estilo. O que sobra dele vai no rótulo do
+' retorno, que é onde ele importa: choque previsto é aviso, não recusa, e não impede a
+' submissão.
+'
+' O filtro por seriesId do GET /events fica de fora: é parâmetro de consulta, não troca
+' entre camadas. Não existe recurso de série, as ocorrências de uma recorrência são
+' listadas filtrando os eventos por seriesId.
 
-title Módulo event: listar eventos, listar solicitações e auditar
+title Evento: a agenda e a solicitação de alteração
 
-actor "Usuário" as Ator
+actor "Solicitante" as Ator
 boundary "Frontend" as FE
 participant "EventController" as EvCtrl
 participant "EventRequestController" as ReqCtrl
 
 participant "<<subsystem>>\nusecases" as UC
 
+participant "EventRequest" as Req
+participant "EventChangeItem" as Item
+
 participant "<<subsystem>>\nrepositories" as Repo
 
-== GET /events: listar eventos ==
-
+activate Ator
 Ator -> FE: abre a agenda
 activate FE
-FE -> EvCtrl: GET /events[?seriesId=<uuid>]
+FE -> EvCtrl: GET /events
 activate EvCtrl
-EvCtrl -> UC: findAll() ou findBySeries(seriesId)
+EvCtrl -> UC: findAll()
 activate UC
 
-UC -> Repo: eventRepository.findAll()\nou findBySeriesId(SeriesId.of(seriesId))
+UC -> Repo: eventRepository.findAll()
 activate Repo
 Repo --> UC: List<Event>
 deactivate Repo
@@ -45,49 +65,58 @@ UC --> EvCtrl: List<EventResponse>
 deactivate UC
 EvCtrl --> FE: 200 OK [EventResponse]
 deactivate EvCtrl
-FE --> Ator: exibe os eventos
+FE --> Ator: exibe
 deactivate FE
+deactivate Ator
 
-== GET /event-requests: listar solicitações ==
-
-Ator -> FE: abre a fila de solicitações
+Ator -> FE: monta as alterações e submete
+activate Ator
 activate FE
-FE -> ReqCtrl: GET /event-requests
+FE -> ReqCtrl: POST /event-requests
 activate ReqCtrl
-ReqCtrl -> UC: findAll()
+ReqCtrl -> UC: execute(SubmitEventRequest)
 activate UC
 
-UC -> Repo: eventRequestRepository.findAll()\ne changeItemRepository.findByEventRequestIdIn(ids)
+UC -> Req: EventRequest.open(createdBy, justification)
+activate Req
+Req --> UC: EventRequest em PENDING
+deactivate Req
+
+UC -> Repo: eventRepository.findById\nde cada evento alterado
 activate Repo
-Repo --> UC: grupos e seus itens
+Repo --> UC: Optional<Event> de cada um
 deactivate Repo
 
-UC --> ReqCtrl: List<EventRequestResponse>\nconflicts vazio nos grupos já decididos
-deactivate UC
-ReqCtrl --> FE: 200 OK [EventRequestResponse]
-deactivate ReqCtrl
-FE --> Ator: exibe a fila com os choques previstos
-deactivate FE
+break Optional vazio
+  UC --> ReqCtrl: ResourceNotFoundException
+  ReqCtrl --> FE: 404 Not Found
+  FE --> Ator: exibe o erro
+end
 
-== GET /event-requests/{id}/audit: auditar ==
+UC -> Item: create, update, cancel ou reactivate,\num item por alteração e por ocorrência atingida
+activate Item
 
-Ator -> FE: abre o histórico do grupo
-activate FE
-FE -> ReqCtrl: GET /event-requests/{id}/audit
-activate ReqCtrl
-ReqCtrl -> UC: execute(id)
-activate UC
+break alcance em série sobre evento sem recorrência,\nou nenhuma ocorrência no estado exigido
+  Item --> UC: InvalidStateException
+  UC --> ReqCtrl: InvalidStateException
+  ReqCtrl --> FE: 422 Unprocessable Entity
+  FE --> Ator: exibe o erro
+end
 
-UC -> Repo: eventRequestRepository.findById,\nchangeItemRepository.findByEventRequestId\ne approvalRepository.findByEventRequestId
+Item --> UC: List<EventChangeItem>\ncom o antes e o depois de cada evento
+deactivate Item
+
+UC -> Repo: eventRequestRepository.save\ne changeItemRepository.saveAll
 activate Repo
-Repo --> UC: EventRequest, itens e decisões
+Repo --> UC: grupo e itens gravados
 deactivate Repo
 
-UC --> ReqCtrl: EventRequestAuditResponse\nsem cálculo de conflito: a auditoria relata o que houve
+UC --> ReqCtrl: EventRequestResponse\ncom os choques previstos, que são aviso e não recusa
 deactivate UC
-ReqCtrl --> FE: 200 OK {EventRequestAuditResponse}
+ReqCtrl --> FE: 201 Created {EventRequestResponse}
 deactivate ReqCtrl
-FE --> Ator: exibe as alterações e a decisão
+FE --> Ator: exibe o grupo pendente
 deactivate FE
+deactivate Ator
 
 @enduml
