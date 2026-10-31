@@ -2,12 +2,20 @@
 
 ' Recorte de período do módulo event, inteiro em um arquivo, no estilo simplista.
 '
+' A forma do diagrama segue o uso da tela: abrir a tela de períodos lista, e a listagem é
+' obrigatória, acontece antes de tudo e não é alternativa a nada. Só depois dela o
+' administrador escolhe uma das operações, e é essa escolha que o alt representa.
+'
 ' Cinco cortes, os mesmos dos outros diagramas desta pasta:
 '   1. Porta e implementação viram um participante só, tipado como «subsystem».
-'   2. Só o caminho de sucesso. Nenhum alt: os erros (404, 422) ficam de fora, e as
-'      guardas de status estão em estado/period_status.puml.
+'   2. Os desvios são marcados com break, o fragmento que cancela o resto da interação,
+'      que é o que o throw faz: 404 nas três operações que buscam por id e 422 nas duas
+'      que validam campos, criar e atualizar. O update roda a mesma PeriodValidation do
+'      create, por isso o atualizar tem dois. O 422 do delete, que exige INACTIVE, fica
+'      em estado/period_status.puml.
 '   3. Nenhuma mensagem para si mesmo: fluxo interno não é troca entre participantes.
-'   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
+'   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível. As barras aninham:
+'      a do ator cobre a interação inteira, e cada camada abaixo ocupa menos tempo.
 '   5. O armazenamento não aparece. As mensagens param no participante de repositório,
 '      e a consulta ou gravação fica implícita: o que importa é a conversa entre as
 '      camadas, não o SQL.
@@ -22,7 +30,7 @@
 ' reserva horário e não passa por EventRequest. Por isso não há conferência de agenda
 ' em nenhum dos fluxos abaixo, e dois períodos podem se sobrepor.
 
-title Período: criar, buscar, atualizar e remover
+title Período: a listagem e as operações sobre ela
 
 actor "Administrador" as Ator
 boundary "Frontend" as FE
@@ -33,113 +41,178 @@ participant "<<subsystem>>\nusecases" as UC
 participant "Period" as Entity
 participant "<<subsystem>>\nrepositories" as Repo
 
-== POST /periods: criar ==
-
-Ator -> FE: preenche o formulário e confirma
+activate Ator
+Ator -> FE: abre a tela de períodos
 activate FE
-FE -> Ctrl: POST /periods\n{name, description, startTime,\nendTime, color}
+FE -> Ctrl: GET /periods
 activate Ctrl
-Ctrl -> UC: execute(CreatePeriodRequest)
+Ctrl -> UC: findAll()
 activate UC
 
-UC -> Entity: Period.create(name, description,\nstartTime, endTime, color)\nvalida os campos e exige endTime > startTime
-activate Entity
-Entity --> UC: Period com id novo e status ACTIVE
-deactivate Entity
-
-UC -> Repo: save(period)
+UC -> Repo: findAll()
 activate Repo
-Repo --> UC: Period
+Repo --> UC: List<Period>
 deactivate Repo
 
-UC --> Ctrl: PeriodResponse
+UC --> Ctrl: List<PeriodResponse>
 deactivate UC
-Ctrl --> FE: 201 Created {PeriodResponse}
+Ctrl --> FE: 200 OK {List<PeriodResponse>}
 deactivate Ctrl
-FE --> Ator: exibe o resultado
+FE --> Ator: exibe
 deactivate FE
+deactivate Ator
 
-== GET /periods e GET /periods/{id}: buscar ==
+alt criar
 
-Ator -> FE: abre a lista, ou um período
-activate FE
-FE -> Ctrl: GET /periods\nou GET /periods/{id}
-activate Ctrl
-Ctrl -> UC: findAll() ou findById(id)
-activate UC
+  Ator -> FE: preenche o formulário
+  activate Ator
+  activate FE
+  FE -> Ctrl: POST /periods
+  activate Ctrl
+  Ctrl -> UC: execute(CreatePeriodRequest)
+  activate UC
 
-UC -> Repo: findAll() ou findById(PeriodId.of(id))
-activate Repo
-Repo --> UC: List<Period> ou Optional<Period>
-deactivate Repo
+  UC -> Entity: Period.create(name, description,\nstartTime, endTime, color)
+  activate Entity
 
-UC --> Ctrl: PeriodResponse ou List<PeriodResponse>
-deactivate UC
-Ctrl --> FE: 200 OK
-deactivate Ctrl
-FE --> Ator: exibe o resultado
-deactivate FE
+  break campos em branco
+    Entity --> UC: DomainValidationException
+    UC --> Ctrl: DomainValidationException
+    Ctrl --> FE: 422 Unprocessable Entity
+    FE --> Ator: exibe o erro
+  end
 
-== PUT /periods/{id}: atualizar ==
+  Entity --> UC: Period
+  deactivate Entity
 
-Ator -> FE: edita os dados e confirma
-activate FE
-FE -> Ctrl: PUT /periods/{id}\n{name, description, startTime,\nendTime, color}
-activate Ctrl
-Ctrl -> UC: execute(id, UpdatePeriodRequest)
-activate UC
+  UC -> Repo: save(period)
+  activate Repo
+  Repo --> UC: Period
+  deactivate Repo
 
-UC -> Repo: findById(PeriodId.of(id))
-activate Repo
-Repo --> UC: Optional<Period>
-deactivate Repo
+  UC --> Ctrl: PeriodResponse
+  deactivate UC
+  Ctrl --> FE: 201 Created {PeriodResponse}
+  deactivate Ctrl
+  FE --> Ator: exibe
+  deactivate FE
+  deactivate Ator
 
-UC -> Entity: update(name, description,\nstartTime, endTime, color)\nvalida os campos
-activate Entity
-Entity --> UC: Period com updatedAt novo
-deactivate Entity
+else atualizar
 
-UC -> Repo: save(period)
-activate Repo
-Repo --> UC: Period
-deactivate Repo
+  Ator -> FE: escolhe um período, edita os dados
+  activate Ator
+  activate FE
+  FE -> Ctrl: PUT /periods/{id}
+  activate Ctrl
+  Ctrl -> UC: execute(id, UpdatePeriodRequest)
+  activate UC
 
-UC --> Ctrl: PeriodResponse
-deactivate UC
-Ctrl --> FE: 200 OK {PeriodResponse}
-deactivate Ctrl
-FE --> Ator: exibe o resultado
-deactivate FE
+  UC -> Repo: findById(PeriodId.of(id))
+  activate Repo
+  Repo --> UC: Optional<Period>
+  deactivate Repo
 
-== DELETE /periods/{id}: remover ==
+  break Optional vazio
+    UC --> Ctrl: ResourceNotFoundException
+    Ctrl --> FE: 404 Not Found
+    FE --> Ator: exibe o erro
+  end
 
-Ator -> FE: confirma a remoção
-activate FE
-FE -> Ctrl: DELETE /periods/{id}
-activate Ctrl
-Ctrl -> UC: execute(id)
-activate UC
+  UC -> Entity: update(name, description,\nstartTime, endTime, color)
+  activate Entity
 
-UC -> Repo: findById(PeriodId.of(id))
-activate Repo
-Repo --> UC: Optional<Period>
-deactivate Repo
+  break campos em branco
+    Entity --> UC: DomainValidationException
+    UC --> Ctrl: DomainValidationException
+    Ctrl --> FE: 422 Unprocessable Entity
+    FE --> Ator: exibe o erro
+  end
 
-UC -> Entity: delete()\nexige status INACTIVE
-activate Entity
-Entity --> UC: Period com status DELETED
-deactivate Entity
+  Entity --> UC: Period
+  deactivate Entity
 
-UC -> Repo: save(period)
-activate Repo
-Repo --> UC: Period
-deactivate Repo
+  UC -> Repo: save(period)
+  activate Repo
+  Repo --> UC: Period
+  deactivate Repo
 
-UC --> Ctrl: void
-deactivate UC
-Ctrl --> FE: 204 No Content
-deactivate Ctrl
-FE --> Ator: exibe o resultado
-deactivate FE
+  UC --> Ctrl: PeriodResponse
+  deactivate UC
+  Ctrl --> FE: 200 OK {PeriodResponse}
+  deactivate Ctrl
+  FE --> Ator: exibe
+  deactivate FE
+  deactivate Ator
+
+else remover
+
+  Ator -> FE: escolhe um período e confirma a remoção
+  activate Ator
+  activate FE
+  FE -> Ctrl: DELETE /periods/{id}
+  activate Ctrl
+  Ctrl -> UC: execute(id)
+  activate UC
+
+  UC -> Repo: findById(PeriodId.of(id))
+  activate Repo
+  Repo --> UC: Optional<Period>
+  deactivate Repo
+
+  break Optional vazio
+    UC --> Ctrl: ResourceNotFoundException
+    Ctrl --> FE: 404 Not Found
+    FE --> Ator: exibe o erro
+  end
+
+  UC -> Entity: delete()
+  activate Entity
+  Entity --> UC: Period com status DELETED
+  deactivate Entity
+
+  UC -> Repo: save(period)
+  activate Repo
+  Repo --> UC: Period
+  deactivate Repo
+
+  UC --> Ctrl: void
+  deactivate UC
+  Ctrl --> FE: 204 No Content
+  deactivate Ctrl
+  FE --> Ator: retira o período da lista
+  deactivate FE
+  deactivate Ator
+
+else detalhar
+
+  Ator -> FE: escolhe um período da lista
+  activate Ator
+  activate FE
+  FE -> Ctrl: GET /periods/{id}
+  activate Ctrl
+  Ctrl -> UC: findById(id)
+  activate UC
+
+  UC -> Repo: findById(PeriodId.of(id))
+  activate Repo
+  Repo --> UC: Optional<Period>
+  deactivate Repo
+
+  break Optional vazio
+    UC --> Ctrl: ResourceNotFoundException
+    Ctrl --> FE: 404 Not Found
+    FE --> Ator: exibe o erro
+  end
+
+  UC --> Ctrl: PeriodResponse
+  deactivate UC
+  Ctrl --> FE: 200 OK {PeriodResponse}
+  deactivate Ctrl
+  FE --> Ator: exibe
+  deactivate FE
+  deactivate Ator
+
+end
 
 @enduml

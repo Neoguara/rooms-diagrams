@@ -1,14 +1,22 @@
 @startuml building_simples
 
 ' Recorte de prédio do módulo room, inteiro em um arquivo, no estilo simplista. Os
-' diagramas completos continuam em sequencia/building/, e é lá que estão os desvios.
+' diagramas completos continuam em sequencia/building/, e é lá que estão todos os desvios.
 '
-' Cinco cortes em relação a eles:
+' A forma do diagrama segue o uso da tela: abrir a tela de prédios lista, e a listagem é
+' obrigatória, acontece antes de tudo e não é alternativa a nada. Só depois dela o
+' administrador escolhe uma das operações, e é essa escolha que o alt representa.
+'
+' Cinco cortes em relação aos diagramas completos:
 '   1. Porta e implementação viram um participante só, tipado como «subsystem».
-'   2. Só o caminho de sucesso. Nenhum alt: os erros (404, 422) estão nos diagramas
-'      completos, e as guardas de status estão em estado/building_status.puml.
+'   2. Os desvios são marcados com break, o fragmento que cancela o resto da interação,
+'      que é o que o throw faz: 404 nas três operações que buscam por id e 422 nas duas
+'      que validam campos, criar e atualizar. O update roda o mesmo BuildingValidator do
+'      create, por isso o atualizar tem dois. O 422 do delete, que exige INACTIVE, fica
+'      em estado/building_status.puml.
 '   3. Nenhuma mensagem para si mesmo: fluxo interno não é troca entre participantes.
-'   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
+'   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível. As barras aninham:
+'      a do ator cobre a interação inteira, e cada camada abaixo ocupa menos tempo.
 '   5. O armazenamento não aparece. As mensagens param no participante de repositório,
 '      e a consulta ou gravação fica implícita: o que importa é a conversa entre as
 '      camadas, não o SQL.
@@ -19,7 +27,7 @@
 ' O PATCH /buildings/{id}/status fica de fora: as transições estão em
 ' estado/building_status.puml.
 
-title Prédio: criar, buscar, atualizar e remover
+title Prédio: a listagem e as operações sobre ela
 
 actor "Administrador" as Ator
 boundary "Frontend" as FE
@@ -30,113 +38,178 @@ participant "<<subsystem>>\nusecases" as UC
 participant "Building" as Entity
 participant "<<subsystem>>\nrepositories" as Repo
 
-== POST /buildings: criar ==
-
-Ator -> FE: preenche o formulário e confirma
+activate Ator
+Ator -> FE: abre a tela de prédios
 activate FE
-FE -> Ctrl: POST /buildings\n{name, address, totalFloors}
+FE -> Ctrl: GET /buildings
 activate Ctrl
-Ctrl -> UC: execute(CreateBuildingRequest)
+Ctrl -> UC: findAll()
 activate UC
 
-UC -> Entity: Building.create(name, address, totalFloors)\nvalida os campos
-activate Entity
-Entity --> UC: Building com id novo e status ACTIVE
-deactivate Entity
-
-UC -> Repo: save(building)
+UC -> Repo: findAll()
 activate Repo
-Repo --> UC: Building
+Repo --> UC: List<Building>
 deactivate Repo
 
-UC --> Ctrl: BuildingResponse
+UC --> Ctrl: List<BuildingResponse>
 deactivate UC
-Ctrl --> FE: 201 Created {BuildingResponse}
+Ctrl --> FE: 200 OK {List<BuildingResponse>}
 deactivate Ctrl
-FE --> Ator: exibe o resultado
+FE --> Ator: exibe
 deactivate FE
+deactivate Ator
 
-== GET /buildings e GET /buildings/{id}: buscar ==
+alt criar
 
-Ator -> FE: abre a lista, ou um prédio
-activate FE
-FE -> Ctrl: GET /buildings\nou GET /buildings/{id}
-activate Ctrl
-Ctrl -> UC: findAll() ou findById(id)
-activate UC
+  Ator -> FE: preenche o formulário
+  activate Ator
+  activate FE
+  FE -> Ctrl: POST /buildings
+  activate Ctrl
+  Ctrl -> UC: execute(CreateBuildingRequest)
+  activate UC
 
-UC -> Repo: findAll() ou findById(BuildingId.of(id))
-activate Repo
-Repo --> UC: List<Building> ou Optional<Building>
-deactivate Repo
+  UC -> Entity: Building.create(name, address, totalFloors)
+  activate Entity
 
-UC --> Ctrl: BuildingResponse ou List<BuildingResponse>
-deactivate UC
-Ctrl --> FE: 200 OK
-deactivate Ctrl
-FE --> Ator: exibe o resultado
-deactivate FE
+  break name ou address em branco
+    Entity --> UC: DomainValidationException
+    UC --> Ctrl: DomainValidationException
+    Ctrl --> FE: 422 Unprocessable Entity
+    FE --> Ator: exibe o erro
+  end
 
-== PUT /buildings/{id}: atualizar ==
+  Entity --> UC: Building
+  deactivate Entity
 
-Ator -> FE: edita os dados e confirma
-activate FE
-FE -> Ctrl: PUT /buildings/{id}\n{name, address, totalFloors}
-activate Ctrl
-Ctrl -> UC: execute(id, UpdateBuildingRequest)
-activate UC
+  UC -> Repo: save(building)
+  activate Repo
+  Repo --> UC: Building
+  deactivate Repo
 
-UC -> Repo: findById(BuildingId.of(id))
-activate Repo
-Repo --> UC: Optional<Building>
-deactivate Repo
+  UC --> Ctrl: BuildingResponse
+  deactivate UC
+  Ctrl --> FE: 201 Created {BuildingResponse}
+  deactivate Ctrl
+  FE --> Ator: exibe
+  deactivate FE
+  deactivate Ator
 
-UC -> Entity: update(name, address, totalFloors)\nvalida os campos
-activate Entity
-Entity --> UC: Building com updatedAt novo
-deactivate Entity
+else atualizar
 
-UC -> Repo: save(building)
-activate Repo
-Repo --> UC: Building
-deactivate Repo
+  Ator -> FE: escolhe um prédio, edita os dados
+  activate Ator
+  activate FE
+  FE -> Ctrl: PUT /buildings/{id}
+  activate Ctrl
+  Ctrl -> UC: execute(id, UpdateBuildingRequest)
+  activate UC
 
-UC --> Ctrl: BuildingResponse
-deactivate UC
-Ctrl --> FE: 200 OK {BuildingResponse}
-deactivate Ctrl
-FE --> Ator: exibe o resultado
-deactivate FE
+  UC -> Repo: findById(BuildingId.of(id))
+  activate Repo
+  Repo --> UC: Optional<Building>
+  deactivate Repo
 
-== DELETE /buildings/{id}: remover ==
+  break Optional vazio
+    UC --> Ctrl: ResourceNotFoundException
+    Ctrl --> FE: 404 Not Found
+    FE --> Ator: exibe o erro
+  end
 
-Ator -> FE: confirma a remoção
-activate FE
-FE -> Ctrl: DELETE /buildings/{id}
-activate Ctrl
-Ctrl -> UC: execute(id)
-activate UC
+  UC -> Entity: update(name, address, totalFloors)
+  activate Entity
 
-UC -> Repo: findById(BuildingId.of(id))
-activate Repo
-Repo --> UC: Optional<Building>
-deactivate Repo
+  break name ou address em branco, ou totalFloors < 1
+    Entity --> UC: DomainValidationException
+    UC --> Ctrl: DomainValidationException
+    Ctrl --> FE: 422 Unprocessable Entity
+    FE --> Ator: exibe o erro
+  end
 
-UC -> Entity: delete()
-activate Entity
-Entity --> UC: Building com status DELETED
-deactivate Entity
+  Entity --> UC: Building
+  deactivate Entity
 
-UC -> Repo: save(building)
-activate Repo
-Repo --> UC: Building
-deactivate Repo
+  UC -> Repo: save(building)
+  activate Repo
+  Repo --> UC: Building
+  deactivate Repo
 
-UC --> Ctrl: void
-deactivate UC
-Ctrl --> FE: 204 No Content
-deactivate Ctrl
-FE --> Ator: exibe o resultado
-deactivate FE
+  UC --> Ctrl: BuildingResponse
+  deactivate UC
+  Ctrl --> FE: 200 OK {BuildingResponse}
+  deactivate Ctrl
+  FE --> Ator: exibe
+  deactivate FE
+  deactivate Ator
+
+else remover
+
+  Ator -> FE: escolhe um prédio e confirma a remoção
+  activate Ator
+  activate FE
+  FE -> Ctrl: DELETE /buildings/{id}
+  activate Ctrl
+  Ctrl -> UC: execute(id)
+  activate UC
+
+  UC -> Repo: findById(BuildingId.of(id))
+  activate Repo
+  Repo --> UC: Optional<Building>
+  deactivate Repo
+
+  break Optional vazio
+    UC --> Ctrl: ResourceNotFoundException
+    Ctrl --> FE: 404 Not Found
+    FE --> Ator: exibe o erro
+  end
+
+  UC -> Entity: delete()
+  activate Entity
+  Entity --> UC: Building com status DELETED
+  deactivate Entity
+
+  UC -> Repo: save(building)
+  activate Repo
+  Repo --> UC: Building
+  deactivate Repo
+
+  UC --> Ctrl: void
+  deactivate UC
+  Ctrl --> FE: 204 No Content
+  deactivate Ctrl
+  FE --> Ator: retira o prédio da lista
+  deactivate FE
+  deactivate Ator
+
+else detalhar
+
+  Ator -> FE: escolhe um prédio da lista
+  activate Ator
+  activate FE
+  FE -> Ctrl: GET /buildings/{id}
+  activate Ctrl
+  Ctrl -> UC: findById(id)
+  activate UC
+
+  UC -> Repo: findById(BuildingId.of(id))
+  activate Repo
+  Repo --> UC: Optional<Building>
+  deactivate Repo
+
+  break Optional vazio
+    UC --> Ctrl: ResourceNotFoundException
+    Ctrl --> FE: 404 Not Found
+    FE --> Ator: exibe o erro
+  end
+
+  UC --> Ctrl: BuildingResponse
+  deactivate UC
+  Ctrl --> FE: 200 OK {BuildingResponse}
+  deactivate Ctrl
+  FE --> Ator: exibe
+  deactivate FE
+  deactivate Ator
+
+end
 
 @enduml

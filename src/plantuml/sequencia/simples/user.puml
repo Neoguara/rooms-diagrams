@@ -1,15 +1,24 @@
 @startuml user_simples
 
 ' Módulo user inteiro em um arquivo, no estilo simplista. Os cinco diagramas completos
-' continuam em sequencia/user/, um por endpoint, e é lá que estão os desvios.
+' continuam em sequencia/user/, um por endpoint, e é lá que estão todos os desvios.
 '
-' Cinco cortes em relação a eles:
+' A forma do diagrama segue o uso da tela: abrir a tela de usuários lista, e a listagem é
+' obrigatória, acontece antes de tudo e não é alternativa a nada. Só depois dela o
+' administrador escolhe uma das operações, e é essa escolha que o alt representa.
+'
+' Cinco cortes em relação aos diagramas completos:
 '   1. Porta e implementação viram um participante só, tipado como «subsystem».
-'   2. Só o caminho de sucesso. Nenhum alt: os erros (400, 404, 409, 422) estão nos
-'      diagramas completos, e as guardas de status estão em estado/user_status.puml.
+'   2. Os desvios são marcados com break, o fragmento que cancela o resto da interação,
+'      que é o que o throw faz: 404 nas três operações que buscam por id, 422 nas duas
+'      que validam campos, e o 409 do e-mail repetido, que é a única checagem que o caso
+'      de uso faz antes de chegar na entidade. O update roda o mesmo UserValidator do
+'      create, por isso o atualizar também tem o 422. O 422 do delete, que exige
+'      INACTIVE, fica em estado/user_status.puml.
 '   3. Nenhuma mensagem para si mesmo: fluxo interno não é troca entre participantes. O
 '      que ele dizia foi para o rótulo da chamada ou do retorno.
-'   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
+'   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível. As barras aninham:
+'      a do ator cobre a interação inteira, e cada camada abaixo ocupa menos tempo.
 '   5. O armazenamento não aparece. As mensagens param no participante de repositório,
 '      e a consulta ou gravação fica implícita: o que importa é a conversa entre as
 '      camadas, não o SQL.
@@ -19,7 +28,7 @@
 '
 ' O PATCH /users/{id}/status fica de fora: as transições estão em estado/user_status.puml.
 
-title Módulo user: criar, buscar, atualizar e remover
+title Módulo user: a listagem e as operações sobre ela
 
 actor "Administrador" as Ator
 boundary "Frontend" as FE
@@ -30,118 +39,189 @@ participant "<<subsystem>>\nusecases" as UC
 participant "User" as Entity
 participant "<<subsystem>>\nrepositories" as Repo
 
-== POST /users: criar ==
-
-Ator -> FE: preenche o formulário e confirma
+activate Ator
+Ator -> FE: abre a tela de usuários
 activate FE
-FE -> Ctrl: POST /users\n{name, email, password, role}
+FE -> Ctrl: GET /users
 activate Ctrl
-Ctrl -> UC: execute(CreateUserRequest)
+Ctrl -> UC: findAll()
 activate UC
 
-UC -> Repo: existsByEmail(email)
+UC -> Repo: findAll()
 activate Repo
-Repo --> UC: boolean
+Repo --> UC: List<User>
 deactivate Repo
 
-UC -> Entity: User.create(name, email,\nsenha, role)
-activate Entity
-Entity --> UC: User com id novo e status ACTIVE
-deactivate Entity
-
-UC -> Repo: save(user)
-activate Repo
-Repo --> UC: User
-deactivate Repo
-
-UC --> Ctrl: UserResponse
+UC --> Ctrl: List<UserResponse>
 deactivate UC
-Ctrl --> FE: 201 Created {UserResponse}
+Ctrl --> FE: 200 OK {List<UserResponse>}
 deactivate Ctrl
-FE --> Ator: exibe o resultado
+FE --> Ator: exibe
 deactivate FE
+deactivate Ator
 
-== GET /users e GET /users/{id}: buscar ==
+alt criar
 
-Ator -> FE: abre a lista, ou um usuário
-activate FE
-FE -> Ctrl: GET /users\nou GET /users/{id}
-activate Ctrl
-Ctrl -> UC: findAll() ou findById(id)
-activate UC
+  Ator -> FE: preenche o formulário
+  activate Ator
+  activate FE
+  FE -> Ctrl: POST /users
+  activate Ctrl
+  Ctrl -> UC: execute(CreateUserRequest)
+  activate UC
 
-UC -> Repo: findAll() ou findById(UserId.of(id))
-activate Repo
-Repo --> UC: List<User> ou Optional<User>
-deactivate Repo
+  UC -> Repo: existsByEmail(email)
+  activate Repo
+  Repo --> UC: boolean
+  deactivate Repo
 
-UC --> Ctrl: UserResponse ou List<UserResponse>
-deactivate UC
-Ctrl --> FE: 200 OK
-deactivate Ctrl
-FE --> Ator: exibe o resultado
-deactivate FE
+  break e-mail já em uso
+    UC --> Ctrl: ConflictException
+    Ctrl --> FE: 409 Conflict
+    FE --> Ator: exibe o erro
+  end
 
-== PUT /users/{id}: atualizar ==
+  UC -> Entity: User.create(name, email, senha, role)
+  activate Entity
 
-Ator -> FE: edita os dados e confirma
-activate FE
-FE -> Ctrl: PUT /users/{id}\n{name, email, password?, role?}
-activate Ctrl
-Ctrl -> UC: execute(id, UpdateUserRequest)
-activate UC
+  break campos em branco
+    Entity --> UC: DomainValidationException
+    UC --> Ctrl: DomainValidationException
+    Ctrl --> FE: 422 Unprocessable Entity
+    FE --> Ator: exibe o erro
+  end
 
-UC -> Repo: findById(UserId.of(id))
-activate Repo
-Repo --> UC: Optional<User>
-deactivate Repo
+  Entity --> UC: User
+  deactivate Entity
 
-UC -> Entity: update(name, email, senha, papel)
-activate Entity
-Entity --> UC: User com updatedAt novo
-deactivate Entity
+  UC -> Repo: save(user)
+  activate Repo
+  Repo --> UC: User
+  deactivate Repo
 
-UC -> Repo: save(user)
-activate Repo
-Repo --> UC: User
-deactivate Repo
+  UC --> Ctrl: UserResponse
+  deactivate UC
+  Ctrl --> FE: 201 Created {UserResponse}
+  deactivate Ctrl
+  FE --> Ator: exibe
+  deactivate FE
+  deactivate Ator
 
-UC --> Ctrl: UserResponse
-deactivate UC
-Ctrl --> FE: 200 OK {UserResponse}
-deactivate Ctrl
-FE --> Ator: exibe o resultado
-deactivate FE
+else atualizar
 
-== DELETE /users/{id}: remover ==
+  Ator -> FE: escolhe um usuário, edita os dados
+  activate Ator
+  activate FE
+  FE -> Ctrl: PUT /users/{id}
+  activate Ctrl
+  Ctrl -> UC: execute(id, UpdateUserRequest)
+  activate UC
 
-Ator -> FE: confirma a remoção
-activate FE
-FE -> Ctrl: DELETE /users/{id}
-activate Ctrl
-Ctrl -> UC: execute(id)
-activate UC
+  UC -> Repo: findById(UserId.of(id))
+  activate Repo
+  Repo --> UC: Optional<User>
+  deactivate Repo
 
-UC -> Repo: findById(UserId.of(id))
-activate Repo
-Repo --> UC: Optional<User>
-deactivate Repo
+  break Optional vazio
+    UC --> Ctrl: ResourceNotFoundException
+    Ctrl --> FE: 404 Not Found
+    FE --> Ator: exibe o erro
+  end
 
-UC -> Entity: delete()
-activate Entity
-Entity --> UC: User com status DELETED
-deactivate Entity
+  UC -> Entity: update(name, email, senha, papel)\nsenha e papel omitidos mantêm os atuais
+  activate Entity
 
-UC -> Repo: save(user)
-activate Repo
-Repo --> UC: User
-deactivate Repo
+  break campos em branco
+    Entity --> UC: DomainValidationException
+    UC --> Ctrl: DomainValidationException
+    Ctrl --> FE: 422 Unprocessable Entity
+    FE --> Ator: exibe o erro
+  end
 
-UC --> Ctrl: void
-deactivate UC
-Ctrl --> FE: 204 No Content
-deactivate Ctrl
-FE --> Ator: exibe o resultado
-deactivate FE
+  Entity --> UC: User
+  deactivate Entity
+
+  UC -> Repo: save(user)
+  activate Repo
+  Repo --> UC: User
+  deactivate Repo
+
+  UC --> Ctrl: UserResponse
+  deactivate UC
+  Ctrl --> FE: 200 OK {UserResponse}
+  deactivate Ctrl
+  FE --> Ator: exibe
+  deactivate FE
+  deactivate Ator
+
+else remover
+
+  Ator -> FE: escolhe um usuário e confirma a remoção
+  activate Ator
+  activate FE
+  FE -> Ctrl: DELETE /users/{id}
+  activate Ctrl
+  Ctrl -> UC: execute(id)
+  activate UC
+
+  UC -> Repo: findById(UserId.of(id))
+  activate Repo
+  Repo --> UC: Optional<User>
+  deactivate Repo
+
+  break Optional vazio
+    UC --> Ctrl: ResourceNotFoundException
+    Ctrl --> FE: 404 Not Found
+    FE --> Ator: exibe o erro
+  end
+
+  UC -> Entity: delete()
+  activate Entity
+  Entity --> UC: User com status DELETED
+  deactivate Entity
+
+  UC -> Repo: save(user)
+  activate Repo
+  Repo --> UC: User
+  deactivate Repo
+
+  UC --> Ctrl: void
+  deactivate UC
+  Ctrl --> FE: 204 No Content
+  deactivate Ctrl
+  FE --> Ator: retira o usuário da lista
+  deactivate FE
+  deactivate Ator
+
+else detalhar
+
+  Ator -> FE: escolhe um usuário da lista
+  activate Ator
+  activate FE
+  FE -> Ctrl: GET /users/{id}
+  activate Ctrl
+  Ctrl -> UC: findById(id)
+  activate UC
+
+  UC -> Repo: findById(UserId.of(id))
+  activate Repo
+  Repo --> UC: Optional<User>
+  deactivate Repo
+
+  break Optional vazio
+    UC --> Ctrl: ResourceNotFoundException
+    Ctrl --> FE: 404 Not Found
+    FE --> Ator: exibe o erro
+  end
+
+  UC --> Ctrl: UserResponse
+  deactivate UC
+  Ctrl --> FE: 200 OK {UserResponse}
+  deactivate Ctrl
+  FE --> Ator: exibe
+  deactivate FE
+  deactivate Ator
+
+end
 
 @enduml

@@ -2,14 +2,24 @@
 
 ' Os quatro endpoints HTTP do módulo report, no estilo simplista. A geração do arquivo,
 ' que acontece fora da requisição, está em report_generation.puml. Os diagramas completos
-' continuam em sequencia/report/, e é lá que estão os desvios.
+' continuam em sequencia/report/, e é lá que estão todos os desvios.
+'
+' A forma do diagrama segue o uso da tela: abrir a tela de relatórios lista, e a listagem
+' é obrigatória, acontece antes de tudo e não é alternativa a nada. Só depois dela o
+' usuário escolhe uma das operações, e é essa escolha que o alt representa. As operações
+' não são as do CRUD: não se edita nem se apaga relatório, pede-se um, acompanha-se o
+' andamento e baixa-se o arquivo quando ele fica pronto.
 '
 ' Cinco cortes em relação aos completos:
 '   1. Porta e implementação viram um participante só, tipado como «subsystem».
-'   2. Só o caminho de sucesso. Nenhum alt: os erros (404, 422) estão nos completos, e as
-'      transições de estado estão em estado/report_status.puml.
+'   2. Os desvios são marcados com break, o fragmento que cancela o resto da interação,
+'      que é o que o throw faz: 422 na validação do pedido, 404 no par type/format que
+'      ninguém sabe gerar, 404 nas duas operações que buscam por id, e 422 no download de
+'      relatório que ainda não tem arquivo. As transições de estado continuam em
+'      estado/report_status.puml.
 '   3. Nenhum loop, nenhuma mensagem para si mesmo.
-'   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível.
+'   4. Ativação só em trecho reto, abrindo e fechando no mesmo nível. As barras aninham:
+'      a do ator cobre a interação inteira, e cada camada abaixo ocupa menos tempo.
 '   5. O armazenamento não aparece. As mensagens param no participante de repositório,
 '      que absorve também o ReportStoragePort, e a consulta, a gravação e a leitura do
 '      arquivo ficam implícitas: o que importa é a conversa entre as camadas, não o SQL
@@ -17,8 +27,15 @@
 '
 ' O POST responde 202, e não 201, porque o arquivo ainda não existe: o que existe é o
 ' acompanhamento.
+'
+' O 404 de relatório alheio é deliberado, e não um 403: confirmar que aquele id existe já
+' seria informação a mais. Por isso a guarda do break junta as duas condições.
+'
+' O ReportGeneratorRegistry não tem raia própria: a conferência do par type/format roda
+' dentro do caso de uso, e mensagem para si mesmo fica de fora deste estilo. O que sobra
+' dela é o break, que é o que o usuário sente.
 
-title Módulo report: pedir, acompanhar, baixar e listar
+title Módulo report: a listagem e as operações sobre ela
 
 actor "Usuário" as Ator
 boundary "Frontend" as FE
@@ -27,90 +44,10 @@ participant "ReportController" as Ctrl
 participant "<<subsystem>>\nusecases" as UC
 
 participant "Report" as Entity
-
 participant "<<subsystem>>\nrepositories" as Repo
 
-== POST /reports: pedir um relatório ==
-
-Ator -> FE: escolhe tipo, formato e período
-activate FE
-FE -> Ctrl: POST /reports\n{type, format, startAt, endAt, roomId?}
-activate Ctrl
-Ctrl -> UC: execute(principal.getId(), SubmitReportRequest)
-activate UC
-
-UC -> Entity: Report.request(requestedBy, type,\nformat, parameters)
-activate Entity
-Entity --> UC: Report com id novo e status PENDING
-deactivate Entity
-
-UC -> Repo: save(report)
-activate Repo
-Repo --> UC: Report
-deactivate Repo
-
-UC --> Ctrl: ReportResponse\ne publica ReportRequested
-deactivate UC
-Ctrl --> FE: 202 Accepted {ReportResponse}\nLocation: /reports/{id}
-deactivate Ctrl
-FE --> Ator: exibe o pedido em andamento
-deactivate FE
-
-== GET /reports/{id}: acompanhar ==
-
-Ator -> FE: consulta o andamento
-activate FE
-FE -> Ctrl: GET /reports/{id}
-activate Ctrl
-Ctrl -> UC: execute(id, principal.getId())
-activate UC
-
-UC -> Repo: findById(ReportId.of(id))
-activate Repo
-Repo --> UC: Optional<Report>
-deactivate Repo
-
-UC --> Ctrl: ReportResponse\ndownloadUrl só vem preenchido em COMPLETED
-deactivate UC
-Ctrl --> FE: 200 OK {ReportResponse}
-deactivate Ctrl
-FE --> Ator: exibe o status
-deactivate FE
-
-== GET /reports/{id}/download: baixar ==
-
-Ator -> FE: pede o arquivo
-activate FE
-FE -> Ctrl: GET /reports/{id}/download
-activate Ctrl
-Ctrl -> UC: execute(id, principal.getId())
-activate UC
-
-UC -> Repo: findById(ReportId.of(id))
-activate Repo
-Repo --> UC: Optional<Report>
-deactivate Repo
-
-UC -> Entity: requireArtifact()
-activate Entity
-Entity --> UC: ReportArtifact\n{filename, contentType, sizeBytes, storageKey}
-deactivate Entity
-
-UC -> Repo: load(storageKey)
-activate Repo
-Repo --> UC: InputStream
-deactivate Repo
-
-UC --> Ctrl: ReportDownload
-deactivate UC
-Ctrl --> FE: 200 OK, Content-Disposition: attachment
-deactivate Ctrl
-FE --> Ator: baixa o arquivo
-deactivate FE
-
-== GET /reports: listar ==
-
-Ator -> FE: abre a lista de relatórios
+activate Ator
+Ator -> FE: abre a tela de relatórios
 activate FE
 FE -> Ctrl: GET /reports
 activate Ctrl
@@ -122,11 +59,126 @@ activate Repo
 Repo --> UC: List<Report>
 deactivate Repo
 
-UC --> Ctrl: List<ReportResponse>\nlista de todos os usuários, só metadados
+UC --> Ctrl: List<ReportResponse>
 deactivate UC
-Ctrl --> FE: 200 OK [ReportResponse]
+Ctrl --> FE: 200 OK {List<ReportResponse>}
 deactivate Ctrl
-FE --> Ator: exibe a lista
+FE --> Ator: exibe
 deactivate FE
+deactivate Ator
+
+alt pedir
+
+  Ator -> FE: escolhe tipo, formato e período
+  activate Ator
+  activate FE
+  FE -> Ctrl: POST /reports
+  activate Ctrl
+  Ctrl -> UC: execute(SubmitReportRequest)
+  activate UC
+
+  UC -> Entity: Report.request(requestedBy, type,\nformat, parameters)
+  activate Entity
+
+  break campos em branco
+    Entity --> UC: DomainValidationException
+    UC --> Ctrl: DomainValidationException
+    Ctrl --> FE: 422 Unprocessable Entity
+    FE --> Ator: exibe o erro
+  end
+
+  Entity --> UC: Report
+  deactivate Entity
+
+  UC -> Repo: save(report)
+  activate Repo
+  Repo --> UC: Report
+  deactivate Repo
+
+  UC --> Ctrl: ReportResponse
+  deactivate UC
+  Ctrl --> FE: 202 Accepted {ReportResponse}
+  deactivate Ctrl
+  FE --> Ator: exibe o pedido em andamento
+  deactivate FE
+  deactivate Ator
+
+else acompanhar
+
+  Ator -> FE: consulta o andamento
+  activate Ator
+  activate FE
+  FE -> Ctrl: GET /reports/{id}
+  activate Ctrl
+  Ctrl -> UC: execute(id)
+  activate UC
+
+  UC -> Repo: findById(id)
+  activate Repo
+  Repo --> UC: Optional<Report>
+  deactivate Repo
+
+  break Optional vazio
+    UC --> Ctrl: ResourceNotFoundException
+    Ctrl --> FE: 404 Not Found
+    FE --> Ator: exibe o erro
+  end
+
+  UC --> Ctrl: ReportResponse
+  deactivate UC
+  Ctrl --> FE: 200 OK {ReportResponse}
+  deactivate Ctrl
+  FE --> Ator: exibe o status
+  deactivate FE
+  deactivate Ator
+
+else baixar
+
+  Ator -> FE: pede o arquivo
+  activate Ator
+  activate FE
+  FE -> Ctrl: GET /reports/{id}/download
+  activate Ctrl
+  Ctrl -> UC: execute(id)
+  activate UC
+
+  UC -> Repo: findById(id)
+  activate Repo
+  Repo --> UC: Optional<Report>
+  deactivate Repo
+
+  break Optional vazio
+    UC --> Ctrl: ResourceNotFoundException
+    Ctrl --> FE: 404 Not Found
+    FE --> Ator: exibe o erro
+  end
+
+  UC -> Entity: requireArtifact()
+  activate Entity
+
+  break status diferente de COMPLETED
+    Entity --> UC: InvalidStateException
+    UC --> Ctrl: InvalidStateException
+    Ctrl --> FE: 422 Unprocessable Entity
+    FE --> Ator: exibe o erro
+  end
+
+  Entity --> UC: ReportArtifact\n{filename, contentType, sizeBytes, storageKey}
+  deactivate Entity
+
+  UC -> Repo: load(storageKey)
+  activate Repo
+  Repo --> UC: InputStream
+  deactivate Repo
+
+  UC --> Ctrl: ReportDownload
+  deactivate UC
+  Ctrl --> FE: 200 OK, conteúdo do relatório
+  deactivate Ctrl
+  FE --> Ator: baixa o arquivo
+  deactivate FE
+  deactivate Ator
+
+end
 
 @enduml
