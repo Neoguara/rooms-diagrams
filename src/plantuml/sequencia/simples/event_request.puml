@@ -95,7 +95,7 @@ activate UC
 UC -> Repo: eventRequestRepository.findById(id)
 activate Repo
 Repo --> UC: Optional<EventRequest>
-deactivate Repos
+deactivate Repo
 
 break Optional vazio
   UC --> Ctrl: ResourceNotFoundException

@@ -8,17 +8,20 @@
 ' obrigatória, acontece antes de tudo e não é alternativa a nada. A solicitação vem depois
 ' dela, e é a única operação que esta tela oferece.
 '
-' Uma submissão aqui carrega uma alteração só. O caso de uso aceita uma lista e percorre
-' todas em um laço, mas isso não muda o que acontece com cada uma, e o laço de fora só
-' empurrava o resto do desenho para dentro de mais uma caixa. Ele está nos completos.
+' O laço e o opt são o assunto do diagrama. Uma submissão carrega uma lista de alterações
+' e o caso de uso percorre todas, por isso o laço de fora. Dentro dele, a única diferença
+' entre os tipos é o começo: alterar e cancelar precisam carregar o evento que vão tocar,
+' criar não tem o que carregar porque o evento ainda não existe. É isso que o opt marca.
 '
-' O alt é o assunto do diagrama. Uma alteração não vira um item, vira quantos itens ela
-' atingir, e os três ramos são os três caminhos para isso: criar sem recorrência chama o
-' EventChangeItem uma vez; criar com recorrência expande a regra em ocorrências; alterar
-' ou cancelar em lote carrega as ocorrências já existentes da série. Os dois últimos têm
-' laço, o primeiro não, e é essa diferença que o diagrama precisa mostrar. É também por
-' isso que o grupo é montado aqui, e não na aprovação: quem decide vê exatamente quais
-' eventos serão tocados.
+' Uma alteração não vira um item, vira quantos itens ela atingir. Criar com regra de
+' recorrência rende um item por ocorrência da regra; alterar ou cancelar em lote rende um
+' item por ocorrência da série. Como as duas contas são internas ao caso de uso e não
+' trocam mensagem com ninguém, a multiplicidade fica no rótulo, e não num laço. O
+' RecurrenceExpander, o findBySeriesId e os dois 422 que eles levantam estão nos
+' diagramas completos.
+'
+' É por isso que o grupo é montado aqui, e não na aprovação: quem decide vê exatamente
+' quais eventos serão tocados.
 '
 ' Submeter não toca o evento. O que se pretende fazer fica guardado nos itens, que nascem
 ' em PENDING; só a aprovação efetiva, e ela está em event_request.puml.
@@ -26,24 +29,16 @@
 ' Quatro cortes em relação aos completos:
 '   1. Porta e implementação viram um participante só, tipado como «subsystem».
 '   2. Os desvios são marcados com break, o fragmento que cancela o resto da interação,
-'      que é o que o throw faz. O 422 de changes vazio, que é a primeira linha do caso de
-'      uso, fica nos completos.
+'      que é o que o throw faz. Sobra o 404 do evento que não existe. O 422 de changes
+'      vazio, o da regra sem ocorrência e o do alcance de série ficam nos completos.
 '   3. Nenhuma mensagem para si mesmo, e ativação só em trecho reto. As barras aninham:
 '      a do ator cobre a interação inteira, e cada camada abaixo ocupa menos tempo.
 '   4. O armazenamento não aparece. As mensagens param no participante de repositório,
 '      e a consulta ou gravação fica implícita: o que importa é a conversa entre as
 '      camadas, não o SQL.
 '
-' O 422 de recurrenceRule alterada num UPDATE entra na mesma guarda do break de estado:
-' os dois são InvalidStateException do mesmo ramo e dão a mesma resposta.
-'
-' O opt do alcance é literal: em THIS_OCCURRENCE o targetsOf devolve o próprio evento e não
-' encosta no repositório. O update ainda tem um atalho para esse caso, que devolve um item
-' sem montar o deslocamento; aqui ele aparece como o laço de uma volta só que é.
-'
-' O RecurrenceExpander absorve o RecurrenceRule.parse, que nos completos é uma raia à
-' parte. O filtro por seriesId do GET /events fica de fora: é parâmetro de consulta, não
-' troca entre camadas.
+' O filtro por seriesId do GET /events fica de fora: é parâmetro de consulta, não troca
+' entre camadas.
 '
 ' Dois detalhes ficam fora porque não mudam a lógica. O EventRequestConflicts, que calcula
 ' os choques previstos depois da gravação, é aviso e não recusa: tirá-lo não altera uma
@@ -60,7 +55,6 @@ participant "EventRequestController" as ReqCtrl
 participant "<<subsystem>>\nusecases" as UC
 
 participant "EventRequest" as Req
-participant "RecurrenceExpander" as Expander
 participant "EventChangeItem" as Item
 
 participant "<<subsystem>>\nrepositories" as Repo
@@ -91,7 +85,7 @@ activate Ator
 activate FE
 FE -> ReqCtrl: POST /event-requests
 activate ReqCtrl
-ReqCtrl -> UC: execute(SubmitEventRequest)
+ReqCtrl -> UC: execute(principal.getId(), SubmitEventRequest)
 activate UC
 
 UC -> Req: EventRequest.open(createdBy, justification)
@@ -99,79 +93,38 @@ activate Req
 Req --> UC: EventRequest
 deactivate Req
 
-alt criar, sem recorrência
+loop cada EventChangeRequest
 
-  UC -> Item: EventChangeItem.create(snapshot do depois)
-  activate Item
-  Item --> UC: um item
-  deactivate Item
+  opt alterar ou cancelar
 
-else criar, com recorrência
-
-  UC -> Expander: expand(RecurrenceRule.parse(recurrenceRule),\nstartAt, endAt)
-  activate Expander
-
-  break a regra não produz nenhuma ocorrência
-    Expander --> UC: DomainValidationException
-    UC --> ReqCtrl: DomainValidationException
-    ReqCtrl --> FE: 422 Unprocessable Entity
-    FE --> Ator: exibe o erro
-  end
-
-  Expander --> UC: uma ocorrência por data da regra
-  deactivate Expander
-
-  loop para cada ocorrência expandida
-
-    UC -> Item: EventChangeItem.create(snapshot da ocorrência,\nmesmo SeriesId para todas)
-    activate Item
-    Item --> UC: um item
-    deactivate Item
-
-  end
-
-else alterar ou cancelar
-
-  UC -> Repo: eventRepository.findById(EventId.of(eventId))
-  activate Repo
-  Repo --> UC: Optional<Event>
-  deactivate Repo
-
-  break Optional vazio
-    UC --> ReqCtrl: ResourceNotFoundException
-    ReqCtrl --> FE: 404 Not Found
-    FE --> Ator: exibe o erro
-  end
-
-  opt o alcance passa da ocorrência escolhida
-
-    UC -> Repo: eventRepository.findBySeriesId(seriesId)
+    UC -> Repo: eventRepository.findById(EventId.of(eventId))
     activate Repo
-    Repo --> UC: ocorrências da série
+    Repo --> UC: Optional<Event>
     deactivate Repo
 
-    break evento sem recorrência,\nou nenhuma ocorrência no estado exigido
-      UC --> ReqCtrl: InvalidStateException
-      ReqCtrl --> FE: 422 Unprocessable Entity
+    break Optional vazio
+      UC --> ReqCtrl: ResourceNotFoundException
+      ReqCtrl --> FE: 404 Not Found
       FE --> Ator: exibe o erro
     end
 
   end
 
-  loop para cada ocorrência atingida pelo alcance
-
-    UC -> Item: EventChangeItem.update ou cancel(ocorrência)
-    activate Item
-    Item --> UC: um item, com o antes e o depois
-    deactivate Item
-
-  end
+  UC -> Item: EventChangeItem.create, update ou cancel,\num por ocorrência
+  activate Item
+  Item --> UC: um item por ocorrência
+  deactivate Item
 
 end
 
-UC -> Repo: eventRequestRepository.save\ne changeItemRepository.saveAll
+UC -> Repo: eventRequestRepository.save(eventRequest)
 activate Repo
-Repo --> UC: grupo e itens gravados
+Repo --> UC: grupo gravado
+deactivate Repo
+
+UC -> Repo: changeItemRepository.saveAll(changeItems)
+activate Repo
+Repo --> UC: itens gravados
 deactivate Repo
 
 UC --> ReqCtrl: EventRequestResponse
