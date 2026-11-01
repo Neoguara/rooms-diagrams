@@ -6,32 +6,49 @@
 '
 ' A forma do diagrama segue o uso da tela: abrir a fila lista as solicitações, e a
 ' listagem é obrigatória, acontece antes de tudo e não é alternativa a nada. A decisão vem
-' depois dela, e é a única operação que esta tela oferece. Por isso não há alt aqui: não
-' existem caminhos alternativos a escolher, existe um só, que é o que o aprovador faz.
+' depois dela, e é a única operação que esta tela oferece. Por isso não há alt no nível de
+' cima: não existem caminhos alternativos a escolher, existe um só.
 '
-' Aprovar e rejeitar são o mesmo endpoint, decidido pelo campo decision. A diferença
-' aparece na mensagem para o EventRequest e no fato de que só a aprovação efetiva as
-' alterações sobre os eventos.
+' O alt de dentro é o assunto do diagrama. Aprovar e rejeitar são o mesmo endpoint,
+' separados pelo campo decision, e o que os distingue não é o que cada um faz: é o que só
+' um deles faz. O tamanho dos dois ramos é a informação: rejeitar muda o status do grupo e
+' acaba ali, enquanto aprovar ainda tem o loop inteiro pela frente.
 '
-' A decisão é do grupo inteiro, não de cada alteração: basta uma não poder ser aplicada
-' para que nada seja gravado. É isso que os dois break do trecho de efetivação dizem.
+' O loop dentro da aprovação é o segundo ponto. A decisão é do grupo inteiro, não de cada
+' alteração: os itens são efetivados um a um, na ordem em que foram submetidos, e basta um
+' não caber para que nada seja gravado. É isso que o break do 409 dentro do loop diz.
 '
-' Cinco cortes em relação aos completos:
+' Quatro cortes em relação aos completos:
 '   1. Porta e implementação viram um participante só, tipado como «subsystem».
 '   2. Os desvios são marcados com break, o fragmento que cancela o resto da interação,
-'      que é o que o throw faz: 404 no grupo que não existe, 422 no grupo que já foi
-'      decidido e 409 na sala ocupada no horário. O 422 de decision ausente e o 422 do
-'      evento em estado incompatível ficam nos completos.
-'   3. Nenhum loop. Onde o código repete por item, a repetição fica dita na mensagem.
-'   4. Nenhuma mensagem para si mesmo, e ativação só em trecho reto. As barras aninham:
+'      que é o que o throw faz. O 422 de decision ausente e o 422 do evento em estado
+'      incompatível com a alteração ficam nos completos. O 409 só nasce de create e
+'      update, que conferem a agenda; cancel e discard não ocupam horário.
+'   3. Nenhuma mensagem para si mesmo, e ativação só em trecho reto. As barras aninham:
 '      a do ator cobre a interação inteira, e cada camada abaixo ocupa menos tempo.
-'   5. O armazenamento não aparece. As mensagens param no participante de repositório,
+'   4. O armazenamento não aparece. As mensagens param no participante de repositório,
 '      e a consulta ou gravação fica implícita: o que importa é a conversa entre as
 '      camadas, não o SQL.
 '
 ' O RoomOccupancy não tem raia: a conferência de horário livre roda dentro do Event, que
-' recebe a agenda como argumento. O que sobra dela é o break do 409, que é o que o
-' aprovador sente.
+' recebe a agenda como argumento. O que sobra dela é o break do 409.
+'
+' O opt de dentro do loop é a única diferença entre os tipos de item: criar monta um Event
+' novo e não tem o que carregar, enquanto alterar, cancelar e descartar buscam o evento pelo
+' id guardado no item. Daí para baixo o caminho é o mesmo, e por isso a chamada à entidade,
+' o break do 409 e a gravação ficam fora do opt, uma vez só.
+'
+' O linkCreatedEvent, que devolve ao item o id do evento recém-criado, e o
+' changeItemRepository.saveAll que o grava ficam nos completos: são a amarração entre item
+' e evento, não a efetivação em si, e custariam uma raia inteira aqui.
+'
+' O Approval também sai. Ele registra quem decidiu, quando e com que comentário, mas é
+' trilha de auditoria: não muda o resultado da revisão nem o que o aprovador vê. Está nos
+' completos, junto do GET /event-requests/{id}/audit que o lê.
+'
+' O choque previsto que o EventRequestConflicts calcula na listagem fica de fora: é aviso,
+' e o que decide de verdade é o 409 da efetivação, que está aqui. O tipo REACTIVATE também
+' sai: é o CANCEL ao contrário e percorre as mesmas mensagens. Os dois estão nos completos.
 
 title Solicitação de alteração: a fila e a revisão
 
@@ -43,7 +60,6 @@ participant "<<subsystem>>\nusecases" as UC
 
 participant "EventRequest" as Req
 participant "Event" as Event
-participant "Approval" as Appr
 
 participant "<<subsystem>>\nrepositories" as Repo
 
@@ -55,12 +71,12 @@ activate Ctrl
 Ctrl -> UC: findAll()
 activate UC
 
-UC -> Repo: eventRequestRepository.findAll()\ne changeItemRepository.findByEventRequestIdIn(ids)
+UC -> Repo: eventRequestRepository.findAll()
 activate Repo
-Repo --> UC: grupos e seus itens
+Repo --> UC: grupos
 deactivate Repo
 
-UC --> Ctrl: List<EventRequestResponse>\nchoques previstos só nos grupos ainda pendentes
+UC --> Ctrl: List<EventRequestResponse>
 deactivate UC
 Ctrl --> FE: 200 OK [EventRequestResponse]
 deactivate Ctrl
@@ -76,10 +92,10 @@ activate Ctrl
 Ctrl -> UC: execute(id, ReviewEventRequest)
 activate UC
 
-UC -> Repo: eventRequestRepository.findById(EventRequestId.of(id))\ne changeItemRepository.findByEventRequestId
+UC -> Repo: eventRequestRepository.findById(id)
 activate Repo
-Repo --> UC: Optional<EventRequest> e seus itens
-deactivate Repo
+Repo --> UC: Optional<EventRequest>
+deactivate Repos
 
 break Optional vazio
   UC --> Ctrl: ResourceNotFoundException
@@ -87,40 +103,78 @@ break Optional vazio
   FE --> Aprov: exibe o erro
 end
 
-UC -> Req: approve() ou reject()
-activate Req
+alt decision = APPROVED
 
-break status diferente de PENDING
-  Req --> UC: InvalidStateException
-  UC --> Ctrl: InvalidStateException
-  Ctrl --> FE: 422 Unprocessable Entity
-  FE --> Aprov: exibe o erro
+  UC -> Req: approve()
+  activate Req
+
+  break status diferente de PENDING
+    Req --> UC: InvalidStateException
+    UC --> Ctrl: InvalidStateException
+    Ctrl --> FE: 422 Unprocessable Entity
+    FE --> Aprov: exibe o erro
+  end
+
+  Req --> UC: EventRequest
+  deactivate Req
+
+  loop para cada EventChangeItem do EventRequest
+
+    opt update, cancel ou discard
+
+      UC -> Repo: eventRepository.findById(item.eventId)
+      activate Repo
+      Repo --> UC: Optional<Event>
+      deactivate Repo
+
+      break Optional vazio
+        UC --> Ctrl: ResourceNotFoundException
+        Ctrl --> FE: 404 Not Found
+        FE --> Aprov: exibe o erro
+      end
+
+    end
+
+    UC -> Event: create, update, cancel ou discard
+    activate Event
+
+    break sala ocupada no horário
+      Event --> UC: EventConflictException
+      UC --> Ctrl: EventConflictException
+      Ctrl --> FE: 409 Conflict
+      FE --> Aprov: exibe o erro, e nada do grupo é gravado
+    end
+
+    Event --> UC: Event
+    deactivate Event
+
+    UC -> Repo: eventRepository.save(event)
+    activate Repo
+    Repo --> UC: Event
+    deactivate Repo
+
+  end
+
+else decision = REJECTED
+
+  UC -> Req: reject()
+  activate Req
+
+  break status diferente de PENDING
+    Req --> UC: InvalidStateException
+    UC --> Ctrl: InvalidStateException
+    Ctrl --> FE: 422 Unprocessable Entity
+    FE --> Aprov: exibe o erro
+  end
+
+  Req --> UC: EventRequest
+  deactivate Req
+
 end
 
-Req --> UC: EventRequest em APPROVED ou REJECTED
-deactivate Req
-
-UC -> Event: só na aprovação, cada item vira uma chamada:\ncreate, update, cancel, reactivate ou discard
-activate Event
-
-break sala ocupada no horário de alguma alteração
-  Event --> UC: EventConflictException
-  UC --> Ctrl: EventConflictException
-  Ctrl --> FE: 409 Conflict
-  FE --> Aprov: exibe o erro e nada é gravado
-end
-
-Event --> UC: eventos efetivados, com o horário livre conferido
-deactivate Event
-
-UC -> Appr: Approval.of(requestId, reviewedBy,\ndecision, comment)
-activate Appr
-Appr --> UC: Approval
-deactivate Appr
-
-UC -> Repo: eventRepository.save de cada evento efetivado,\nchangeItemRepository.saveAll,\neventRequestRepository.save\ne approvalRepository.save
+UC -> Repo: eventRequestRepository.save(eventRequest)
 activate Repo
-Repo --> UC: tudo gravado
+Repo --> UC: grupo gravado
 deactivate Repo
 
 UC --> Ctrl: EventRequestResponse
