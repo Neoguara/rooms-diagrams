@@ -73,13 +73,18 @@ import json, re, os
 with open('src/data/diagramas-drive.json') as f:
     data = json.load(f)
 
+def macro_name(text):
+    return ''.join(w.capitalize() for w in re.split(r'[_\-/]', text))
+
 os.makedirs('out', exist_ok=True)
 with open('out/drive-links.tex', 'w') as out:
     for entry in data:
-        name = entry['name']
         link = entry['link']
-        macro = ''.join(w.capitalize() for w in re.split(r'[_\-]', name.rsplit('.', 1)[0]))
-        out.write(f'\\def\\link{macro}{{{link}}}\n')
+        out.write(f'\\def\\link{macro_name(entry["name"].rsplit(".", 1)[0])}{{{link}}}\n')
+        # Nomes de arquivo se repetem entre pastas: user_simples.svg existe em classe/ e em
+        # sequencia/, e a macro curta do segundo sobrescreve a do primeiro em silêncio. A macro
+        # qualificada pelo caminho e unica, e e ela que deve ser usada nesses casos.
+        out.write(f'\\def\\link{macro_name(entry["path"].lstrip("/").rsplit(".", 1)[0])}{{{link}}}\n')
 PYEOF
 
   if $REPORT_ONLY; then

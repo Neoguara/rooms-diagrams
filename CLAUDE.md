@@ -48,6 +48,19 @@ Exemplos:
 | `der.svg` | `\linkDer` |
 | `update_user_status.svg` | `\linkUpdateUserStatus` |
 
+**Cada entrada também gera uma macro qualificada pelo caminho**, pela mesma regra, com `/`
+contando como separador de palavra:
+
+| Caminho no JSON | Macro qualificada |
+|---|---|
+| `/sequencia/simples/user_simples.svg` | `\linkSequenciaSimplesUserSimples` |
+| `/classe/simples/user_simples.svg` | `\linkClasseSimplesUserSimples` |
+
+Ela existe porque nomes de arquivo se repetem entre pastas: `user_simples.svg`,
+`report_simples.svg` e `auth_simples.svg` existem em `classe/` e em `sequencia/`, e a macro
+curta do segundo sobrescreve a do primeiro em silêncio (vence o que vier por último no
+JSON). **Quando o nome do arquivo não for único, use a macro qualificada pelo caminho.**
+
 **Nunca hardcodar URLs do Drive nos `.tex`.** Sempre usar:
 
 ```latex

@@ -21,6 +21,19 @@
 \orientador{GUSTAVO QUEIROZ SILVEIRA} % Nome do orientador
 \input{../../../out/drive-links.tex}
 
+% A NBR 6023:2018 tirou os sinais < > em volta do endereço, que a edição de 2002 exigia. O
+% abntex2cite ainda aplica a forma antiga em todo \url do documento. Isto desfaz, e vale
+% também para as referências, que precisam seguir a mesma edição da norma que as figuras.
+\def\UrlLeft{}\def\UrlRight{}
+
+% Fonte de figura cuja versão vetorial está no Drive, no formato da ABNT NBR 6023: endereço
+% depois de "Disponível em:" e data depois de "Acesso em:". O argumento é uma macro de
+% out/drive-links.tex, nunca a URL escrita à mão. O \expandafter faz a macro virar texto
+% antes de o \url recebê-la, que é o que permite quebrar o endereço no fim da linha.
+\newcommand{\fonteDrive}[1]{%
+  {\footnotesize \textbf{Fonte:} O autor.
+   Disponível em: \expandafter\url\expandafter{#1}. Acesso em: 1 nov. 2026.}}
+
 \begin{document}
 
 \frenchspacing
